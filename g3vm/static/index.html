@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>G3VM Studio // DarkSnail-Geo3D Subsurface Velocity Modeler</title>
+  <style>
+    :root {
+      --bg-root: #090d14;
+      --bg-panel: #101724;
+      --bg-card: #151e2e;
+      --border: #223049;
+      --text-main: #e6edf3;
+      --text-muted: #8b9bb4;
+      --accent-blue: #4ea1ff;
+      --accent-cyan: #00f5d4;
+      --accent-amber: #ffb703;
+      --accent-red: #ff5d73;
+      --accent-purple: #b57cff;
+      --accent-green: #2ec4b6;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg-root);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* Header */
+    header {
+      height: 54px;
+      background: linear-gradient(90deg, #0d1420 0%, #131d30 100%);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #06101e;
+      font-size: 14px;
+      letter-spacing: -0.5px;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: 6px;
+    }
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      font-size: 11px;
+      font-family: "Consolas", "SFMono-Regular", monospace;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(78, 161, 255, 0.12);
+      border: 1px solid rgba(78, 161, 255, 0.35);
+      color: var(--accent-blue);
+      white-space: nowrap;
+    }
+    .pill.ok {
+      background: rgba(0, 245, 212, 0.12);
+      border-color: rgba(0, 245, 212, 0.4);
+      color: var(--accent-cyan);
+    }
+    .pill.warn {
+      background: rgba(255, 183, 3, 0.14);
+      border-color: rgba(255, 183, 3, 0.45);
+      color: var(--accent-amber);
+    }
+
+    /* Main Grid Layout */
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 300px 1fr 370px;
+      gap: 10px;
+      padding: 10px;
+      min-height: 0;
+    }
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 9px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-body {
+      padding: 12px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Controls */
+    .control-group {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    label {
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-main);
+    }
+    label span.val {
+      font-family: "Consolas", monospace;
+      color: var(--accent-cyan);
+      font-size: 11.5px;
+    }
+    select, button {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: #0c121d;
+      color: var(--text-main);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    select:focus, button:focus {
+      outline: 1px solid var(--accent-blue);
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    button.primary {
+      background: linear-gradient(135deg, #1b4f9c, #123770);
+      border-color: #3878d6;
+      font-weight: 600;
+    }
+    button.primary:hover {
+      background: linear-gradient(135deg, #2463bf, #18478f);
+    }
+    button.accent {
+      background: rgba(0, 245, 212, 0.14);
+      border-color: rgba(0, 245, 212, 0.45);
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+    button.accent:hover {
+      background: rgba(0, 245, 212, 0.24);
+    }
+    .checkbox-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .checkbox-item input {
+      accent-color: var(--accent-cyan);
+    }
+
+    /* Center Column */
+    .center-col {
+      display: grid;
+      grid-template-rows: 1.15fr 0.85fr;
+      gap: 10px;
+      min-height: 0;
+    }
+    .viewport-3d-wrap {
+      position: relative;
+      flex: 1;
+      background: radial-gradient(circle at 50% 45%, #162238 0%, #090d14 85%);
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      display: block;
+    }
+    #canvas3d:active {
+      cursor: grabbing;
+    }
+    .viewport-overlay {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: rgba(11, 15, 23, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 11px;
+      border-radius: 6px;
+      font-size: 11.5px;
+    }
+    .viewport-toolbar {
+      position: absolute;
+      bottom: 10px;
+      left: 12px;
+      display: flex;
+      gap: 6px;
+    }
+    .viewport-toolbar button {
+      width: auto;
+      padding: 4px 9px;
+      font-size: 11px;
+      background: rgba(16, 23, 36, 0.88);
+    }
+
+    /* 2D Cross-Section Dock */
+    .cross-sections-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      min-height: 0;
+    }
+    .slice-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .slice-canvas-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+      background: #090d14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .slice-canvas-wrap canvas {
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      display: block;
+    }
+
+    /* Right Column: Well Log + Telemetry Table */
+    .well-canvas-wrap {
+      height: 255px;
+      background: #0a0f18;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    #canvasWell {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    table.scorecard {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+    table.scorecard th, table.scorecard td {
+      padding: 6px 7px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: left;
+    }
+    table.scorecard th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 10.5px;
+      text-transform: uppercase;
+    }
+    table.scorecard td.num {
+      font-family: "Consolas", monospace;
+      text-align: right;
+    }
+    .win {
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+    .lose {
+      color: var(--accent-red);
+    }
+    .litho-legend {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    .litho-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .swatch {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      display: inline-block;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-logo">G3</div>
+      <div>
+        <span class="brand-title">G3VM Studio</span>
+        <span class="brand-sub">DarkSnail-Geo3D Beltrami-Triad Subsurface Velocity Engine</span>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="pill ok" id="badgeThm22">Thm 2.2 so(C) Fault Tie-Break: ACTIVE</span>
+      <span class="pill ok" id="badgeOrtho">&lt;v, d_ell&gt;: 0.000e+00</span>
+      <span class="pill ok" id="badgeHomotopy">Thm 2.4 Step-0 Homotopy: 0.000e+00</span>
+      <span class="pill ok" id="badgeBeltrami">Beltrami Spike Recovery: 100.0%</span>
+      <span class="pill" id="badgeRmse">Vp RMSE: --</span>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <!-- Left Sidebar: Controls -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Geological &amp; Triad Controls</span>
+        <span id="statusIndicator" style="color: var(--accent-cyan); font-size: 10px;">READY</span>
+      </div>
+      <div class="panel-body">
+        <div class="control-group">
+          <div class="control-title">1. Basin Benchmark Scenario</div>
+          <select id="selectScenario">
+            <option value="subsalt_graben">Marmousi2 / Gulf Subsalt Graben &amp; Salt Diapir</option>
+            <option value="thrust_anticline">SEG/EAGE 3D Overthrust Duplex &amp; Reef</option>
+            <option value="unconformity_trap">4D CCS / H2 Sub-Unconformity Fault Trap</option>
+            <option value="egs_tbm_hazard">EGS Superhot Granite &amp; TBM Karst Look-Ahead</option>
+          </select>
+          <div id="scenarioSummary" style="font-size: 11px; color: var(--text-muted); line-height: 1.35;"></div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">2. Active 3D Property Cube</div>
+          <select id="selectField">
+            <option value="g3vm_vp">DarkSnail G3VM Vp Cube (km/s)</option>
+            <option value="naive_vp">Naive RBF/Kriging Baseline Vp (cc/sol Smear)</option>
+            <option value="true_vp">Ground Truth Vp Cube (km/s)</option>
+            <option value="err_g3vm">G3VM Absolute Error |Vp - True| (km/s)</option>
+            <option value="err_naive">Naive RBF Smear Error |Vp - True| (km/s)</option>
+            <option value="g3vm_litho">G3VM Lithology Facies ID (0..7)</option>
+            <option value="triad_norm">so(C) Triad Fault Shift ||d_ell_triad||_2</option>
+            <option value="precision_pi">Sensor Precision Pi(z,y,x) &amp; Sub-Salt Shadow</option>
+            <option value="timelapse_nope_plume">4D H_nope Plume Shift (Weather Stripped)</option>
+          </select>
+          <div class="btn-row">
+            <button class="accent" id="btnToggleCompare">Flip: G3VM &harr; Naive RBF</button>
+            <button id="btnToggleTruth">Flip: G3VM &harr; Truth</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">3. 3D Fence &amp; Chair-Cut Planes</div>
+          <label>Inline Y (North) <span class="val" id="valSliceY">16</span></label>
+          <input type="range" id="sliderY" min="0" max="31" value="16" />
+          <label>Crossline X (East) <span class="val" id="valSliceX">16</span></label>
+          <input type="range" id="sliderX" min="0" max="31" value="16" />
+          <label>Depth Horizon Z <span class="val" id="valSliceZ">16</span></label>
+          <input type="range" id="sliderZ" min="0" max="31" value="16" />
+
+          <div class="checkbox-list" style="margin-top: 4px;">
+            <label class="checkbox-item"><input type="checkbox" id="chkChairCut" checked /> 3D Chair-Cut Subvolume</label>
+            <label class="checkbox-item"><input type="checkbox" id="chkBoreholes" checked /> 6 Sparse Boreholes &amp; Stringer Rings</label>
+            <label class="checkbox-item"><input type="checkbox" id="chkCavity" checked /> Jordan Salt/Karst Cavity (&beta;<sub>1</sub>)</label>
+            <label class="checkbox-item"><input type="checkbox" id="chkFaults" checked /> Structural Fault Ribbons</label>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">4. DarkSnail Operator Parameters</div>
+          <label>so(C) Triad Gain (&beta;<sub>triad</sub>) <span class="val" id="valTriadGain">1.00</span></label>
+          <input type="range" id="sliderTriadGain" min="0" max="2.0" step="0.05" value="1.0" />
+          <label>Softmax Temp (&tau;<sub>v</sub>) <span class="val" id="valTauV">0.20</span></label>
+          <input type="range" id="sliderTauV" min="0.08" max="0.50" step="0.02" value="0.20" />
+          <label>Ridge Tomography (&lambda;<sub>ridge</sub>) <span class="val" id="valLambda">0.010</span></label>
+          <input type="range" id="sliderLambda" min="0.001" max="0.100" step="0.005" value="0.010" />
+          <div class="btn-row">
+            <button class="primary" id="btnApplyParams">Recompute Cube</button>
+            <button id="btnStep0Homotopy" title="Set beta_triad = 0 to test Theorem 2.4 Step-0 Homotopy">Test Thm 2.4 (&beta;=0)</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">5. Canonical Lithostratigraphic Column</div>
+          <div class="litho-legend" id="lithoLegend"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Column: 3D Viewport + 3 Synchronized 2D Cross Sections -->
+    <div class="center-col">
+      <div class="panel">
+        <div class="panel-header">
+          <span>3D Subsurface Velocity &amp; Structural Chair-Cut Block</span>
+          <span id="hoverReadout" style="font-family: Consolas, monospace; font-size: 11px; color: var(--accent-cyan);">
+            Drag to orbit | Scroll to zoom | Click 2D slices to probe
+          </span>
+        </div>
+        <div class="viewport-3d-wrap">
+          <canvas id="canvas3d"></canvas>
+          <div class="viewport-overlay">
+            <div><strong style="color: var(--accent-cyan);" id="overlayTitle">Marmousi2 Subsalt Graben</strong></div>
+            <div id="overlayMode">Mode: DarkSnail G3VM Vp (km/s)</div>
+            <div id="overlayCursor">Cursor: (Z=16, Y=16, X=16) | Vp: -- km/s</div>
+          </div>
+          <div class="viewport-toolbar">
+            <button id="btnCamIso">Isometric View</button>
+            <button id="btnCamDip">Inline Dip View</button>
+            <button id="btnCamStrike">Crossline View</button>
+            <button id="btnCamMap">Map View</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cross-sections-grid">
+        <div class="slice-card">
+          <div class="panel-header">
+            <span>Inline Dip Section (Z &times; X)</span>
+            <span id="lblInlineY" style="font-family: Consolas, monospace;">Y = 16</span>
+          </div>
+          <div class="slice-canvas-wrap">
+            <canvas id="canvasInline"></canvas>
+          </div>
+        </div>
+
+        <div class="slice-card">
+          <div class="panel-header">
+            <span>Crossline Strike Section (Z &times; Y)</span>
+            <span id="lblCrossX" style="font-family: Consolas, monospace;">X = 16</span>
+          </div>
+          <div class="slice-canvas-wrap">
+            <canvas id="canvasCrossline"></canvas>
+          </div>
+        </div>
+
+        <div class="slice-card">
+          <div class="panel-header">
+            <span>Depth Horizon Slice (Y &times; X)</span>
+            <span id="lblDepthZ" style="font-family: Consolas, monospace;">Z = 16</span>
+          </div>
+          <div class="slice-canvas-wrap">
+            <canvas id="canvasDepth"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar: Borehole Beltrami Log + Quantitative Scorecard -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Borehole Beltrami Shell &amp; Benchmark Scorecard</span>
+      </div>
+      <div class="panel-body">
+        <div class="control-group">
+          <div class="control-title">Borehole Sonic Log &amp; Exterior Curl Spike Shield</div>
+          <select id="selectWell"></select>
+          <div class="well-canvas-wrap">
+            <canvas id="canvasWell"></canvas>
+          </div>
+          <div id="wellStats" style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;"></div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">Head-to-Head Benchmark: DarkSnail G3VM vs. Naive RBF</div>
+          <table class="scorecard">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th style="text-align:right;">Naive RBF</th>
+                <th style="text-align:right;">DarkSnail G3VM</th>
+              </tr>
+            </thead>
+            <tbody id="scorecardBody"></tbody>
+          </table>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">Machine-Checked Invariants (OcclusionTriad.lean)</div>
+          <table class="scorecard">
+            <tbody id="theoremBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let STATE = {
+      data: null,
+      activeField: "g3vm_vp",
+      sliceZ: 16,
+      sliceY: 16,
+      sliceX: 16,
+      selectedWell: 0,
+      camYaw: -0.68,
+      camPitch: 0.52,
+      camZoom: 1.0,
+      isDragging3D: false,
+      lastMouseX: 0,
+      lastMouseY: 0,
+    };
+
+    // Turbo-like geophysical colormap for velocity (km/s)
+    function sampleColormap(t, mode) {
+      t = Math.max(0.0, Math.min(1.0, t));
+      if (mode === "error" || mode === "triad") {
+        // Magma / Inferno style
+        const r = Math.min(255, Math.floor(255 * Math.pow(t, 0.55)));
+        const g = Math.min(255, Math.floor(255 * Math.pow(t, 1.6)));
+        const b = Math.min(255, Math.floor(255 * (0.25 + 0.75 * Math.sin(Math.PI * t))));
+        return [r, g, b];
+      }
+      // Petrel / Turbo high-contrast seismic velocity ramp
+      const r = Math.round(255 * Math.max(0, Math.min(1, 1.5 - Math.abs(4 * t - 3))));
+      const g = Math.round(255 * Math.max(0, Math.min(1, 1.5 - Math.abs(4 * t - 2))));
+      const b = Math.round(255 * Math.max(0, Math.min(1, 1.5 - Math.abs(4 * t - 1))));
+      return [r, g, b];
+    }
+
+    function hexToRgb(hex) {
+      const clean = hex.replace("#", "");
+      const num = parseInt(clean, 16);
+      return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+    }
+
+    function getVoxelColor(z, y, x) {
+      if (!STATE.data) return [30, 40, 60];
+      const cubes = STATE.data.cubes;
+      const f = STATE.activeField;
+      if (f === "g3vm_litho") {
+        const lid = cubes.g3vm_litho[z][y][x];
+        const cat = STATE.data.lithology_catalog[lid] || STATE.data.lithology_catalog[0];
+        return hexToRgb(cat.color);
+      }
+      const val = cubes[f][z][y][x];
+      if (f === "err_g3vm" || f === "err_naive") {
+        return sampleColormap(val / 1.2, "error");
+      }
+      if (f === "triad_norm") {
+        return sampleColormap(val / 8.0, "triad");
+      }
+      if (f === "precision_pi") {
+        return sampleColormap((val - 0.05) / 1.35, "turbo");
+      }
+      if (f === "timelapse_nope_plume") {
+        return sampleColormap(val / 0.35, "error");
+      }
+      // Velocity in [1.7, 6.4] km/s
+      return sampleColormap((val - 1.7) / (6.4 - 1.7), "turbo");
+    }
+
+    async function loadScenarioData() {
+      const status = document.getElementById("statusIndicator");
+      status.textContent = "COMPUTING...";
+      status.style.color = "var(--accent-amber)";
+
+      const payload = {
+        scenario_name: document.getElementById("selectScenario").value,
+        tau_v: parseFloat(document.getElementById("sliderTauV").value),
+        triad_gain: parseFloat(document.getElementById("sliderTriadGain").value),
+        lambda_ridge: parseFloat(document.getElementById("sliderLambda").value),
+        grid_size: 32,
+      };
+
+      const res = await fetch("/api/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      STATE.data = data;
+
+      const [Z, Y, X] = data.grid_shape;
+      document.getElementById("sliderZ").max = Z - 1;
+      document.getElementById("sliderY").max = Y - 1;
+      document.getElementById("sliderX").max = X - 1;
+      STATE.sliceZ = Math.min(STATE.sliceZ, Z - 1);
+      STATE.sliceY = Math.min(STATE.sliceY, Y - 1);
+      STATE.sliceX = Math.min(STATE.sliceX, X - 1);
+
+      populateSidebarAndTables();
+      renderAll();
+
+      status.textContent = "LIVE";
+      status.style.color = "var(--accent-cyan)";
+    }
+
+    function populateSidebarAndTables() {
+      const d = STATE.data;
+      if (!d) return;
+
+      document.getElementById("scenarioSummary").textContent = d.meta.summary;
+      document.getElementById("overlayTitle").textContent = d.meta.title;
+
+      // Header pills
+      const m = d.metrics;
+      document.getElementById("badgeOrtho").textContent =
+        `<v, d_ell>: ${m.max_orthogonality_residual.toExponential(2)}`;
+      document.getElementById("badgeHomotopy").textContent =
+        `Thm 2.4 Step-0 Homotopy: ${m.step0_homotopy_error.toExponential(2)}`;
+      document.getElementById("badgeBeltrami").textContent =
+        `Beltrami Spike Recovery: ${(m.beltrami_spike_recovery * 100).toFixed(1)}%`;
+      document.getElementById("badgeRmse").textContent =
+        `Vp RMSE: ${m.g3vm_vp_rmse_kms.toFixed(3)} km/s (-${m.rmse_reduction_pct.toFixed(1)}% vs RBF)`;
+
+      // Lithology legend
+      const leg = document.getElementById("lithoLegend");
+      leg.innerHTML = d.lithology_catalog
+        .map(
+          (item) => `
+        <div class="litho-item">
+          <span><span class="swatch" style="background:${item.color}"></span>${item.id}: ${item.name}</span>
+          <span style="font-family:Consolas,monospace;color:var(--accent-cyan);">${item.vp_kms.toFixed(2)} km/s</span>
+        </div>`
+        )
+        .join("");
+
+      // Well selector
+      const selWell = document.getElementById("selectWell");
+      const prevIdx = Math.min(STATE.selectedWell, d.wells.length - 1);
+      selWell.innerHTML = d.wells
+        .map((w, i) => `<option value="${i}">${w.name} @ (Y=${w.y}, X=${w.x})</option>`)
+        .join("");
+      selWell.value = String(prevIdx);
+      STATE.selectedWell = prevIdx;
+
+      // Scorecard table
+      const rows = [
+        ["Whole-Cube Vp RMSE (km/s)", m.naive_vp_rmse_kms.toFixed(4), m.g3vm_vp_rmse_kms.toFixed(4)],
+        ["Fault-Zone Vp RMSE (km/s)", m.naive_fault_zone_rmse_kms.toFixed(4), m.g3vm_fault_zone_rmse_kms.toFixed(4)],
+        ["Cross-Fault Sharpness", (m.naive_fault_sharpness_ratio * 100).toFixed(1) + "%", (m.g3vm_fault_sharpness_ratio * 100).toFixed(1) + "%"],
+        ["Lithology Accuracy", (m.naive_lithology_accuracy * 100).toFixed(1) + "%", (m.g3vm_lithology_accuracy * 100).toFixed(1) + "%"],
+        ["Fault-Zone Litho Acc", (m.naive_fault_lithology_accuracy * 100).toFixed(1) + "%", (m.g3vm_fault_lithology_accuracy * 100).toFixed(1) + "%"],
+        ["Marginal W1 Distance", m.naive_marginal_w1.toFixed(5), m.g3vm_marginal_w1.toFixed(5)],
+        ["Stringer Spike Recovery", (m.naive_spike_recovery * 100).toFixed(1) + "%", (m.beltrami_spike_recovery * 100).toFixed(1) + "%"],
+      ];
+      document.getElementById("scorecardBody").innerHTML = rows
+        .map(
+          ([label, rbf, g3]) => `
+        <tr>
+          <td>${label}</td>
+          <td class="num lose">${rbf}</td>
+          <td class="num win">${g3}</td>
+        </tr>`
+        )
+        .join("");
+
+      const t = m.theorem_audit;
+      const thmRows = [
+        ["Thm 2.1 Skew-Symmetry Error", t.theorem_2_1_antisymmetry_error.toExponential(2)],
+        ["Thm 2.2 Fault Tie-Break Gap", "+" + t.theorem_2_2_tie_break_gap.toFixed(3)],
+        ["Thm 2.3 Spherical Ortho <v, d_ell>", m.max_orthogonality_residual.toExponential(2)],
+        ["Thm 2.4 Step-0 Homotopy Error", m.step0_homotopy_error.toExponential(2)],
+        ["Thm 2.5 RoPE Phase Error", t.theorem_2_5_relative_phase_error.toExponential(2)],
+        ["Thm 2.6 Cascade Radial Drift", t.theorem_2_6_spherical_radial_drift.toExponential(2)],
+        ["4D H_clock (+) H_nope Invariance", m.timelapse_exogenous_invariance ? "VERIFIED (Exact)" : "FAILED"],
+      ];
+      document.getElementById("theoremBody").innerHTML = thmRows
+        .map(
+          ([k, v]) => `
+        <tr>
+          <td>${k}</td>
+          <td class="num win">${v}</td>
+        </tr>`
+        )
+        .join("");
+    }
+
+    // Render 2D Slices
+    function render2DSlices() {
+      if (!STATE.data) return;
+      const [Z, Y, X] = STATE.data.grid_shape;
+      const sz = STATE.sliceZ;
+      const sy = STATE.sliceY;
+      const sx = STATE.sliceX;
+
+      document.getElementById("valSliceZ").textContent = sz;
+      document.getElementById("valSliceY").textContent = sy;
+      document.getElementById("valSliceX").textContent = sx;
+      document.getElementById("lblInlineY").textContent = `Y = ${sy}`;
+      document.getElementById("lblCrossX").textContent = `X = ${sx}`;
+      document.getElementById("lblDepthZ").textContent = `Z = ${sz}`;
+
+      const g3Vp = STATE.data.cubes.g3vm_vp[sz][sy][sx];
+      const rbfVp = STATE.data.cubes.naive_vp[sz][sy][sx];
+      const trueVp = STATE.data.cubes.true_vp[sz][sy][sx];
+      const lid = STATE.data.cubes.g3vm_litho[sz][sy][sx];
+      const lname = STATE.data.lithology_catalog[lid]?.name || "";
+      document.getElementById("overlayCursor").textContent =
+        `Cursor (Z=${sz}, Y=${sy}, X=${sx}) | G3VM: ${g3Vp.toFixed(2)} km/s | RBF: ${rbfVp.toFixed(2)} | True: ${trueVp.toFixed(2)} (${lname})`;
+
+      const fieldSel = document.getElementById("selectField");
+      document.getElementById("overlayMode").textContent =
+        "Mode: " + fieldSel.options[fieldSel.selectedIndex].text;
+
+      // 1. Inline Dip Slice (Z x X at Y = sy)
+      drawSliceCanvas("canvasInline", X, Z, ( c, r ) => getVoxelColor(r, sy, c), sx, sz, STATE.data.wells.map(w => ({ c: w.x, rList: w.stringer_depths, name: w.name })));
+
+      // 2. Crossline Strike Slice (Z x Y at X = sx)
+      drawSliceCanvas("canvasCrossline", Y, Z, ( c, r ) => getVoxelColor(r, c, sx), sy, sz, []);
+
+      // 3. Depth Horizon Slice (Y x X at Z = sz)
+      drawSliceCanvas("canvasDepth", X, Y, ( c, r ) => getVoxelColor(sz, r, c), sx, sy, STATE.data.wells.map(w => ({ c: w.x, r: w.y, name: w.name, isMap: true })));
+    }
+
+    function drawSliceCanvas(canvasId, cols, rows, colorFn, crossCol, crossRow, markers) {
+      const canvas = document.getElementById(canvasId);
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(120, Math.floor(rect.width));
+      canvas.height = Math.max(100, Math.floor(rect.height));
+      const ctx = canvas.getContext("2d");
+
+      const off = document.createElement("canvas");
+      off.width = cols;
+      off.height = rows;
+      const offCtx = off.getContext("2d");
+      const img = offCtx.createImageData(cols, rows);
+      let idx = 0;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const [R, G, B] = colorFn(c, r);
+          img.data[idx++] = R;
+          img.data[idx++] = G;
+          img.data[idx++] = B;
+          img.data[idx++] = 255;
+        }
+      }
+      offCtx.putImageData(img, 0, 0);
+
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+
+      const scaleX = canvas.width / cols;
+      const scaleY = canvas.height / rows;
+
+      // Draw borehole trajectories or map pins
+      for (const m of markers) {
+        if (m.isMap) {
+          const px = (m.c + 0.5) * scaleX;
+          const py = (m.r + 0.5) * scaleY;
+          ctx.beginPath();
+          ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = "#00f5d4";
+          ctx.fill();
+          ctx.strokeStyle = "#000";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        } else {
+          const px = (m.c + 0.5) * scaleX;
+          ctx.strokeStyle = "rgba(255,255,255,0.55)";
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(px, 0);
+          ctx.lineTo(px, canvas.height);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          for (const rz of m.rList) {
+            const py = (rz + 0.5) * scaleY;
+            ctx.beginPath();
+            ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = "#ffd43b";
+            ctx.fill();
+          }
+        }
+      }
+
+      // Crosshairs
+      const cx = (crossCol + 0.5) * scaleX;
+      const cy = (crossRow + 0.5) * scaleY;
+      ctx.strokeStyle = "rgba(0, 245, 212, 0.85)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(cx, 0);
+      ctx.lineTo(cx, canvas.height);
+      ctx.moveTo(0, cy);
+      ctx.lineTo(canvas.width, cy);
+      ctx.stroke();
+    }
+
+    // Render 3D Chair-Cut & Fence Volume
+    function render3DViewport() {
+      if (!STATE.data) return;
+      const canvas = document.getElementById("canvas3d");
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(300, Math.floor(rect.width));
+      canvas.height = Math.max(220, Math.floor(rect.height));
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const [Z, Y, X] = STATE.data.grid_shape;
+      const sz = STATE.sliceZ;
+      const sy = STATE.sliceY;
+      const sx = STATE.sliceX;
+      const chairCut = document.getElementById("chkChairCut").checked;
+      const showBoreholes = document.getElementById("chkBoreholes").checked;
+      const showCavity = document.getElementById("chkCavity").checked;
+      const showFaults = document.getElementById("chkFaults").checked;
+
+      const cx = canvas.width * 0.5;
+      const cy = canvas.height * 0.52;
+      const scale = Math.min(canvas.width, canvas.height) * 0.0175 * STATE.camZoom;
+
+      const cosY = Math.cos(STATE.camYaw);
+      const sinY = Math.sin(STATE.camYaw);
+      const cosP = Math.cos(STATE.camPitch);
+      const sinP = Math.sin(STATE.camPitch);
+
+      function project(z, y, x) {
+        // Center coordinates around [-N/2, N/2], with Z pointing downward
+        const dx = x - X * 0.5;
+        const dy = y - Y * 0.5;
+        const dz = z - Z * 0.5;
+
+        const rx = dx * cosY - dy * sinY;
+        const ry = dx * sinY + dy * cosY;
+        const screenX = cx + rx * scale;
+        const screenY = cy + (dz * cosP - ry * sinP) * scale;
+        const depth = ry * cosP + dz * sinP;
+        return [screenX, screenY, depth];
+      }
+
+      const quads = [];
+      function pushQuad(p0, p1, p2, p3, rgb, shade, alpha = 1.0) {
+        const d = (p0[2] + p1[2] + p2[2] + p3[2]) * 0.25;
+        const r = Math.min(255, Math.round(rgb[0] * shade));
+        const g = Math.min(255, Math.round(rgb[1] * shade));
+        const b = Math.min(255, Math.round(rgb[2] * shade));
+        quads.push({
+          pts: [p0, p1, p2, p3],
+          fill: `rgba(${r},${g},${b},${alpha})`,
+          depth: d,
+        });
+      }
+
+      // Sample step=1 for crisp 32^3 chair-cut & fence faces
+      // 1. Horizontal Slice Z = sz
+      for (let y = 0; y < Y; y++) {
+        for (let x = 0; x < X; x++) {
+          if (chairCut && y > sy && x > sx && sz > 0) continue;
+          const rgb = getVoxelColor(sz, y, x);
+          pushQuad(
+            project(sz, y, x),
+            project(sz, y, x + 1),
+            project(sz, y + 1, x + 1),
+            project(sz, y + 1, x),
+            rgb,
+            1.05
+          );
+        }
+      }
+
+      // 2. Inline Slice Y = sy (Z x X)
+      for (let z = 0; z < Z; z++) {
+        for (let x = 0; x < X; x++) {
+          if (chairCut && z < sz && x > sx) continue;
+          const rgb = getVoxelColor(z, sy, x);
+          pushQuad(
+            project(z, sy, x),
+            project(z, sy, x + 1),
+            project(z + 1, sy, x + 1),
+            project(z + 1, sy, x),
+            rgb,
+            0.92
+          );
+        }
+      }
+
+      // 3. Crossline Slice X = sx (Z x Y)
+      for (let z = 0; z < Z; z++) {
+        for (let y = 0; y < Y; y++) {
+          if (chairCut && z < sz && y > sy) continue;
+          const rgb = getVoxelColor(z, y, sx);
+          pushQuad(
+            project(z, y, sx),
+            project(z, y + 1, sx),
+            project(z + 1, y + 1, sx),
+            project(z + 1, y, sx),
+            rgb,
+            0.80
+          );
+        }
+      }
+
+      // 4. Enclosed Jordan Salt / Karst Cavity Voxels (beta_1)
+      if (showCavity) {
+        const cav = STATE.data.cubes.jordan_cavity;
+        for (let z = 1; z < Z - 1; z += 2) {
+          for (let y = 1; y < Y - 1; y += 2) {
+            for (let x = 1; x < X - 1; x += 2) {
+              if (cav[z][y][x] > 0.5) {
+                const p = project(z, y, x);
+                quads.push({
+                  circle: p,
+                  radius: 3.0 * STATE.camZoom,
+                  fill: "rgba(0, 245, 212, 0.55)",
+                  depth: p[2],
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // 5. Structural Fault Ribbon Planes
+      if (showFaults && STATE.data.fault_planes_meta) {
+        for (const fp of STATE.data.fault_planes_meta) {
+          if (fp.x_top !== undefined && fp.x_bot !== undefined) {
+            const xTop = fp.x_top * X;
+            const xBot = fp.x_bot * X;
+            const rgb = hexToRgb(fp.color || "#ff6b6b");
+            for (let y = 0; y < Y; y += 4) {
+              const yn = Math.min(Y, y + 4);
+              pushQuad(
+                project(0, y, xTop),
+                project(0, yn, xTop),
+                project(Z, yn, xBot),
+                project(Z, y, xBot),
+                rgb,
+                1.0,
+                0.28
+              );
+            }
+          }
+        }
+      }
+
+      // Painter's depth sort (back to front)
+      quads.sort((a, b) => a.depth - b.depth);
+
+      for (const q of quads) {
+        if (q.circle) {
+          ctx.beginPath();
+          ctx.arc(q.circle[0], q.circle[1], q.radius, 0, Math.PI * 2);
+          ctx.fillStyle = q.fill;
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(q.pts[0][0], q.pts[0][1]);
+          ctx.lineTo(q.pts[1][0], q.pts[1][1]);
+          ctx.lineTo(q.pts[2][0], q.pts[2][1]);
+          ctx.lineTo(q.pts[3][0], q.pts[3][1]);
+          ctx.closePath();
+          ctx.fillStyle = q.fill;
+          ctx.fill();
+        }
+      }
+
+      // Bounding Wireframe Box
+      const corners = [
+        [0, 0, 0], [0, 0, X], [0, Y, X], [0, Y, 0],
+        [Z, 0, 0], [Z, 0, X], [Z, Y, X], [Z, Y, 0],
+      ].map(([z, y, x]) => project(z, y, x));
+      const edges = [
+        [0, 1], [1, 2], [2, 3], [3, 0],
+        [4, 5], [5, 6], [6, 7], [7, 4],
+        [0, 4], [1, 5], [2, 6], [3, 7],
+      ];
+      ctx.strokeStyle = "rgba(139, 155, 180, 0.35)";
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      for (const [i, j] of edges) {
+        ctx.moveTo(corners[i][0], corners[i][1]);
+        ctx.lineTo(corners[j][0], corners[j][1]);
+      }
+      ctx.stroke();
+
+      // 6. Sparse Boreholes & Beltrami Stringer Rings
+      if (showBoreholes) {
+        STATE.data.wells.forEach((w, idx) => {
+          const pTop = project(0, w.y, w.x);
+          const pBot = project(Z - 1, w.y, w.x);
+          ctx.strokeStyle = idx === STATE.selectedWell ? "#00f5d4" : "rgba(255,255,255,0.75)";
+          ctx.lineWidth = idx === STATE.selectedWell ? 2.4 : 1.4;
+          ctx.beginPath();
+          ctx.moveTo(pTop[0], pTop[1]);
+          ctx.lineTo(pBot[0], pBot[1]);
+          ctx.stroke();
+
+          // Wellhead label
+          ctx.fillStyle = idx === STATE.selectedWell ? "#00f5d4" : "#e6edf3";
+          ctx.font = "bold 10px sans-serif";
+          ctx.fillText(`W${idx + 1}`, pTop[0] - 8, pTop[1] - 6);
+
+          // Beltrami stringer spikes
+          for (const szIdx of w.stringer_depths) {
+            const ps = project(szIdx, w.y, w.x);
+            ctx.beginPath();
+            ctx.arc(ps[0], ps[1], 4.2, 0, Math.PI * 2);
+            ctx.fillStyle = "#ffd43b";
+            ctx.fill();
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1.0;
+            ctx.stroke();
+          }
+        });
+      }
+    }
+
+    // Render Borehole Beltrami Log Panel
+    function renderWellLogPanel() {
+      if (!STATE.data || !STATE.data.wells.length) return;
+      const w = STATE.data.wells[STATE.selectedWell] || STATE.data.wells[0];
+      const canvas = document.getElementById("canvasWell");
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(240, Math.floor(rect.width));
+      canvas.height = Math.max(180, Math.floor(rect.height));
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const padL = 34, padR = 14, padT = 18, padB = 24;
+      const plotW = canvas.width - padL - padR;
+      const plotH = canvas.height - padT - padB;
+      const Z = w.true_vp.length;
+      const vmin = 1.6, vmax = 6.5;
+
+      function xOfVp(vp) {
+        return padL + ((vp - vmin) / (vmax - vmin)) * plotW;
+      }
+      function yOfZ(z) {
+        return padT + (z / Math.max(1, Z - 1)) * plotH;
+      }
+
+      // Grid lines
+      ctx.strokeStyle = "rgba(255,255,255,0.06)";
+      ctx.lineWidth = 1;
+      for (let v = 2; v <= 6; v++) {
+        const px = xOfVp(v);
+        ctx.beginPath();
+        ctx.moveTo(px, padT);
+        ctx.lineTo(px, padT + plotH);
+        ctx.stroke();
+        ctx.fillStyle = "#8b9bb4";
+        ctx.font = "10px Consolas, monospace";
+        ctx.fillText(`${v}km/s`, px - 14, canvas.height - 6);
+      }
+
+      // Shaded Beltrami Curl Salience
+      ctx.fillStyle = "rgba(255, 183, 3, 0.16)";
+      ctx.beginPath();
+      ctx.moveTo(padL, yOfZ(0));
+      for (let z = 0; z < Z; z++) {
+        ctx.lineTo(padL + w.salience[z] * plotW * 0.45, yOfZ(z));
+      }
+      ctx.lineTo(padL, yOfZ(Z - 1));
+      ctx.closePath();
+      ctx.fill();
+
+      // Naive Voxel-Pooled Vp (dashed red)
+      ctx.strokeStyle = "#ff5d73";
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      for (let z = 0; z < Z; z++) {
+        const px = xOfVp(w.naive_pooled_vp[z]);
+        const py = yOfZ(z);
+        if (z === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // True Sonic Vp (solid blue)
+      ctx.strokeStyle = "#4ea1ff";
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      for (let z = 0; z < Z; z++) {
+        const px = xOfVp(w.true_vp[z]);
+        const py = yOfZ(z);
+        if (z === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      // Beltrami Reconstructed Vp (dotted cyan)
+      ctx.strokeStyle = "#00f5d4";
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      for (let z = 0; z < Z; z++) {
+        const px = xOfVp(w.reconstructed_vp[z]);
+        const py = yOfZ(z);
+        if (z === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Tier-1 Shielded Spikes (gold circles)
+      for (let i = 0; i < w.tier1_indices.length; i++) {
+        const z = w.tier1_indices[i];
+        const v = w.tier1_values[i];
+        ctx.beginPath();
+        ctx.arc(xOfVp(v), yOfZ(z), 3.6, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffb703";
+        ctx.fill();
+      }
+
+      // Active Depth Z cursor line
+      const curY = yOfZ(STATE.sliceZ);
+      ctx.strokeStyle = "rgba(0, 245, 212, 0.6)";
+      ctx.beginPath();
+      ctx.moveTo(padL, curY);
+      ctx.lineTo(padL + plotW, curY);
+      ctx.stroke();
+
+      document.getElementById("wellStats").innerHTML =
+        `<span>Beltrami Spike Recovery: <strong style="color:var(--accent-cyan)">${(w.beltrami_spike_recovery * 100).toFixed(1)}%</strong></span>` +
+        `<span>Naive Pool Recovery: <strong style="color:var(--accent-red)">${(w.naive_spike_recovery * 100).toFixed(1)}%</strong></span>`;
+    }
+
+    function renderAll() {
+      render3DViewport();
+      render2DSlices();
+      renderWellLogPanel();
+    }
+
+    // Interactive Event Listeners
+    document.getElementById("selectScenario").addEventListener("change", loadScenarioData);
+    document.getElementById("selectField").addEventListener("change", (e) => {
+      STATE.activeField = e.target.value;
+      renderAll();
+    });
+    document.getElementById("selectWell").addEventListener("change", (e) => {
+      STATE.selectedWell = parseInt(e.target.value, 10);
+      const w = STATE.data.wells[STATE.selectedWell];
+      if (w) {
+        STATE.sliceY = w.y;
+        STATE.sliceX = w.x;
+        document.getElementById("sliderY").value = w.y;
+        document.getElementById("sliderX").value = w.x;
+      }
+      renderAll();
+    });
+
+    ["sliderZ", "sliderY", "sliderX"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", () => {
+        STATE.sliceZ = parseInt(document.getElementById("sliderZ").value, 10);
+        STATE.sliceY = parseInt(document.getElementById("sliderY").value, 10);
+        STATE.sliceX = parseInt(document.getElementById("sliderX").value, 10);
+        renderAll();
+      });
+    });
+
+    ["chkChairCut", "chkBoreholes", "chkCavity", "chkFaults"].forEach((id) => {
+      document.getElementById(id).addEventListener("change", render3DViewport);
+    });
+
+    document.getElementById("sliderTriadGain").addEventListener("input", (e) => {
+      document.getElementById("valTriadGain").textContent = parseFloat(e.target.value).toFixed(2);
+    });
+    document.getElementById("sliderTauV").addEventListener("input", (e) => {
+      document.getElementById("valTauV").textContent = parseFloat(e.target.value).toFixed(2);
+    });
+    document.getElementById("sliderLambda").addEventListener("input", (e) => {
+      document.getElementById("valLambda").textContent = parseFloat(e.target.value).toFixed(3);
+    });
+
+    document.getElementById("btnApplyParams").addEventListener("click", loadScenarioData);
+    document.getElementById("btnStep0Homotopy").addEventListener("click", () => {
+      const slider = document.getElementById("sliderTriadGain");
+      const cur = parseFloat(slider.value);
+      const next = cur > 0.01 ? 0.0 : 1.0;
+      slider.value = next;
+      document.getElementById("valTriadGain").textContent = next.toFixed(2);
+      loadScenarioData();
+    });
+
+    document.getElementById("btnToggleCompare").addEventListener("click", () => {
+      const sel = document.getElementById("selectField");
+      sel.value = sel.value === "naive_vp" ? "g3vm_vp" : "naive_vp";
+      STATE.activeField = sel.value;
+      renderAll();
+    });
+    document.getElementById("btnToggleTruth").addEventListener("click", () => {
+      const sel = document.getElementById("selectField");
+      sel.value = sel.value === "true_vp" ? "g3vm_vp" : "true_vp";
+      STATE.activeField = sel.value;
+      renderAll();
+    });
+
+    // Camera Presets
+    document.getElementById("btnCamIso").addEventListener("click", () => {
+      STATE.camYaw = -0.68; STATE.camPitch = 0.52; STATE.camZoom = 1.0; render3DViewport();
+    });
+    document.getElementById("btnCamDip").addEventListener("click", () => {
+      STATE.camYaw = 0.0; STATE.camPitch = 0.08; STATE.camZoom = 1.1; render3DViewport();
+    });
+    document.getElementById("btnCamStrike").addEventListener("click", () => {
+      STATE.camYaw = -1.57; STATE.camPitch = 0.08; STATE.camZoom = 1.1; render3DViewport();
+    });
+    document.getElementById("btnCamMap").addEventListener("click", () => {
+      STATE.camYaw = 0.0; STATE.camPitch = 1.48; STATE.camZoom = 1.05; render3DViewport();
+    });
+
+    // 3D Orbit Mouse Drag & Zoom
+    const c3d = document.getElementById("canvas3d");
+    c3d.addEventListener("mousedown", (e) => {
+      STATE.isDragging3D = true;
+      STATE.lastMouseX = e.clientX;
+      STATE.lastMouseY = e.clientY;
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!STATE.isDragging3D) return;
+      const dx = e.clientX - STATE.lastMouseX;
+      const dy = e.clientY - STATE.lastMouseY;
+      STATE.lastMouseX = e.clientX;
+      STATE.lastMouseY = e.clientY;
+      STATE.camYaw += dx * 0.01;
+      STATE.camPitch = Math.max(-1.4, Math.min(1.45, STATE.camPitch + dy * 0.01));
+      render3DViewport();
+    });
+    window.addEventListener("mouseup", () => {
+      STATE.isDragging3D = false;
+    });
+    c3d.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      STATE.camZoom = Math.max(0.55, Math.min(2.2, STATE.camZoom * (e.deltaY < 0 ? 1.08 : 0.92)));
+      render3DViewport();
+    });
+
+    // Click on 2D Slices to reposition 3D Crosshairs
+    function bind2DSliceClick(canvasId, onCoord) {
+      const el = document.getElementById(canvasId);
+      el.addEventListener("mousedown", (e) => {
+        if (!STATE.data) return;
+        const rect = el.getBoundingClientRect();
+        const fx = Math.max(0, Math.min(0.999, (e.clientX - rect.left) / rect.width));
+        const fy = Math.max(0, Math.min(0.999, (e.clientY - rect.top) / rect.height));
+        onCoord(fx, fy);
+        document.getElementById("sliderZ").value = STATE.sliceZ;
+        document.getElementById("sliderY").value = STATE.sliceY;
+        document.getElementById("sliderX").value = STATE.sliceX;
+        renderAll();
+      });
+    }
+    bind2DSliceClick("canvasInline", (fx, fy) => {
+      const [Z, , X] = STATE.data.grid_shape;
+      STATE.sliceX = Math.floor(fx * X);
+      STATE.sliceZ = Math.floor(fy * Z);
+    });
+    bind2DSliceClick("canvasCrossline", (fx, fy) => {
+      const [Z, Y] = STATE.data.grid_shape;
+      STATE.sliceY = Math.floor(fx * Y);
+      STATE.sliceZ = Math.floor(fy * Z);
+    });
+    bind2DSliceClick("canvasDepth", (fx, fy) => {
+      const [, Y, X] = STATE.data.grid_shape;
+      STATE.sliceX = Math.floor(fx * X);
+      STATE.sliceY = Math.floor(fy * Y);
+    });
+
+    window.addEventListener("resize", renderAll);
+    loadScenarioData();
+  </script>
+</body>
+</html>

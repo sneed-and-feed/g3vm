@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "g3vm"
+version = "0.1.0"
+description = "G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity Modeler with Skew-Symmetric Fault Tie-Breaking, Well-Log Curl Shielding, Jordan Salt-Cavity Enclosures, and Precision-Weighted Ridge Tomography"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "torch>=2.1.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "matplotlib>=3.7.0",
+    "flask>=3.0.0",
+    "pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+]
+
+[project.scripts]
+g3vm = "g3vm.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["g3vm*"]
+
+[tool.setuptools.package-data]
+g3vm = ["static/*.html", "static/*.js", "static/*.css"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

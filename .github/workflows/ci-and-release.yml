@@ -1,0 +1,128 @@
+name: Cross-Platform CI & Pre-Packaged Binary Release
+
+on:
+  push:
+    branches: ["main", "master"]
+    tags: ["v*"]
+  pull_request:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test-matrix:
+    name: Pytest & Math Audit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install CPU PyTorch & G3VM dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            pip install -e ".[dev]"
+          else
+            pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[dev]"
+          fi
+        shell: bash
+
+      - name: Run GFM / KaTeX Math Compliance Audit
+        run: python scripts/audit_gfm_math.py README.md docs/ARCHITECTURE.md
+
+      - name: Run Cross-Platform Pytest Verification Suite
+        run: pytest -v
+
+  build-binaries:
+    name: Build Standalone Binary (${{ matrix.target_name }})
+    needs: test-matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target_name: g3vm-windows-x86_64
+            ext: ".exe"
+          - os: macos-latest
+            target_name: g3vm-macos-arm64
+            ext: ""
+          - os: ubuntu-latest
+            target_name: g3vm-linux-x86_64
+            ext: ""
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install G3VM & PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            pip install -e . pyinstaller
+          else
+            pip install --extra-index-url https://download.pytorch.org/whl/cpu -e . pyinstaller
+          fi
+        shell: bash
+
+      - name: Package Single-File Executable & Portable HTML5 Studio
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile \
+            --name "${{ matrix.target_name }}" \
+            --add-data "g3vm/static:g3vm/static" \
+            g3vm/__main__.py
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            python -m g3vm bundle-html --output dist/g3vm_portable_studio.html
+          fi
+        shell: bash
+
+      - name: Smoke-Test Packaged Binary
+        run: |
+          ./dist/${{ matrix.target_name }}${{ matrix.ext }} export --scenario subsalt_graben --grid-size 16 --output dist/smoke_cube.npz
+          rm -f dist/smoke_cube.npz
+        shell: bash
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target_name }}
+          path: dist/*
+
+  publish-release:
+    name: Publish GitHub Release Assets
+    needs: build-binaries
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Built Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish Pre-Packaged Binaries to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/g3vm-windows-x86_64.exe
+            release-assets/g3vm-macos-arm64
+            release-assets/g3vm-linux-x86_64
+            release-assets/g3vm_portable_studio.html
+          generate_release_notes: true
