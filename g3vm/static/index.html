@@ -699,17 +699,16 @@
             const fallbackRes = await fetch("../../results/g3vm_portable_studio.html");
             if (fallbackRes.ok) {
               const htmlText = await fallbackRes.text();
-              const marker = "window.G3VM_OFFLINE_SCENARIOS = ";
-              const startIdx = htmlText.indexOf(marker);
-              if (startIdx !== -1) {
-                const jsonStart = startIdx + marker.length;
-                const endIdx = htmlText.indexOf(";\n(function()", jsonStart);
-                const sliceEnd = endIdx !== -1 ? endIdx : htmlText.indexOf(";</script>", jsonStart);
-                if (sliceEnd !== -1) {
-                  window.G3VM_OFFLINE_SCENARIOS = JSON.parse(htmlText.slice(jsonStart, sliceEnd));
-                  window.G3VM_PORTABLE_MODE = true;
-                  data = resolveOfflineScenario(payload);
-                }
+              const startMarker = "/*G3VM_JSON_START*/";
+              const endMarker = "/*G3VM_JSON_END*/";
+              const sIdx = htmlText.indexOf(startMarker);
+              const eIdx = htmlText.indexOf(endMarker, sIdx + startMarker.length);
+              if (sIdx !== -1 && eIdx !== -1) {
+                window.G3VM_OFFLINE_SCENARIOS = JSON.parse(
+                  htmlText.slice(sIdx + startMarker.length, eIdx)
+                );
+                window.G3VM_PORTABLE_MODE = true;
+                data = resolveOfflineScenario(payload);
               }
             }
           } catch (_fallbackErr) {}

@@ -183,7 +183,7 @@ def export_portable_html_studio(
     embedded_script = (
         "<script>\n"
         "window.G3VM_PORTABLE_MODE = true;\n"
-        f"window.G3VM_OFFLINE_SCENARIOS = {scenarios_json};\n"
+        f"window.G3VM_OFFLINE_SCENARIOS = /*G3VM_JSON_START*/{scenarios_json}/*G3VM_JSON_END*/;\n"
         "(function() {\n"
         "  const _origFetch = window.fetch ? window.fetch.bind(window) : null;\n"
         "  window.fetch = async function(input, init) {\n"
