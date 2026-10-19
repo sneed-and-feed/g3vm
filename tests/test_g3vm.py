@@ -204,10 +204,16 @@ def test_suite6_ridge_omp_tomography_continuity_and_surgical_gate():
 
 @pytest.mark.parametrize(
     "scenario_name",
-    ["marmousi_subsalt", "seg_eage_overthrust", "ccs_h2_timelapse", "egs_tbm_hazard"],
+    [
+        "marmousi_subsalt",
+        "seg_eage_overthrust",
+        "ccs_h2_timelapse",
+        "egs_tbm_hazard",
+        "utah_forge_egs_doublet",
+    ],
 )
 def test_suite7_benchmark_scenarios_outperform_naive_rbf(scenario_name: str):
-    """Verify G3VM strictly outperforms Naive RBF/Kriging across all 4 geophysical benchmarks."""
+    """Verify G3VM strictly outperforms Naive RBF/Kriging across all 5 geophysical benchmarks."""
     bundle = evaluate_scenario_comparison(scenario_name, grid_shape=(24, 24, 24))
     m = bundle["metrics"]
 

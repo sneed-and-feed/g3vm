@@ -48,6 +48,7 @@ class ElasticTTICubeBundle:
     acoustic_impedance_zp: torch.Tensor
     stiffness_trace_drift: float
     stiffness_frobenius_drift: float
+    so6_orthogonality_error: float = 0.0
 
 
 def build_kelvin_mandel_so6_rotor(rotation_so3: torch.Tensor) -> torch.Tensor:
@@ -293,55 +294,87 @@ class ThomsenTTIElasticModulusEngine(nn.Module):
         dip_deg: torch.Tensor | None = None,
         azimuth_deg: torch.Tensor | None = None,
         ray_direction_zyx: Tuple[float, float, float] = (0.5, 0.0, 0.8660254),
+        chunk_z: int | None = 16,
     ) -> ElasticTTICubeBundle:
         """
         Synthesize coupled 3D elastic cubes (Vp0, Vs0, rho, Zp, Vp/Vs, Poisson) and
         Thomsen TTI anisotropic cubes (epsilon, delta, gamma, Vp_TTI, Vsv_TTI, Vsh_TTI)
-        from post-triad lithology probabilities `probs_post` [B, C, Z, Y, X] and `vp_isotropic_kms`.
+        from post-triad lithology probabilities `probs_post` [B, C, Z, Y, X] and `vp_isotropic_kms`,
+        operating along Z-slabs (`chunk_z=16`) to prevent multi-channel float32 OOMs on 128^3+ grids.
         """
         c = min(probs_post.shape[1], self.litho_vp0.numel())
-        p = probs_post[:, :c]
-
-        vp0_prior = torch.einsum("bczyx,c->bzyx", p, self.litho_vp0[:c])
-        vs0_prior = torch.einsum("bczyx,c->bzyx", p, self.litho_vs0[:c])
-        rho_cube = torch.einsum("bczyx,c->bzyx", p, self.litho_rho[:c])
-        eps_cube = torch.einsum("bczyx,c->bzyx", p, self.litho_epsilon[:c])
-        dlt_cube = torch.einsum("bczyx,c->bzyx", p, self.litho_delta[:c])
-        gam_cube = torch.einsum("bczyx,c->bzyx", p, self.litho_gamma[:c])
-
-        # Scale Vs0 and rho consistently with the tomography-updated Vp cube while preserving lithology Vp/Vs
-        scale_vp = vp_isotropic_kms / torch.clamp(vp0_prior, min=1.2)
+        B, _, Z, Y, X = probs_post.shape
         vp0_cube = vp_isotropic_kms
-        vs0_cube = torch.clamp(vs0_prior * (0.85 * scale_vp + 0.15), min=0.80, max=4.20)
-        # Gardner's relation blend with lithology density
-        rho_gardner = 1.741 * (torch.clamp(vp0_cube, min=1.5) ** 0.25)
-        rho_cube = torch.clamp(0.75 * rho_cube + 0.25 * rho_gardner, min=1.85, max=3.10)
-
-        if cavity_core is not None:
-            cav = (cavity_core[:, 0] > 0.35).to(vp0_cube.dtype)
-            # Salt diapirs / enclosed caverns are isotropic (epsilon = delta = gamma = 0)
-            eps_cube = eps_cube * (1.0 - cav)
-            dlt_cube = dlt_cube * (1.0 - cav)
-            gam_cube = gam_cube * (1.0 - cav)
 
         if dip_deg is None or azimuth_deg is None:
             dip_deg, azimuth_deg = self.estimate_structural_dip_azimuth(vp0_cube)
 
-        vp_tti, vsv_tti, vsh_tti = compute_tti_phase_velocities(
-            vp0_kms=vp0_cube,
-            vs0_kms=vs0_cube,
-            epsilon=eps_cube,
-            delta=dlt_cube,
-            gamma=gam_cube,
-            dip_deg=dip_deg,
-            azimuth_deg=azimuth_deg,
-            ray_direction_zyx=ray_direction_zyx,
-        )
+        step_z = Z if (chunk_z is None or int(chunk_z) <= 0) else max(1, min(Z, int(chunk_z)))
 
-        vp_vs_ratio = vp0_cube / torch.clamp(vs0_cube, min=0.8)
-        r2 = vp_vs_ratio * vp_vs_ratio
-        poisson_ratio = torch.clamp((r2 - 2.0) / (2.0 * torch.clamp(r2 - 1.0, min=0.25)), min=0.05, max=0.45)
-        zp_cube = rho_cube * vp_tti
+        vs0_cube = torch.empty_like(vp0_cube)
+        rho_cube = torch.empty_like(vp0_cube)
+        eps_cube = torch.empty_like(vp0_cube)
+        dlt_cube = torch.empty_like(vp0_cube)
+        gam_cube = torch.empty_like(vp0_cube)
+        vp_tti = torch.empty_like(vp0_cube)
+        vsv_tti = torch.empty_like(vp0_cube)
+        vsh_tti = torch.empty_like(vp0_cube)
+        vp_vs_ratio = torch.empty_like(vp0_cube)
+        poisson_ratio = torch.empty_like(vp0_cube)
+        zp_cube = torch.empty_like(vp0_cube)
+
+        for z0 in range(0, Z, step_z):
+            z1 = min(Z, z0 + step_z)
+            p_slab = probs_post[:, :c, z0:z1]
+            vp_slab = vp0_cube[:, z0:z1]
+
+            vp0_prior = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_vp0[:c])
+            vs0_prior = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_vs0[:c])
+            rho_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_rho[:c])
+            eps_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_epsilon[:c])
+            dlt_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_delta[:c])
+            gam_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_gamma[:c])
+
+            scale_vp = vp_slab / torch.clamp(vp0_prior, min=1.2)
+            vs0_s = torch.clamp(vs0_prior * (0.85 * scale_vp + 0.15), min=0.80, max=4.20)
+            rho_gardner = 1.741 * (torch.clamp(vp_slab, min=1.5) ** 0.25)
+            rho_s = torch.clamp(0.75 * rho_s + 0.25 * rho_gardner, min=1.85, max=3.10)
+
+            if cavity_core is not None:
+                cav_s = (cavity_core[:, 0, z0:z1] > 0.35).to(vp_slab.dtype)
+                eps_s = eps_s * (1.0 - cav_s)
+                dlt_s = dlt_s * (1.0 - cav_s)
+                gam_s = gam_s * (1.0 - cav_s)
+
+            vp_tti_s, vsv_tti_s, vsh_tti_s = compute_tti_phase_velocities(
+                vp0_kms=vp_slab,
+                vs0_kms=vs0_s,
+                epsilon=eps_s,
+                delta=dlt_s,
+                gamma=gam_s,
+                dip_deg=dip_deg[:, z0:z1],
+                azimuth_deg=azimuth_deg[:, z0:z1],
+                ray_direction_zyx=ray_direction_zyx,
+            )
+
+            vp_vs_s = vp_slab / torch.clamp(vs0_s, min=0.8)
+            r2_s = vp_vs_s * vp_vs_s
+            pois_s = torch.clamp(
+                (r2_s - 2.0) / (2.0 * torch.clamp(r2_s - 1.0, min=0.25)), min=0.05, max=0.45
+            )
+            zp_s = rho_s * vp_tti_s
+
+            vs0_cube[:, z0:z1] = vs0_s
+            rho_cube[:, z0:z1] = rho_s
+            eps_cube[:, z0:z1] = eps_s
+            dlt_cube[:, z0:z1] = dlt_s
+            gam_cube[:, z0:z1] = gam_s
+            vp_tti[:, z0:z1] = vp_tti_s
+            vsv_tti[:, z0:z1] = vsv_tti_s
+            vsh_tti[:, z0:z1] = vsh_tti_s
+            vp_vs_ratio[:, z0:z1] = vp_vs_s
+            poisson_ratio[:, z0:z1] = pois_s
+            zp_cube[:, z0:z1] = zp_s
 
         # Audit Theorem 2.7 (so(6) Kelvin-Mandel Stiffness Rotor Isometry) on a representative voxel slice
         with torch.no_grad():
@@ -354,8 +387,12 @@ class ThomsenTTIElasticModulusEngine(nn.Module):
                 dlt_cube[:, z_mid],
                 gam_cube[:, z_mid],
             ).to(torch.float64)
-            R3 = build_so3_from_dip_azimuth(dip_deg[:, z_mid], azimuth_deg[:, z_mid]).to(torch.float64)
-            M6 = build_kelvin_mandel_so6_rotor(R3).to(torch.float64)
+            R3 = build_so3_from_dip_azimuth(
+                dip_deg[:, z_mid].to(torch.float64), azimuth_deg[:, z_mid].to(torch.float64)
+            )
+            M6 = build_kelvin_mandel_so6_rotor(R3)
+            eye6 = torch.eye(6, device=M6.device, dtype=torch.float64)
+            so6_ortho_err = float(torch.max(torch.abs(torch.matmul(M6.transpose(-1, -2), M6) - eye6)).item())
             C_tti = torch.matmul(torch.matmul(M6, C_vti), M6.transpose(-1, -2))
 
             tr_vti = torch.diagonal(C_vti, dim1=-2, dim2=-1).sum(dim=-1)
@@ -383,4 +420,5 @@ class ThomsenTTIElasticModulusEngine(nn.Module):
             acoustic_impedance_zp=zp_cube,
             stiffness_trace_drift=trace_drift,
             stiffness_frobenius_drift=frob_drift,
+            so6_orthogonality_error=so6_ortho_err,
         )

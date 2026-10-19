@@ -10,14 +10,14 @@ benchmark scenarios, and interactive viewer:
 - `TemporalSurveyContinuitySplitter`, `ZenoSurgicalAnomalyGate`
 - `ThomsenTTIElasticModulusEngine`, `ElasticTTICubeBundle`, `ELASTIC_TTI_CATALOG`
 - `DeviatedWellTrajectory`, `LAS2WellRecord`, `solve_minimum_curvature_trajectory`
-- `read_las2_file`, `write_las2_file`, `read_dev_survey`, `write_dev_survey`, `read_segy_cube`, `write_segy_cube`
+- `read_las2_file`, `write_las2_file`, `read_dev_survey`, `write_dev_survey`, `read_segy_cube`, `write_segy_cube`, `stream_segy_volume`, `beltrami_downsample_3d_cube`
 - `NaiveSmoothVelocityBaseline`
 - `compute_marginal_wasserstein1_vp`
 - `build_geological_scenario`, `evaluate_scenario_comparison`
 - `create_studio_app`, `export_portable_html_studio`, `render_leapfrog_showcase_figure`, `render_well_log_beltrami_figure`
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from .anisotropy import (
     ELASTIC_TTI_CATALOG,
@@ -44,12 +44,15 @@ from .engine import (
 from .io import (
     DeviatedWellTrajectory,
     LAS2WellRecord,
+    beltrami_downsample_3d_cube,
+    ensure_utah_forge_field_files,
     rasterize_deviated_well_into_3d_volume,
     read_dev_survey,
     read_las2_file,
     read_segy_cube,
     sample_3d_cube_along_trajectory,
     solve_minimum_curvature_trajectory,
+    stream_segy_volume,
     write_dev_survey,
     write_las2_file,
     write_segy_cube,
@@ -93,6 +96,9 @@ __all__ = [
     "write_dev_survey",
     "read_segy_cube",
     "write_segy_cube",
+    "stream_segy_volume",
+    "beltrami_downsample_3d_cube",
+    "ensure_utah_forge_field_files",
     "DarkSnailGeo3DVelocityModeler",
     "BeltramiWellLogShell",
     "WellLogBeltramiResult",

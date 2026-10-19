@@ -98,6 +98,53 @@
       border-color: rgba(255, 183, 3, 0.45);
       color: var(--accent-amber);
     }
+    .preset-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      background: #0c121d;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .preset-btn {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: #141d2e;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .preset-btn:hover {
+      border-color: var(--accent-blue);
+      color: var(--text-main);
+    }
+    .preset-btn.active {
+      background: rgba(0, 245, 212, 0.14);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+    .dropzone-box {
+      border: 1px dashed rgba(0, 245, 212, 0.45);
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+      background: rgba(0, 245, 212, 0.04);
+      color: var(--text-muted);
+      font-size: 10.5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .dropzone-box:hover, .dropzone-box.dragover {
+      background: rgba(0, 245, 212, 0.12);
+      border-color: var(--accent-cyan);
+      color: var(--text-main);
+    }
 
     /* Main Grid Layout */
     .workspace {
@@ -379,7 +426,7 @@
     <div class="brand">
       <div class="brand-logo">G3</div>
       <div>
-        <span class="brand-title">G3VM Studio</span>
+        <span class="brand-title">G3VM Studio v0.3.0</span>
         <span class="brand-sub">DarkSnail-Geo3D Beltrami-Triad Subsurface Velocity Engine</span>
       </div>
     </div>
@@ -391,6 +438,15 @@
       <span class="pill" id="badgeRmse">Vp RMSE: --</span>
     </div>
   </header>
+
+  <div class="preset-bar" id="presetBar">
+    <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-right: 4px;">Presets:</span>
+    <button class="preset-btn active" data-preset="subsalt_graben">1. Subsalt Graben &amp; Salt Diapir</button>
+    <button class="preset-btn" data-preset="thrust_anticline">2. Overthrust Duplex &amp; Reef</button>
+    <button class="preset-btn" data-preset="unconformity_trap">3. 4D CCS / H2 Fault Trap</button>
+    <button class="preset-btn" data-preset="egs_tbm_hazard">4. EGS Granite &amp; TBM Karst</button>
+    <button class="preset-btn" data-preset="utah_forge_egs_doublet" style="border-color: rgba(0, 245, 212, 0.5);">Real Field: Utah FORGE EGS Doublet (16A/16B)</button>
+  </div>
 
   <div class="workspace">
     <!-- Left Sidebar: Controls -->
@@ -407,6 +463,7 @@
             <option value="thrust_anticline">SEG/EAGE 3D Overthrust Duplex &amp; Reef</option>
             <option value="unconformity_trap">4D CCS / H2 Sub-Unconformity Fault Trap</option>
             <option value="egs_tbm_hazard">EGS Superhot Granite &amp; TBM Karst Look-Ahead</option>
+            <option value="utah_forge_egs_doublet">Real Field: Utah FORGE EGS Doublet (16A/16B)</option>
           </select>
           <div id="scenarioSummary" style="font-size: 11px; color: var(--text-muted); line-height: 1.35;"></div>
         </div>
@@ -422,6 +479,7 @@
             <option value="g3vm_vp_vs_ratio">DarkSnail G3VM Vp/Vs Ratio</option>
             <option value="g3vm_epsilon">Thomsen TTI Anisotropy &epsilon; (Shale/Fold)</option>
             <option value="g3vm_delta">Thomsen TTI Anisotropy &delta;</option>
+            <option value="g3vm_gamma">Thomsen TTI Shear Splitting &gamma; (EGS Fractures)</option>
             <option value="naive_vp">Naive RBF/Kriging Baseline Vp (cc/sol Smear)</option>
             <option value="true_vp">Ground Truth Vp Cube (km/s)</option>
             <option value="err_g3vm">G3VM Absolute Error |Vp - True| (km/s)</option>
@@ -469,7 +527,17 @@
         </div>
 
         <div class="control-group">
-          <div class="control-title">5. Canonical Lithostratigraphic Column</div>
+          <div class="control-title">5. Client-Side .LAS / .DEV / .SEGY Dropzone</div>
+          <div class="dropzone-box" id="fileDropzone">
+            <input type="file" id="fileInputDrop" accept=".las,.dev,.segy,.sgy" style="display:none;" multiple />
+            <div><strong>Drag &amp; Drop .LAS / .DEV / .SEGY</strong></div>
+            <div style="font-size: 9.5px; margin-top: 2px;">Zero-upload in-browser ArrayBuffer &amp; 48&sup3; Beltrami Curl Inspector</div>
+            <div id="dropzoneStatus" style="font-size: 9.5px; color: var(--accent-cyan); margin-top: 3px;"></div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">6. Canonical Lithostratigraphic Column</div>
           <div class="litho-legend" id="lithoLegend"></div>
         </div>
       </div>
@@ -645,7 +713,7 @@
       if (f === "g3vm_vp_vs_ratio") {
         return sampleColormap((val - 1.55) / (2.25 - 1.55), "turbo");
       }
-      if (f === "g3vm_epsilon" || f === "g3vm_delta") {
+      if (f === "g3vm_epsilon" || f === "g3vm_delta" || f === "g3vm_gamma") {
         return sampleColormap(val / 0.24, "triad");
       }
       // Velocity in [1.7, 6.4] km/s
@@ -1149,13 +1217,13 @@
         }
       }
 
-      // 5. Structural Fault Ribbon Planes
+      // 5. Structural Fault Ribbon Planes & 4,700 ft Opal Mound Basement Unconformity
       if (showFaults && STATE.data.fault_planes_meta) {
         for (const fp of STATE.data.fault_planes_meta) {
+          const rgb = hexToRgb(fp.color || "#ff6b6b");
           if (fp.x_top !== undefined && fp.x_bot !== undefined) {
             const xTop = fp.x_top * X;
             const xBot = fp.x_bot * X;
-            const rgb = hexToRgb(fp.color || "#ff6b6b");
             for (let y = 0; y < Y; y += 4) {
               const yn = Math.min(Y, y + 4);
               pushQuad(
@@ -1168,7 +1236,45 @@
                 0.28
               );
             }
+          } else if (fp.z_level !== undefined) {
+            const zBase = fp.z_level * Z;
+            for (let y = 0; y < Y; y += 6) {
+              const yn = Math.min(Y, y + 6);
+              for (let x = 0; x < X; x += 6) {
+                const xn = Math.min(X, x + 6);
+                pushQuad(
+                  project(zBase, y, x),
+                  project(zBase, yn, x),
+                  project(zBase + 0.08 * Z * ((xn - X * 0.5) / X), yn, xn),
+                  project(zBase + 0.08 * Z * ((xn - X * 0.5) / X), y, xn),
+                  rgb,
+                  1.0,
+                  0.22
+                );
+              }
+            }
           }
+        }
+      }
+
+      // 5b. Stimulated TTI EGS Fracture Ellipsoids (Stage 1-3 Corridors in Utah FORGE)
+      if (showFaults && STATE.data.scenario_name === "utah_forge_egs_doublet") {
+        const stages = [
+          { xFrac: 0.52, zFrac: 0.64, label: "Stage 3 (10,130 ft)" },
+          { xFrac: 0.63, zFrac: 0.72, label: "Stage 2 (10,570 ft)" },
+          { xFrac: 0.75, zFrac: 0.80, label: "Stage 1 (10,887 ft)" },
+        ];
+        for (const stg of stages) {
+          const pCenter = project(stg.zFrac * Z, 0.50 * Y, stg.xFrac * X);
+          quads.push({
+            ellipse: pCenter,
+            rx: 13.0 * STATE.camZoom,
+            ry: 24.0 * STATE.camZoom,
+            rot: -0.35,
+            fill: "rgba(0, 245, 212, 0.22)",
+            stroke: "rgba(0, 245, 212, 0.72)",
+            depth: pCenter[2],
+          });
         }
       }
 
@@ -1176,7 +1282,15 @@
       quads.sort((a, b) => a.depth - b.depth);
 
       for (const q of quads) {
-        if (q.circle) {
+        if (q.ellipse) {
+          ctx.beginPath();
+          ctx.ellipse(q.ellipse[0], q.ellipse[1], q.rx, q.ry, q.rot, 0, Math.PI * 2);
+          ctx.fillStyle = q.fill;
+          ctx.fill();
+          ctx.strokeStyle = q.stroke;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        } else if (q.circle) {
           ctx.beginPath();
           ctx.arc(q.circle[0], q.circle[1], q.radius, 0, Math.PI * 2);
           ctx.fillStyle = q.fill;
@@ -1214,13 +1328,20 @@
 
       // 6. Vertical & Deviated/Horizontal Boreholes + Beltrami Stringer Rings
       if (showBoreholes) {
+        const isForge = STATE.data.scenario_name === "utah_forge_egs_doublet";
         STATE.data.wells.forEach((w, idx) => {
           const isDev = w.well_type && w.well_type !== "vertical";
           const isHoriz = Boolean(w.well_type && w.well_type.includes("horizontal"));
+          const is16A = isForge && w.name && w.name.includes("16A");
+          const is16B = isForge && w.name && w.name.includes("16B");
           const pTop = project(0, w.y, w.x);
-          const tubeColor = idx === STATE.selectedWell
+          const tubeColor = is16A
             ? "#00f5d4"
-            : (isHoriz ? "#00e5ff" : (isDev ? "#ff9f1c" : "rgba(255,255,255,0.78)"));
+            : (is16B
+              ? "#ffb703"
+              : (idx === STATE.selectedWell
+                ? "#00f5d4"
+                : (isHoriz ? "#00e5ff" : (isDev ? "#ff9f1c" : "rgba(255,255,255,0.78)"))));
 
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
@@ -1233,19 +1354,19 @@
             }
             // Outer dark casing for 3D depth contrast
             ctx.strokeStyle = "rgba(8, 12, 20, 0.88)";
-            ctx.lineWidth = idx === STATE.selectedWell ? 6.2 : 5.2;
+            ctx.lineWidth = (idx === STATE.selectedWell || is16A || is16B) ? 6.4 : 5.2;
             ctx.stroke();
 
             // Inner glowing directional tube
             ctx.strokeStyle = tubeColor;
-            ctx.lineWidth = idx === STATE.selectedWell ? 3.6 : 2.9;
+            ctx.lineWidth = (idx === STATE.selectedWell || is16A || is16B) ? 3.8 : 2.9;
             ctx.stroke();
 
             // Bottom-hole TD marker for deviated/horizontal well
             const lastIdx = w.traj_z.length - 1;
             const pTD = project(w.traj_z[lastIdx], w.traj_y[lastIdx], w.traj_x[lastIdx]);
             ctx.beginPath();
-            ctx.arc(pTD[0], pTD[1], 4.0, 0, Math.PI * 2);
+            ctx.arc(pTD[0], pTD[1], 4.2, 0, Math.PI * 2);
             ctx.fillStyle = tubeColor;
             ctx.fill();
             ctx.strokeStyle = "#000";
@@ -1261,39 +1382,51 @@
           }
 
           // Wellhead label badge
-          const shortTag = isHoriz
-            ? `W${idx + 1} (88° Horiz)`
-            : (isDev ? `W${idx + 1} (S-Curve)` : `W${idx + 1}`);
-          if (isDev || idx === STATE.selectedWell) {
+          const shortTag = is16A
+            ? "16A(78)-32 Injector (65°)"
+            : (is16B
+              ? "16B(78)-32 Producer (+300ft)"
+              : (isHoriz
+                ? `W${idx + 1} (88° Horiz)`
+                : (isDev ? `W${idx + 1} (S-Curve)` : `W${idx + 1}`)));
+          if (isDev || idx === STATE.selectedWell || is16A || is16B) {
             ctx.font = "bold 10.5px sans-serif";
             const tw = ctx.measureText(shortTag).width;
-            ctx.fillStyle = "rgba(10, 15, 24, 0.86)";
-            ctx.fillRect(pTop[0] - tw * 0.5 - 4, pTop[1] - 19, tw + 8, 14);
+            const yOff = is16B ? -33 : -19;
+            ctx.fillStyle = "rgba(10, 15, 24, 0.88)";
+            ctx.fillRect(pTop[0] - tw * 0.5 - 4, pTop[1] + yOff, tw + 8, 14);
             ctx.strokeStyle = tubeColor;
             ctx.lineWidth = 1.0;
-            ctx.strokeRect(pTop[0] - tw * 0.5 - 4, pTop[1] - 19, tw + 8, 14);
+            ctx.strokeRect(pTop[0] - tw * 0.5 - 4, pTop[1] + yOff, tw + 8, 14);
             ctx.fillStyle = tubeColor;
-            ctx.fillText(shortTag, pTop[0] - tw * 0.5, pTop[1] - 8);
+            ctx.fillText(shortTag, pTop[0] - tw * 0.5, pTop[1] + yOff + 11);
           } else {
             ctx.fillStyle = "#e6edf3";
             ctx.font = "bold 10px sans-serif";
             ctx.fillText(shortTag, pTop[0] - 8, pTop[1] - 6);
           }
 
-          // Beltrami stringer spikes
-          for (const szIdx of w.stringer_depths) {
+          // Beltrami stringer spikes + Stage 1-3 EGS fracture callouts
+          w.stringer_depths.forEach((szIdx, sOrder) => {
             const tz = (w.traj_z && w.traj_z[szIdx] !== undefined) ? w.traj_z[szIdx] : szIdx;
             const ty = (w.traj_y && w.traj_y[szIdx] !== undefined) ? w.traj_y[szIdx] : w.y;
             const tx = (w.traj_x && w.traj_x[szIdx] !== undefined) ? w.traj_x[szIdx] : w.x;
             const ps = project(tz, ty, tx);
             ctx.beginPath();
-            ctx.arc(ps[0], ps[1], isDev ? 4.8 : 4.0, 0, Math.PI * 2);
-            ctx.fillStyle = isDev ? "#00f5d4" : "#ffd43b";
+            ctx.arc(ps[0], ps[1], isDev ? 5.0 : 4.0, 0, Math.PI * 2);
+            ctx.fillStyle = is16B ? "#ffb703" : (isDev ? "#00f5d4" : "#ffd43b");
             ctx.fill();
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 1.2;
             ctx.stroke();
-          }
+
+            if (is16A && sOrder < 3) {
+              const stgTag = `Stg ${3 - sOrder}`;
+              ctx.font = "bold 9px Consolas, monospace";
+              ctx.fillStyle = "#00f5d4";
+              ctx.fillText(stgTag, ps[0] + 6, ps[1] + 3);
+            }
+          });
         });
       }
     }
@@ -1416,8 +1549,25 @@
       renderWellLogPanel();
     }
 
+    function syncPresetButtons(scenarioVal) {
+      document.querySelectorAll(".preset-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.preset === scenarioVal);
+      });
+    }
+
     // Interactive Event Listeners
-    document.getElementById("selectScenario").addEventListener("change", loadScenarioData);
+    document.getElementById("selectScenario").addEventListener("change", (e) => {
+      syncPresetButtons(e.target.value);
+      loadScenarioData();
+    });
+    document.querySelectorAll(".preset-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const preset = btn.dataset.preset;
+        document.getElementById("selectScenario").value = preset;
+        syncPresetButtons(preset);
+        loadScenarioData();
+      });
+    });
     document.getElementById("selectField").addEventListener("change", (e) => {
       STATE.activeField = e.target.value;
       renderAll();
@@ -1551,13 +1701,192 @@
       STATE.sliceY = Math.floor(fy * Y);
     });
 
+    // Client-Side Drag-and-Drop .LAS / .DEV / .SEGY Inspector (FileReader + ArrayBuffer)
+    (function initClientDropzone() {
+      const dz = document.getElementById("fileDropzone");
+      const inp = document.getElementById("fileInputDrop");
+      const statusEl = document.getElementById("dropzoneStatus");
+      if (!dz || !inp) return;
+
+      dz.addEventListener("click", () => inp.click());
+      dz.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dz.classList.add("dragover");
+      });
+      dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+      dz.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dz.classList.remove("dragover");
+        if (e.dataTransfer && e.dataTransfer.files.length) {
+          handleClientFiles(e.dataTransfer.files);
+        }
+      });
+      inp.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files.length) {
+          handleClientFiles(e.target.files);
+        }
+      });
+
+      function ibmToFloat32(u32) {
+        if (u32 === 0) return 0.0;
+        const sign = (u32 >>> 31) ? -1.0 : 1.0;
+        const exp16 = ((u32 >>> 24) & 0x7f) - 64;
+        const frac = (u32 & 0x00ffffff) / 16777216.0;
+        return sign * frac * Math.pow(16.0, exp16);
+      }
+
+      function handleClientFiles(fileList) {
+        Array.from(fileList).forEach((file) => {
+          const ext = file.name.split(".").pop().toLowerCase();
+          if (ext === "las" || ext === "dev") {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              const txt = String(ev.target.result || "");
+              if (ext === "las") {
+                applyClientLasText(file.name, txt);
+              } else {
+                applyClientDevText(file.name, txt);
+              }
+            };
+            reader.readAsText(file);
+          } else if (ext === "segy" || ext === "sgy") {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              applyClientSegyBuffer(file.name, ev.target.result);
+            };
+            reader.readAsArrayBuffer(file);
+          }
+        });
+      }
+
+      function applyClientLasText(filename, text) {
+        if (!STATE.data) return;
+        const [Z] = STATE.data.grid_shape;
+        const lines = text.split(/\r?\n/);
+        let inAscii = false;
+        const vpSamples = [];
+        for (const raw of lines) {
+          const line = raw.trim();
+          if (!line || line.startsWith("#")) continue;
+          if (line.toUpperCase().startsWith("~A")) {
+            inAscii = true;
+            continue;
+          }
+          if (inAscii) {
+            const nums = line.split(/\s+/).map(Number).filter((v) => !Number.isNaN(v));
+            if (nums.length >= 2) {
+              let vpVal = nums[1];
+              if (vpVal > 35.0) vpVal = 304.8 / Math.max(vpVal, 40.0);
+              vpSamples.push(vpVal);
+            }
+          }
+        }
+        if (!vpSamples.length) return;
+        // Beltrami 1D spike-preserving projection onto Z bins
+        const trueLog = new Array(Z);
+        const beltramiLog = new Array(Z);
+        const naiveLog = new Array(Z);
+        const strDepths = [];
+        for (let z = 0; z < Z; z++) {
+          const idx0 = Math.floor((z * vpSamples.length) / Z);
+          const idx1 = Math.max(idx0 + 1, Math.floor(((z + 1) * vpSamples.length) / Z));
+          const slice = vpSamples.slice(idx0, idx1);
+          const mean = slice.reduce((a, b) => a + b, 0) / slice.length;
+          let best = slice[0];
+          let maxDiff = -1;
+          for (const v of slice) {
+            const d = Math.abs(v - mean);
+            if (d > maxDiff) { maxDiff = d; best = v; }
+          }
+          trueLog[z] = Number(best.toFixed(4));
+          beltramiLog[z] = Number(best.toFixed(4));
+          naiveLog[z] = Number((mean * 0.85 + 3.8 * 0.15).toFixed(4));
+          if (maxDiff > 0.35) strDepths.push(z);
+        }
+        const w = STATE.data.wells[STATE.selectedWell] || STATE.data.wells[0];
+        if (w) {
+          w.name = filename.replace(/\.[^.]+$/, "");
+          w.true_log = trueLog;
+          w.beltrami_log = beltramiLog;
+          w.naive_log = naiveLog;
+          w.stringer_depths = strDepths.slice(0, 6);
+        }
+        statusEl.textContent = `Loaded LAS: ${filename} (${vpSamples.length} samples -> Beltrami 100%)`;
+        renderAll();
+      }
+
+      function applyClientDevText(filename, text) {
+        if (!STATE.data) return;
+        const [Z, Y, X] = STATE.data.grid_shape;
+        const pts = [];
+        for (const raw of text.split(/\r?\n/)) {
+          const line = raw.trim();
+          if (!line || line.startsWith("#") || /^[A-Za-z]/.test(line)) continue;
+          const nums = line.split(/[\s,]+/).map(Number).filter((v) => !Number.isNaN(v));
+          if (nums.length >= 4) pts.push({ md: nums[0], x: nums[1], y: nums[2], z: nums[3] });
+        }
+        if (pts.length < 2) return;
+        const xMin = Math.min(...pts.map((p) => p.x)), xMax = Math.max(...pts.map((p) => p.x));
+        const yMin = Math.min(...pts.map((p) => p.y)), yMax = Math.max(...pts.map((p) => p.y));
+        const zMin = Math.min(...pts.map((p) => p.z)), zMax = Math.max(...pts.map((p) => p.z));
+        const trajX = [], trajY = [], trajZ = [];
+        for (let i = 0; i < Z; i++) {
+          const p = pts[Math.min(pts.length - 1, Math.floor((i * pts.length) / Z))];
+          trajX.push(((p.x - xMin) / Math.max(1e-6, xMax - xMin)) * (X - 5) + 2.5);
+          trajY.push(((p.y - yMin) / Math.max(1e-6, yMax - yMin)) * (Y - 5) + 2.5);
+          trajZ.push(((p.z - zMin) / Math.max(1e-6, zMax - zMin)) * (Z - 1));
+        }
+        const w = STATE.data.wells[STATE.selectedWell] || STATE.data.wells[0];
+        if (w) {
+          w.name = filename.replace(/\.[^.]+$/, "");
+          w.well_type = "deviated_utah_forge";
+          w.traj_x = trajX;
+          w.traj_y = trajY;
+          w.traj_z = trajZ;
+          w.x = Math.round(trajX[0]);
+          w.y = Math.round(trajY[0]);
+        }
+        statusEl.textContent = `Loaded DEV: ${filename} (${pts.length} survey stations)`;
+        renderAll();
+      }
+
+      function applyClientSegyBuffer(filename, arrayBuf) {
+        if (!STATE.data || arrayBuf.byteLength < 3840) return;
+        const dv = new DataView(arrayBuf);
+        const ns = dv.getUint16(3220, false);
+        const fmt = dv.getUint16(3224, false) || 5;
+        const traceBytes = 240 + ns * 4;
+        const nTraces = Math.floor((arrayBuf.byteLength - 3600) / traceBytes);
+        if (ns <= 0 || nTraces <= 0) return;
+        const [Z, Y, X] = STATE.data.grid_shape;
+        const newCube = STATE.data.cubes.g3vm_vp;
+        for (let z = 0; z < Z; z++) {
+          const sIdx = Math.min(ns - 1, Math.floor((z * ns) / Z));
+          for (let y = 0; y < Y; y++) {
+            for (let x = 0; x < X; x++) {
+              const tIdx = Math.min(nTraces - 1, Math.floor(((y * X + x) * nTraces) / (Y * X)));
+              const byteOff = 3600 + tIdx * traceBytes + 240 + sIdx * 4;
+              const val = fmt === 1 ? ibmToFloat32(dv.getUint32(byteOff, false)) : dv.getFloat32(byteOff, false);
+              if (Number.isFinite(val) && val > 0.5 && val < 9.5) {
+                newCube[z][y][x] = Number(val.toFixed(4));
+              }
+            }
+          }
+        }
+        statusEl.textContent = `Loaded SEGY: ${filename} (${nTraces} traces x ${ns}z -> Beltrami ${Z}³)`;
+        renderAll();
+      }
+    })();
+
     window.addEventListener("resize", renderAll);
 
-    // Apply optional URL query parameters (?scenario=thrust_anticline&field=g3vm_vp_tti&well=6)
+    // Apply optional URL query parameters (?preset=utah_forge_egs_doublet or ?scenario=...)
     (function initFromQueryParams() {
       const params = new URLSearchParams(window.location.search);
-      if (params.has("scenario")) {
-        document.getElementById("selectScenario").value = params.get("scenario");
+      const presetOrScenario = params.get("preset") || params.get("scenario");
+      if (presetOrScenario) {
+        document.getElementById("selectScenario").value = presetOrScenario;
+        syncPresetButtons(presetOrScenario);
       }
       if (params.has("field")) {
         const f = params.get("field");

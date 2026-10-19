@@ -132,6 +132,7 @@ def serialize_evaluation_payload(
             "g3vm_zp": _tensor_to_nested_list(g3vm_out["acoustic_impedance_zp"], 3),
             "g3vm_epsilon": _tensor_to_nested_list(g3vm_out["epsilon_cube"], 3),
             "g3vm_delta": _tensor_to_nested_list(g3vm_out["delta_cube"], 3),
+            "g3vm_gamma": _tensor_to_nested_list(g3vm_out["gamma_cube"], 3),
             "g3vm_vp_vs_ratio": _tensor_to_nested_list(g3vm_out["vp_vs_ratio_cube"], 3),
             "naive_vp": _tensor_to_nested_list(naive_out["vp_cube_kms"], 3),
             "true_vp": _tensor_to_nested_list(scen["true_vp_cube"], 3),
@@ -158,7 +159,7 @@ def export_portable_html_studio(
 ) -> Path:
     """
     Generate a 100% standalone, zero-install single-file HTML5 3D Studio
-    (`g3vm_portable_studio.html`) with pre-evaluated 3D cubes for all 4 scenarios
+    (`g3vm_portable_studio.html`) with pre-evaluated 3D cubes for all 5 scenarios
     embedded directly inside the HTML so users on Windows, macOS, Linux, or mobile
     can open it in any browser without Python or a backend server.
     """
@@ -190,7 +191,7 @@ def export_portable_html_studio(
         "    const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');\n"
         "    if (Boolean(window.G3VM_PORTABLE_MODE) && url.includes('/api/')) {\n"
         "      if (url.includes('/api/health')) {\n"
-        "        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.2.1'}), {\n"
+        "        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.3.0'}), {\n"
         "          status: 200, headers: {'Content-Type': 'application/json'}\n"
         "        });\n"
         "      }\n"
@@ -236,7 +237,7 @@ def create_studio_app(default_grid_shape: tuple[int, int, int] = (32, 32, 32)) -
 
     @app.route("/api/health")
     def health() -> Any:
-        return jsonify({"status": "ok", "service": "g3vm-studio", "version": "0.1.0"})
+        return jsonify({"status": "ok", "service": "g3vm-studio", "version": "0.3.0"})
 
     @app.route("/api/evaluate", methods=["GET", "POST"])
     def evaluate_endpoint() -> Any:
@@ -285,16 +286,22 @@ def render_leapfrog_showcase_figure(
     """
     Generate the high-DPI multi-panel showcase figure comparing Ground Truth,
     Naive RBF/Kriging Smear Baseline (`cc`/`sol`), and DarkSnail G3VM across
-    all four industry benchmark scenarios.
+    all five industry benchmark scenarios (including the US DOE Utah FORGE EGS Doublet).
     """
     out_file = Path(output_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
-    scenarios = ["subsalt_graben", "thrust_anticline", "unconformity_trap", "egs_tbm_hazard"]
+    scenarios = [
+        "subsalt_graben",
+        "thrust_anticline",
+        "unconformity_trap",
+        "egs_tbm_hazard",
+        "utah_forge_egs_doublet",
+    ]
     bundles = {name: evaluate_scenario_comparison(name, grid_shape=grid_shape) for name in scenarios}
 
     plt.style.use("dark_background")
-    fig, axes = plt.subplots(4, 4, figsize=(20, 17.5), dpi=160)
+    fig, axes = plt.subplots(len(scenarios), 4, figsize=(20, 21.5), dpi=160)
     fig.patch.set_facecolor("#0b0f17")
 
     Z, Y, X = grid_shape
@@ -365,13 +372,13 @@ def render_leapfrog_showcase_figure(
                         )
 
     fig.suptitle(
-        "G3VM (DarkSnail-Geo3D): Marmousi2 Subsalt, SEG/EAGE Overthrust, 4D CCS/H2 & EGS/TBM Velocity Benchmarks",
-        fontsize=14,
+        "G3VM (DarkSnail-Geo3D) v0.3.0: Marmousi2, SEG/EAGE Overthrust, 4D CCS/H2, EGS/TBM & US DOE Utah FORGE Doublet",
+        fontsize=13.5,
         fontweight="bold",
         color="#58a6ff",
-        y=0.988,
+        y=0.99,
     )
-    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.97])
+    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.975])
     fig.savefig(out_file, facecolor=fig.get_facecolor())
     plt.close(fig)
     return {name: bundles[name]["metrics"] for name in scenarios}

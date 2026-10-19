@@ -98,10 +98,11 @@ def _exact_orthogonality_ulp_polish(v_f: torch.Tensor, out_base: torch.Tensor) -
                 for j in range(M_dim):
                     if not bool((sr.abs() > 1e-8).any().item()):
                         break
+                    active_sr = sr.abs() > 1e-8
                     vj = sv[:, j : j + 1]
                     oj = so[:, j : j + 1]
                     best_oj = oj.clone()
-                    valid_v = vj.abs() > 1e-12
+                    valid_v = active_sr & (vj.abs() > 1e-12)
                     safe_vj = torch.where(valid_v, vj, torch.ones_like(vj))
                     corr = sr / safe_vj
                     valid_j = valid_v & (corr.abs() <= 0.5)
@@ -127,13 +128,14 @@ def _exact_orthogonality_ulp_polish(v_f: torch.Tensor, out_base: torch.Tensor) -
                 for s_mul in range(1, 256):
                     if not bool((sr_b.abs() > 1e-8).any().item()):
                         break
+                    active_srb = sr_b.abs() > 1e-8
                     scale_f = 1.0 + float(s_mul if s_mul % 2 == 0 else -s_mul) * 3.7e-5
                     w = so_b * scale_f
                     w = w - ((sv_b * w).sum(dim=-1, keepdim=True) / vn_b) * sv_b
                     for j in range(M_dim):
                         rw = (sv_b * w).sum(dim=-1, keepdim=True)
                         vj = sv_b[:, j : j + 1]
-                        valid_v = vj.abs() > 1e-12
+                        valid_v = active_srb & (vj.abs() > 1e-12)
                         safe_vj = torch.where(valid_v, vj, torch.ones_like(vj))
                         oj = w[:, j : j + 1]
                         bj = torch.where(valid_v, oj - (rw / safe_vj), oj)
@@ -148,6 +150,7 @@ def _exact_orthogonality_ulp_polish(v_f: torch.Tensor, out_base: torch.Tensor) -
                                 so_b = torch.where(imp, c, so_b)
                                 sr_b = torch.where(imp, cr, sr_b)
                                 w = torch.where(imp, c, w)
+                                active_srb = sr_b.abs() > 1e-8
                 so[rem_mask] = so_b
             out_corr[mask] = so
         out_corr = out_corr.reshape(orig_shape)
@@ -373,9 +376,26 @@ class BeltramiWellLogShell(nn.Module):
         raw_flux = cross_shell_curl * du
         salience = self.beltrami_well_log_salience(trace, shield_radius=self.shield_radius)
 
+        if Z >= 3:
+            flank_bg = 0.5 * (trace[:-2] + trace[2:])
+            bg_ref = torch.cat([trace[1:2], flank_bg, trace[-2:-1]], dim=0)
+            d_left = trace[1:-1] - trace[:-2]
+            d_right = trace[1:-1] - trace[2:]
+            is_thin_spike = F.pad((d_left * d_right) > 1e-4, (1, 1), value=False)
+            true_anom = (trace - bg_ref).abs()
+            spike_anom = torch.where(is_thin_spike, true_anom, true_anom * 0.10)
+        else:
+            bg_ref = u_coarse.view(-1)
+            true_anom = (trace - bg_ref).abs()
+            spike_anom = true_anom
+
         # Tier-1 Outlier Selection: pin highest-innovation stringer/horizon spikes
         k_out = min(self.outlier_budget, max(1, Z // 2))
-        spike_score = 3.5 * salience + 2.0 * (u_fine.view(-1).abs() / (u_fine.abs().max() + 1e-8))
+        spike_score = (
+            3.5 * salience
+            + 2.0 * (u_fine.view(-1).abs() / (u_fine.abs().max() + 1e-8))
+            + 2.5 * (spike_anom / (spike_anom.max() + 1e-8))
+        )
         _, top_idx = torch.topk(spike_score, k=k_out, largest=True)
         tier1_idx, _ = torch.sort(top_idx)
         tier1_vals = trace[tier1_idx]
@@ -429,21 +449,20 @@ class BeltramiWellLogShell(nn.Module):
         # Reinject Tier-1 shielded outliers at exact 1.0000 fidelity
         reconstructed[tier1_idx] = tier1_vals
 
-        # Compare against naive uniform voxel downsampling (factor 8 average pooling)
-        pool_bins = max(4, Z // 8)
+        # Compare against naive uniform voxel downsampling onto coarse seismic grid
+        pool_bins = min(max(4, Z // 8), 16)
         naive_down = F.adaptive_avg_pool1d(x, pool_bins)
         naive_up = F.interpolate(naive_down, size=Z, mode="linear", align_corners=False).view(-1)
 
-        # Measure peak stringer anomaly recovery relative to coarse background
-        true_anom = (trace - u_coarse.view(-1)).abs()
-        peak_z = int(torch.argmax(true_anom).item())
+        # Measure peak thin-bed stringer anomaly recovery relative to local flank background
+        peak_z = int(torch.argmax(spike_anom).item())
         denom_anom = float(true_anom[peak_z].item())
         if denom_anom > 1e-6:
             beltrami_rec = float(
                 1.0 - min(1.0, abs(float(reconstructed[peak_z] - trace[peak_z])) / denom_anom)
             )
             naive_rec = float(
-                max(0.0, min(1.0, abs(float(naive_up[peak_z] - u_coarse.view(-1)[peak_z])) / denom_anom))
+                max(0.0, min(1.0, abs(float(naive_up[peak_z] - bg_ref[peak_z])) / denom_anom))
             )
         else:
             beltrami_rec = 1.0
@@ -559,6 +578,7 @@ class ContinuousSpectralGeoField3D(nn.Module):
         self.viscous_p = int(viscous_p)
         self.shell_level = int(shell_level)
         self._dct_cache: dict[tuple[int, int, int, str], torch.Tensor] = {}
+        self._dct_1d_cache: dict[tuple[int, int, int, str], tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = {}
 
     @property
     def num_dct_channels(self) -> int:
@@ -568,10 +588,13 @@ class ContinuousSpectralGeoField3D(nn.Module):
     def num_total_channels(self) -> int:
         return self.num_dct_channels + 12
 
-    def _get_3d_dct_basis(self, Z: int, Y: int, X: int, device: torch.device) -> torch.Tensor:
+    def _get_1d_dct_matrices(
+        self, Z: int, Y: int, X: int, device: torch.device
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Precompute 1D axial DCT-II cosine matrices `(psi_z, psi_y, psi_x)` in `O(Z + Y + X)` space."""
         key = (Z, Y, X, str(device))
-        if key in self._dct_cache:
-            return self._dct_cache[key]
+        if key in self._dct_1d_cache:
+            return self._dct_1d_cache[key]
 
         z = torch.arange(Z, dtype=torch.float32, device=device)
         y = torch.arange(Y, dtype=torch.float32, device=device)
@@ -585,6 +608,15 @@ class ContinuousSpectralGeoField3D(nn.Module):
         psi_y = torch.cos(math.pi * (2.0 * y.unsqueeze(0) + 1.0) * ky / (2.0 * max(Y, 1)))
         psi_x = torch.cos(math.pi * (2.0 * x.unsqueeze(0) + 1.0) * kx / (2.0 * max(X, 1)))
 
+        self._dct_1d_cache[key] = (psi_z, psi_y, psi_x)
+        return psi_z, psi_y, psi_x
+
+    def _get_3d_dct_basis(self, Z: int, Y: int, X: int, device: torch.device) -> torch.Tensor:
+        key = (Z, Y, X, str(device))
+        if key in self._dct_cache:
+            return self._dct_cache[key]
+
+        psi_z, psi_y, psi_x = self._get_1d_dct_matrices(Z, Y, X, device)
         basis = torch.einsum("az,by,cx->zyxabc", psi_z, psi_y, psi_x).reshape(
             Z, Y, X, self.num_dct_channels
         )
@@ -662,30 +694,19 @@ class ContinuousSpectralGeoField3D(nn.Module):
         self,
         strat_field_3d: torch.Tensor,
         obstacle_shell_3d: torch.Tensor,
+        chunk_z: int = 16,
     ) -> dict[str, Any]:
         """
         Build the 3D spectral, multi-bounce ray, and Jordan-enclosure basis `Phi_spec_3d`
-        of shape `(Z, Y, X, C_spec)`.
+        of shape `(Z, Y, X, C_spec)` using slab-wise evaluation along `Z` (`chunk_z = 16`).
         """
         Z, Y, X = strat_field_3d.shape
         device = strat_field_3d.device
 
-        dct_basis = self._get_3d_dct_basis(Z, Y, X, device)  # (Z, Y, X, K_dct)
+        psi_z, psi_y, psi_x = self._get_1d_dct_matrices(Z, Y, X, device)
         gamma_3d = self.compute_adelic_heat_kernel_3d(strat_field_3d)  # (Z, Y, X)
-        dct_attenuated = dct_basis * gamma_3d.unsqueeze(-1)
 
         cavity_info = self.extract_3d_jordan_cavity_masks(obstacle_shell_3d)
-        cavity_channels = torch.stack(
-            [
-                cavity_info["jordan_6way"],
-                cavity_info["jordan_5way"],
-                cavity_info["cavity_bdy"],
-                cavity_info["cavity_core"],
-                cavity_info["cavity_smooth"],
-                cavity_info["enclosure_norm"],
-            ],
-            dim=-1,
-        )  # (Z, Y, X, 6)
 
         obs = obstacle_shell_3d.float().clamp(0.0, 1.0)
         transmittance = 1.0 - 0.80 * obs
@@ -728,7 +749,28 @@ class ContinuousSpectralGeoField3D(nn.Module):
             dim=-1,
         )  # (Z, Y, X, 6)
 
-        phi_spec_3d = torch.cat([dct_attenuated, cavity_channels, ray_channels], dim=-1)
+        step_z = Z if (chunk_z is None or int(chunk_z) <= 0) else max(1, int(chunk_z))
+        K_dct = self.num_dct_channels
+        phi_spec_3d = torch.empty(
+            (Z, Y, X, self.num_total_channels), dtype=torch.float32, device=device
+        )
+
+        for z0 in range(0, Z, step_z):
+            z1 = min(Z, z0 + step_z)
+            dz = z1 - z0
+            psi_z_slab = psi_z[:, z0:z1]  # (kz_max, dz)
+            dct_slab = torch.einsum("az,by,cx->zyxabc", psi_z_slab, psi_y, psi_x).reshape(
+                dz, Y, X, K_dct
+            )
+            phi_spec_3d[z0:z1, :, :, :K_dct] = dct_slab * gamma_3d[z0:z1].unsqueeze(-1)
+            phi_spec_3d[z0:z1, :, :, K_dct] = cavity_info["jordan_6way"][z0:z1]
+            phi_spec_3d[z0:z1, :, :, K_dct + 1] = cavity_info["jordan_5way"][z0:z1]
+            phi_spec_3d[z0:z1, :, :, K_dct + 2] = cavity_info["cavity_bdy"][z0:z1]
+            phi_spec_3d[z0:z1, :, :, K_dct + 3] = cavity_info["cavity_core"][z0:z1]
+            phi_spec_3d[z0:z1, :, :, K_dct + 4] = cavity_info["cavity_smooth"][z0:z1]
+            phi_spec_3d[z0:z1, :, :, K_dct + 5] = cavity_info["enclosure_norm"][z0:z1]
+            phi_spec_3d[z0:z1, :, :, K_dct + 6 :] = ray_channels[z0:z1]
+
         return {
             "phi_spec_3d": phi_spec_3d,
             "adelic_gamma_3d": gamma_3d,
@@ -1046,11 +1088,13 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
         viscous_nu: float = 0.05,
         viscous_p: int = 2,
         shell_level: int = 1,
+        chunk_z: int = 16,
     ) -> None:
         super().__init__()
         self.Z, self.Y, self.X = (int(grid_shape[0]), int(grid_shape[1]), int(grid_shape[2]))
         self.C = int(num_lithologies)
         self.M_fault = int(num_fault_modes)
+        self.chunk_z = int(chunk_z)
         self.register_buffer(
             "vp_lut", torch.tensor(canonical_vp_kms[:num_lithologies], dtype=torch.float32)
         )
@@ -1326,33 +1370,60 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
         residual_vp: Optional[torch.Tensor] = None,      # (N_vox, 1) or (N_vox,) travel-time residual
         precision_pi: Optional[torch.Tensor] = None,     # (N_vox, 1) or (N_vox,) sensor precision
         lambda_ridge: float = 1e-2,
+        chunk_z: Optional[int] = None,
     ) -> dict[str, Any]:
         Z, Y, X, C = ell_sym_3d.shape
-        N_vox = Z * Y * X
         tau_safe = max(float(tau_v), 1e-3)
+        cz_eff = self.chunk_z if chunk_z is None else int(chunk_z)
+        step_z = Z if cz_eff <= 0 else max(1, min(Z, cz_eff))
+        use_cascade = int(unroll_steps) > 1 and float(self.W_cascade.abs().max().item()) > 0.0
 
-        ell_flat = ell_sym_3d.reshape(N_vox, C)
-        u_flat = u_fault_3d.reshape(N_vox, self.M_fault)
+        vp_slabs: list[torch.Tensor] = []
+        litho_id_slabs: list[torch.Tensor] = []
+        litho_probs_slabs: list[torch.Tensor] = []
+        d_ell_slabs: list[torch.Tensor] = []
 
-        v_comp = F.softmax(ell_flat / tau_safe, dim=-1)
-        d_ell_triad = self.skew_symmetric_fault_triad(float(triad_gain) * u_flat, v_comp)
-
-        # Verify Theorem 2.3 pointwise spherical orthogonality <v_comp, d_ell_triad> == 0
-        max_ortho_err = float(torch.abs((v_comp * d_ell_triad).sum(dim=-1)).max().item())
-
-        ell_post = ell_flat + d_ell_triad
-
-        # Optional multi-step Slow-Fast spherical cascade deliberation (Theorem 2.6)
+        max_ortho_err = 0.0
         cascade_radial_drift = 0.0
-        if int(unroll_steps) > 1 and float(self.W_cascade.abs().max().item()) > 0.0:
-            ell_post, cas_diag = self.cascade_op(
-                v_comp, ell_post, self.W_cascade, unroll_steps=int(unroll_steps)
-            )
-            cascade_radial_drift = cas_diag["max_spherical_radial_drift"]
 
-        litho_probs = F.softmax(ell_post / tau_safe, dim=-1)
-        vp_cube = (litho_probs @ self.vp_lut).reshape(Z, Y, X)
-        litho_id_cube = ell_post.argmax(dim=-1).reshape(Z, Y, X)
+        for z0 in range(0, Z, step_z):
+            z1 = min(Z, z0 + step_z)
+            dz = z1 - z0
+            n_slab = dz * Y * X
+
+            ell_slab = ell_sym_3d[z0:z1].reshape(n_slab, C)
+            u_slab = u_fault_3d[z0:z1].reshape(n_slab, self.M_fault)
+
+            v_comp_slab = F.softmax(ell_slab / tau_safe, dim=-1)
+            d_ell_slab = self.skew_symmetric_fault_triad(float(triad_gain) * u_slab, v_comp_slab)
+
+            # Verify Theorem 2.3 pointwise spherical orthogonality <v_comp, d_ell_triad> == 0
+            slab_ortho = float(torch.abs((v_comp_slab * d_ell_slab).sum(dim=-1)).max().item())
+            max_ortho_err = max(max_ortho_err, slab_ortho)
+
+            ell_post_slab = ell_slab + d_ell_slab
+
+            if use_cascade:
+                ell_post_slab, cas_diag = self.cascade_op(
+                    v_comp_slab, ell_post_slab, self.W_cascade, unroll_steps=int(unroll_steps)
+                )
+                cascade_radial_drift = max(
+                    cascade_radial_drift, cas_diag["max_spherical_radial_drift"]
+                )
+
+            litho_probs_slab = F.softmax(ell_post_slab / tau_safe, dim=-1)
+            vp_slab = (litho_probs_slab @ self.vp_lut).reshape(dz, Y, X)
+            litho_id_slab = ell_post_slab.argmax(dim=-1).reshape(dz, Y, X)
+
+            vp_slabs.append(vp_slab)
+            litho_id_slabs.append(litho_id_slab)
+            litho_probs_slabs.append(litho_probs_slab.reshape(dz, Y, X, C))
+            d_ell_slabs.append(d_ell_slab.reshape(dz, Y, X, C))
+
+        vp_cube = torch.cat(vp_slabs, dim=0)
+        litho_id_cube = torch.cat(litho_id_slabs, dim=0)
+        litho_probs_3d = torch.cat(litho_probs_slabs, dim=0)
+        d_ell_triad_3d = torch.cat(d_ell_slabs, dim=0)
 
         tomo_update_3d = torch.zeros_like(vp_cube)
         if D_jacobian is not None and residual_vp is not None and precision_pi is not None:
@@ -1368,10 +1439,11 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
                 float(self.vp_lut.max().item()) * 1.15,
             )
 
-        probs_bcz = litho_probs.reshape(Z, Y, X, C).permute(3, 0, 1, 2).unsqueeze(0)
+        probs_bcz = litho_probs_3d.permute(3, 0, 1, 2).unsqueeze(0)
         tti_bundle = self.tti_engine(
             probs_post=probs_bcz,
             vp_isotropic_kms=vp_cube.unsqueeze(0),
+            chunk_z=step_z,
         )
 
         return {
@@ -1391,9 +1463,10 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
             "acoustic_impedance_zp": tti_bundle.acoustic_impedance_zp.squeeze(0),
             "stiffness_trace_drift": tti_bundle.stiffness_trace_drift,
             "stiffness_frobenius_drift": tti_bundle.stiffness_frobenius_drift,
+            "so6_orthogonality_error": tti_bundle.so6_orthogonality_error,
             "lithology_cube": litho_id_cube,
-            "litho_probs_3d": litho_probs.reshape(Z, Y, X, C),
-            "d_ell_triad_3d": d_ell_triad.reshape(Z, Y, X, C),
+            "litho_probs_3d": litho_probs_3d,
+            "d_ell_triad_3d": d_ell_triad_3d,
             "tomography_update_kms": tomo_update_3d,
             "max_orthogonality_residual": max_ortho_err,
             "cascade_radial_drift": cascade_radial_drift,

@@ -24,6 +24,7 @@ from .engine import BeltramiWellLogShell
 from .io import (
     read_las2_file,
     read_segy_cube,
+    stream_segy_volume,
     write_dev_survey,
     write_las2_file,
     write_segy_cube,
@@ -46,27 +47,27 @@ def run_benchmark_suite(
     shape = (grid_size, grid_size, grid_size)
 
     summary = {
-        "engine": "G3VM (DarkSnail-Geo3D) v0.2.0",
+        "engine": "G3VM (DarkSnail-Geo3D) v0.3.0",
         "grid_shape": list(shape),
         "scenarios": {},
     }
 
-    print("=" * 108)
-    print(f"G3VM (DarkSnail-Geo3D) v0.2.0 3D Velocity & TTI Elastic Benchmark | Grid: {grid_size}x{grid_size}x{grid_size}")
-    print("=" * 108)
+    print("=" * 112)
+    print(f"G3VM (DarkSnail-Geo3D) v0.3.0 3D Velocity & TTI Elastic Benchmark | Grid: {grid_size}x{grid_size}x{grid_size}")
+    print("=" * 112)
     header = (
-        f"{'Scenario':<20} | {'G3VM RMSE':>10} | {'RBF RMSE':>10} | {'Delta%':>8} | "
+        f"{'Scenario':<24} | {'G3VM RMSE':>10} | {'RBF RMSE':>10} | {'Delta%':>8} | "
         f"{'TTI RMSE':>9} | {'Sharpness':>10} | {'DevSpike':>9} | {'<v,d_ell>':>10}"
     )
     print(header)
-    print("-" * 108)
+    print("-" * 112)
 
     for scen_name in SCENARIO_Descriptions:
         res = evaluate_scenario_comparison(scen_name, grid_shape=shape)
         m = res["metrics"]
         summary["scenarios"][scen_name] = m
         print(
-            f"{scen_name:<20} | "
+            f"{scen_name:<24} | "
             f"{m['g3vm_vp_rmse_kms']:>10.4f} | "
             f"{m['naive_vp_rmse_kms']:>10.4f} | "
             f"-{m['rmse_reduction_pct']:>6.2f}% | "
@@ -76,7 +77,7 @@ def run_benchmark_suite(
             f"{m['max_orthogonality_residual']:>10.2e}"
         )
 
-    print("=" * 108)
+    print("=" * 112)
     showcase_path = out_dir / "g3vm_leapfrog_showcase.png"
     well_path = out_dir / "g3vm_well_log_beltrami.png"
     html_path = out_dir / "g3vm_portable_studio.html"
@@ -111,7 +112,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Automatically open the default web browser on startup",
     )
 
-    p_bench = sub.add_parser("benchmark", help="Run the 4-scenario 3D velocity benchmark & generate figures")
+    p_bench = sub.add_parser("benchmark", help="Run the 5-scenario 3D velocity benchmark & generate figures")
     p_bench.add_argument("--grid-size", type=int, default=48, help="Cube resolution (default: 48)")
     p_bench.add_argument("--output-dir", default="results", help="Output directory (default: results)")
 
@@ -142,8 +143,29 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_las.add_argument("las_file", help="Path to input .las file")
     p_las.add_argument("--output-las", default="", help="Optional output shielded .las path")
 
-    p_segy = sub.add_parser("ingest-segy", help="Ingest a 3D SEG-Y Rev 1 velocity/seismic cube & print diagnostics")
+    p_segy = sub.add_parser("ingest-segy", help="Out-of-core stream & Beltrami-downsample a 3D SEG-Y Rev 1 volume")
     p_segy.add_argument("segy_file", help="Path to input .segy / .sgy file")
+    p_segy.add_argument(
+        "--roi",
+        default="",
+        help="Optional ROI bounding box 'il_min:il_max,xl_min:xl_max,z_min:z_max'",
+    )
+    p_segy.add_argument(
+        "--max-grid",
+        type=int,
+        default=64,
+        help="Maximum output grid dimension M for Beltrami curl downsampling (default: 64)",
+    )
+    p_segy.add_argument(
+        "--export-json",
+        default="",
+        help="Optional output JSON telemetry path",
+    )
+    p_segy.add_argument(
+        "--output-segy",
+        default="",
+        help="Optional output downsampled .segy path",
+    )
 
     raw_args = list(argv) if argv is not None else sys.argv[1:]
     # If launched as a double-clicked frozen binary with no CLI args, default to `serve --open-browser`
@@ -241,13 +263,46 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if cmd == "ingest-segy":
-        segy = read_segy_cube(args.segy_file)
+        roi_arg = args.roi if getattr(args, "roi", "") else None
+        max_grid_arg = getattr(args, "max_grid", 64)
+        segy = stream_segy_volume(args.segy_file, roi=roi_arg, max_grid=max_grid_arg)
         cube = segy["cube_zyx"]
         print(
-            f"[+] Ingested SEG-Y Rev 1 3D volume: shape={cube.shape}, "
-            f"format={segy['format_code']}, dt={segy['sample_interval_us']} us, "
-            f"Vp range=[{cube.min():.3f}, {cube.max():.3f}] km/s"
+            f"[+] Out-of-Core SEG-Y Rev 1 Stream: raw_shape={segy['raw_shape_zyx']}, "
+            f"roi_shape={segy['roi_shape_zyx']}, downsampled_shape={segy['downsampled_shape_zyx']}, "
+            f"format={segy['format_code']}, dt={segy['sample_interval_us']} us | "
+            f"Vp=[{cube.min():.3f}, {cube.max():.3f}] km/s | "
+            f"Beltrami fault-curl preservation={segy['beltrami_curl_preservation_ratio']*100:.1f}% "
+            f"(naive={segy['naive_avg_curl_ratio']*100:.1f}%) | "
+            f"Peak RAM={segy['peak_ram_mb']:.2f} MB"
         )
+        if getattr(args, "output_segy", ""):
+            out_segy = write_segy_cube(
+                args.output_segy,
+                cube,
+                sample_interval_us=segy["sample_interval_us"],
+                format_code=segy["format_code"] if segy["format_code"] in (1, 5) else 5,
+            )
+            print(f"[+] Saved Beltrami-downsampled SEG-Y volume to {out_segy}")
+        if getattr(args, "export_json", ""):
+            json_out = Path(args.export_json)
+            json_out.parent.mkdir(parents=True, exist_ok=True)
+            telemetry = {
+                "raw_shape_zyx": list(segy["raw_shape_zyx"]),
+                "roi_shape_zyx": list(segy["roi_shape_zyx"]),
+                "downsampled_shape_zyx": list(segy["downsampled_shape_zyx"]),
+                "sample_interval_us": segy["sample_interval_us"],
+                "format_code": segy["format_code"],
+                "vp_min_kms": round(float(cube.min()), 4),
+                "vp_max_kms": round(float(cube.max()), 4),
+                "tier1_spike_fraction": segy["tier1_spike_fraction"],
+                "beltrami_curl_preservation_ratio": segy["beltrami_curl_preservation_ratio"],
+                "naive_avg_curl_ratio": segy["naive_avg_curl_ratio"],
+                "fault_step_recovery": segy["fault_step_recovery"],
+                "peak_ram_mb": segy["peak_ram_mb"],
+            }
+            json_out.write_text(json.dumps(telemetry, indent=2), encoding="utf-8")
+            print(f"[+] Saved SEG-Y streaming telemetry JSON to {json_out}")
         return 0
 
     run_benchmark_suite(grid_size=getattr(args, "grid_size", 48), output_dir=getattr(args, "output_dir", "results"))

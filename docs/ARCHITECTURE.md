@@ -193,8 +193,41 @@ Real-world EGS geothermal doublets and subsalt development wells follow 3D direc
    with exact Taylor limit $RF_k = 1 + \beta_k^2 / 12$ as the dogleg angle approaches zero. `BeltramiWellLogShell` runs directly along Measured Depth on the curvilinear trajectory, recovering thin fracture and carbonate stringers intersected by S-curve and $88^\circ$ horizontal laterals at `1.0000` (`100%`) recovery.
 2. **CWLS `LAS 2.0` & `.dev` Survey Readers/Writers (`read_las2_file`, `write_las2_file`, `read_dev_survey`, `write_dev_survey`)**:
    Full parsing and generation of industry `.las` wireline logs (with automatic sonic slowness $\mathrm{DT}\;(\mu\text{s/ft}) \leftrightarrow V_p\;(\text{km/s}) = 304.8 / \mathrm{DT}$ conversion) and Petrel/Leapfrog `.dev` surveys.
-3. **`SEG-Y Rev 1` Binary 3D Volume Reader/Writer (`read_segy_cube`, `write_segy_cube`)**:
-   Reads and writes standard 3600-byte reel headers + 240-byte Inline/Crossline trace headers in IEEE float32 (format code `5`) and IBM 32-bit float (format code `1`).
+3. **Out-of-Core `SEG-Y Rev 1` Memmap Streaming & 3D Beltrami Exterior-Curl Downsampling (`stream_segy_volume`, `beltrami_downsample_3d_cube`, `read_segy_cube`, `write_segy_cube`)**:
+   Reads and writes standard 3600-byte reel headers + 240-byte Inline/Crossline trace headers in IEEE float32 (format code `5`) and IBM 32-bit float (format code `1`). For multi-hundred-MB to multi-GB volumes, `stream_segy_volume()` maps the file with `np.memmap(..., mode="r")`, parses Inline (`bytes 189–192`) and Crossline (`bytes 193–196`) directly from a strided 2D view with zero memory copy, filters to the user's `--roi il_min:il_max,xl_min:xl_max,z_min:z_max` bounding box, and streams coarse Inline brick slabs (`< 35 MB` peak Python heap). Within each coarse voxel brick $\mathcal B$, the discrete 3D Beltrami exterior-curl salience norm is evaluated relative to the stratigraphic normal $\mathbf n_{\mathrm{strat}}$:
+
+```math
+S_{\mathrm{curl}}(z, y, x) = \lVert \nabla V_p(z, y, x) \times \mathbf n_{\mathrm{strat}} \rVert_2 + \lvert \Delta_{\mathrm{axial}} V_p(z, y, x) \rvert
+```
+
+   When $\max_{\mathcal B} S_{\mathrm{curl}} > \mu_S + 1.25\,\sigma_S$, the coarse voxel retains the exact Tier-1 extremum spike/fault-wall sample (`1.0000` step recovery); otherwise it selects the Tier-2 $L^1$ brick medoid.
+
+---
+
+### 2.7 Z-Slab Chunked 3D Spectral & Triad Evaluation (`chunk_z = 16`)
+
+Materializing a 201-channel 3D spectral basis $\Phi_{\mathrm{spec}} \in \mathbb R^{Z \times Y \times X \times 201}$ simultaneously across $128^3$ voxels would allocate over `1.68 GB` per intermediate tensor.
+In `v0.3.0`, `ContinuousSpectralGeoField3D`, `DarkSnailGeo3DVelocityModeler`, and `ThomsenTTIElasticModulusEngine` precompute the 1D axial DCT-II cosine tables along $Z, Y, X$ in $O(Z + Y + X)$ memory and iterate over depth slabs $z_0 \in \{0, \Delta Z, 2\Delta Z, \dots, Z\}$ with default slab thickness $\Delta Z = 16$:
+
+```math
+\ell_{\mathrm{post}}(c) = \ell_{\mathrm{sym}}(c) + \gamma_{\mathrm{triad}} \sum_{i=1}^M \sum_{k=1}^C \left(W_{i, c, k} - W_{i, k, c}\right) u_{\mathrm{fault}, i}\, v_{\mathrm{comp}, k}
+```
+
+Because both Kahan/Parlett tangent projection and row-independent 1-ULP orthogonality polish (`_exact_orthogonality_ulp_polish`) operate pointwise along the lithology simplex, slab-chunked evaluation (`chunk_z = 8` or `chunk_z = 16`) is bit-identical (`max_abs_diff < 1e-6`) to unchunked evaluation while preserving `0.000e+00` radial drift and `<= 1.14e-13` $\mathrm{SO}(6)$ Kelvin-Mandel orthogonality error.
+
+---
+
+### 2.8 US DOE Utah FORGE EGS Doublet Field Dataset (`utah_forge_egs_doublet`)
+
+`data/utah_forge/` bundles a compact (`231 KB`) parameter-faithful distillation of public-domain field surveys and wireline dipole sonic logs from the **US Department of Energy (DOE) Utah FORGE Enhanced Geothermal System (EGS)** site in Milford Valley, Utah:
+
+1. **Injection Well `16A(78)-32` Directional Survey (`data/utah_forge/well_16A_78_32.dev`, GDR Submissions 1216 & 1283, DOIs `10.15121/1632156`, `10.15121/1776602`)**:
+   Spudded vertically through `4,700 ft` (`1,432.6 m`) of unconsolidated Milford Valley basin-fill sediments ($V_p \in [2.42, 2.98]\text{ km/s}$) before penetrating Tertiary crystalline granitoid basement
+   ($V_p \in [5.82, 5.85]\text{ km/s},\; V_s \approx 3.42\text{ km/s},\; \rho \approx 2.72\text{ g/cm}^3$) across the inclined Opal Mound fault unconformity. Kicks off at `5,900 ft` MD (`1,798.3 m`), building at $5.0^\circ / 100\text{ ft}$ along $105^\circ$ azimuth to a $65^\circ$ tangent at `7,268 ft` MD (`2,215.3 m`), reaching `10,987 ft` MD (`3,348.8 m`, `8,560 ft` TVD).
+2. **Production Doublet Well `16B(78)-32` Survey (`data/utah_forge/well_16B_78_32.dev`, GDR Submissions 1516 & 1531, DOIs `10.15121/1998591`, `10.15121/2001059`)**:
+   Drilled `300 ft` (`91.44 m`) parallel to and directly above injector `16A(78)-32` along the same $105^\circ$ azimuth and $65^\circ$ tangent, reaching `10,947 ft` MD (`3,336.6 m`, `8,357 ft` TVD).
+3. **Wireline Dipole Sonic & Anisotropy Log (`data/utah_forge/well_16A_78_32_sonic.las`, GDR Submission 1292, DOI `10.15121/1777912`)**:
+   Captures the sharp acoustic velocity jump at the `4,700 ft` Opal Mound contact and discrete Stage 1–3 hydraulic fracture stimulation zones where $V_p$ drops from `5.83 km/s` intact granitoid to `3.62–3.85 km/s` with strong Thomsen shear-wave splitting ($\epsilon \in [0.13, 0.16],\; \delta \in [0.05, 0.07],\; \gamma \in [0.08, 0.19]$). `BeltramiWellLogShell` recovers `1.0000` (`100.0%`) of the Stage 1–3 fracture spikes where coarse voxel averaging loses over `95%` of the thin-bed slowness contrast.
 
 ---
 
@@ -202,22 +235,27 @@ Real-world EGS geothermal doublets and subsalt development wells follow 3D direc
 
 ```
 g3vm/
+├── data/utah_forge/         # Public-domain US DOE Utah FORGE EGS Doublet field files (< 235 KB)
+│   ├── well_16A_78_32.dev       # Injector 16A(78)-32 directional survey (GDR 1216 / 1283)
+│   ├── well_16B_78_32.dev       # Producer 16B(78)-32 doublet survey (+300 ft parallel, GDR 1516 / 1531)
+│   └── well_16A_78_32_sonic.las # 16A dipole sonic, density & TTI anisotropy wireline log (GDR 1292)
 ├── g3vm/
-│   ├── __init__.py          # Public API exports (v0.2.0)
+│   ├── __init__.py          # Public API exports (v0.3.0)
 │   ├── __main__.py          # Module & PyInstaller entrypoint (python -m g3vm)
-│   ├── engine.py            # DarkSnailGeo3DVelocityModeler & verified mathematical primitives
+│   ├── engine.py            # DarkSnailGeo3DVelocityModeler & Z-slab chunked mathematical primitives
 │   ├── anisotropy.py        # Thomsen VTI/TTI phase velocities, Vp/Vs/rho cubes & so(6) stiffness rotor
-│   ├── io.py                # Minimum-Curvature 3D deviated wells, CWLS LAS 2.0, .dev & SEG-Y Rev 1 I/O
-│   ├── scenarios.py         # 4 realistic 3D basin generators, vertical + deviated wells, TTI benchmarks
-│   ├── viewer.py            # Flask 3D Studio backend, portable HTML5 bundler, Matplotlib figures
+│   ├── io.py                # Out-of-core np.memmap SEG-Y streaming, Beltrami downsampling, LAS 2.0 & .dev I/O
+│   ├── scenarios.py         # 5 benchmark basins (incl. utah_forge_egs_doublet), vertical + deviated wells
+│   ├── viewer.py            # Flask 3D Studio backend, portable HTML5 bundler, 5-row Matplotlib figures
 │   ├── cli.py               # Cross-platform CLI (serve, benchmark, bundle-html, export, ingest-las, ingest-segy)
 │   └── static/
-│       └── index.html       # Interactive 3D Chair-Cut Volume + 2D Slicers + Deviated Well Studio
+│       └── index.html       # 3D Chair-Cut Studio + Utah FORGE Preset + Client-Side Drag-and-Drop Inspector
 ├── scripts/
 │   ├── generate_showcase.py # Generates benchmark JSON, showcase PNGs, and portable HTML studio
 │   └── audit_gfm_math.py    # 21-rule GitHub Flavored Markdown & KaTeX compliance linter
 ├── tests/
-│   └── test_g3vm.py         # 13-test verification suite (Theorems 2.1-2.7, LAS/SEG-Y I/O, benchmarks)
+│   ├── test_g3vm.py         # 14-test core verification suite (Theorems 2.1-2.7, 5 scenarios, LAS/SEG-Y I/O)
+│   └── test_g3vm_v030.py    # v0.3.0 suite (64 MB SEG-Y memmap < 35 MB RAM, Z-slab bit-identity, Utah FORGE)
 └── .github/workflows/
     └── ci-and-release.yml   # Linux/macOS/Windows CI matrix + PyInstaller binary release workflow
 ```
@@ -228,6 +266,6 @@ g3vm/
 
 `g3vm` is engineered to run identically across **Linux**, **macOS (Apple Silicon & Intel)**, and **Windows**:
 
-- **Pure PyTorch + NumPy + SciPy Vectorized Core**: All 3D spectral transforms, 6-way cumulative Jordan integrals, $\mathfrak{so}(C)$ triad projections, $\mathfrak{so}(6)$ Kelvin-Mandel stiffness rotors, and `LAS 2.0` / `SEG-Y Rev 1` binary parsers execute without custom C++/Fortran compilation steps.
+- **Pure PyTorch + NumPy + SciPy Vectorized Core**: All 3D spectral transforms, 6-way cumulative Jordan integrals, $\mathfrak{so}(C)$ triad projections, $\mathfrak{so}(6)$ Kelvin-Mandel stiffness rotors, and out-of-core `LAS 2.0` / `SEG-Y Rev 1` `np.memmap` parsers execute without custom C++/Fortran compilation steps and stay well under `150 MB` of peak laptop RAM.
 - **Frozen Binary Support (`PyInstaller`)**: `g3vm/viewer.py` resolves static assets through `sys._MEIPASS` when packaged as a single-file executable (`--onefile`), and `g3vm/cli.py` automatically launches the local 3D Web Studio and opens the user's default browser when double-clicked on Windows, macOS, or Linux.
-- **Zero-Install Portable HTML5 Studio (`g3vm bundle-html`)**: Pre-computes all 4 benchmark basins and embeds the interactive 3D WebGL/Canvas studio into a single self-contained `.html` file (`results/g3vm_portable_studio.html`) that runs offline in any browser with zero Python or library installation.
+- **Zero-Install Portable HTML5 Studio (`g3vm bundle-html`)**: Pre-computes all 5 benchmark basins (including `utah_forge_egs_doublet`) and embeds the interactive 3D WebGL/Canvas studio into a single self-contained `.html` file (`results/g3vm_portable_studio.html`) that runs offline in any browser with zero Python or library installation.
