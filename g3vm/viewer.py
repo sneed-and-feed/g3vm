@@ -80,13 +80,18 @@ def serialize_evaluation_payload(
     err_naive_3d = (naive_out["vp_cube_kms"] - scen["true_vp_cube"]).abs()
 
     wells_payload = []
-    for w in scen["wells"]:
+    for w in list(scen["wells"]) + list(scen.get("deviated_wells", [])):
         b = w["beltrami"]
+        traj = w.get("trajectory")
         wells_payload.append(
             {
                 "name": w["name"],
+                "well_type": w.get("well_type", "vertical"),
                 "y": int(w["y"]),
                 "x": int(w["x"]),
+                "traj_z": _tensor_to_nested_list(traj.z_vox, 2) if traj is not None else [],
+                "traj_y": _tensor_to_nested_list(traj.y_vox, 2) if traj is not None else [],
+                "traj_x": _tensor_to_nested_list(traj.x_vox, 2) if traj is not None else [],
                 "stringer_depths": [int(z) for z in w["stringer_depths"]],
                 "true_vp": _tensor_to_nested_list(w["true_vp_trace"], 3),
                 "reconstructed_vp": _tensor_to_nested_list(b.reconstructed_vp, 3),
@@ -121,6 +126,12 @@ def serialize_evaluation_payload(
         "metrics": bundle["metrics"],
         "cubes": {
             "g3vm_vp": _tensor_to_nested_list(g3vm_out["vp_cube_kms"], 3),
+            "g3vm_vp_tti": _tensor_to_nested_list(g3vm_out["vp_tti_cube_kms"], 3),
+            "g3vm_vs": _tensor_to_nested_list(g3vm_out["vs_cube_kms"], 3),
+            "g3vm_rho": _tensor_to_nested_list(g3vm_out["rho_cube_gcc"], 3),
+            "g3vm_epsilon": _tensor_to_nested_list(g3vm_out["epsilon_cube"], 3),
+            "g3vm_delta": _tensor_to_nested_list(g3vm_out["delta_cube"], 3),
+            "g3vm_vp_vs_ratio": _tensor_to_nested_list(g3vm_out["vp_vs_ratio_cube"], 3),
             "naive_vp": _tensor_to_nested_list(naive_out["vp_cube_kms"], 3),
             "true_vp": _tensor_to_nested_list(scen["true_vp_cube"], 3),
             "g3vm_litho": _tensor_to_nested_list(g3vm_out["lithology_cube"], 0),

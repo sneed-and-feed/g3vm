@@ -415,6 +415,11 @@
           <div class="control-title">2. Active 3D Property Cube</div>
           <select id="selectField">
             <option value="g3vm_vp">DarkSnail G3VM Vp Cube (km/s)</option>
+            <option value="g3vm_vp_tti">DarkSnail G3VM TTI Anisotropic Vp(&psi;) (km/s)</option>
+            <option value="g3vm_vs">DarkSnail G3VM Shear Velocity Vs (km/s)</option>
+            <option value="g3vm_rho">DarkSnail G3VM Bulk Density &rho; (g/cm&sup3;)</option>
+            <option value="g3vm_epsilon">Thomsen TTI Anisotropy &epsilon; (Shale/Fold)</option>
+            <option value="g3vm_delta">Thomsen TTI Anisotropy &delta;</option>
             <option value="naive_vp">Naive RBF/Kriging Baseline Vp (cc/sol Smear)</option>
             <option value="true_vp">Ground Truth Vp Cube (km/s)</option>
             <option value="err_g3vm">G3VM Absolute Error |Vp - True| (km/s)</option>
@@ -441,7 +446,7 @@
 
           <div class="checkbox-list" style="margin-top: 4px;">
             <label class="checkbox-item"><input type="checkbox" id="chkChairCut" checked /> 3D Chair-Cut Subvolume</label>
-            <label class="checkbox-item"><input type="checkbox" id="chkBoreholes" checked /> 6 Sparse Boreholes &amp; Stringer Rings</label>
+            <label class="checkbox-item"><input type="checkbox" id="chkBoreholes" checked /> Vertical &amp; Deviated/Horiz Wells</label>
             <label class="checkbox-item"><input type="checkbox" id="chkCavity" checked /> Jordan Salt/Karst Cavity (&beta;<sub>1</sub>)</label>
             <label class="checkbox-item"><input type="checkbox" id="chkFaults" checked /> Structural Fault Ribbons</label>
           </div>
@@ -626,6 +631,15 @@
       if (f === "timelapse_nope_plume") {
         return sampleColormap(val / 0.35, "error");
       }
+      if (f === "g3vm_vs") {
+        return sampleColormap((val - 0.9) / (3.6 - 0.9), "turbo");
+      }
+      if (f === "g3vm_rho") {
+        return sampleColormap((val - 1.95) / (2.95 - 1.95), "turbo");
+      }
+      if (f === "g3vm_epsilon" || f === "g3vm_delta") {
+        return sampleColormap(val / 0.24, "triad");
+      }
       // Velocity in [1.7, 6.4] km/s
       return sampleColormap((val - 1.7) / (6.4 - 1.7), "turbo");
     }
@@ -700,7 +714,7 @@
       const selWell = document.getElementById("selectWell");
       const prevIdx = Math.min(STATE.selectedWell, d.wells.length - 1);
       selWell.innerHTML = d.wells
-        .map((w, i) => `<option value="${i}">${w.name} @ (Y=${w.y}, X=${w.x})</option>`)
+        .map((w, i) => `<option value="${i}">${w.name} [${w.well_type || 'vertical'}]</option>`)
         .join("");
       selWell.value = String(prevIdx);
       STATE.selectedWell = prevIdx;
@@ -708,12 +722,13 @@
       // Scorecard table
       const rows = [
         ["Whole-Cube Vp RMSE (km/s)", m.naive_vp_rmse_kms.toFixed(4), m.g3vm_vp_rmse_kms.toFixed(4)],
+        ["TTI Anisotropic Vp RMSE (km/s)", (m.naive_vp_tti_rmse_kms || m.naive_vp_rmse_kms).toFixed(4), (m.g3vm_vp_tti_rmse_kms || m.g3vm_vp_rmse_kms).toFixed(4)],
         ["Fault-Zone Vp RMSE (km/s)", m.naive_fault_zone_rmse_kms.toFixed(4), m.g3vm_fault_zone_rmse_kms.toFixed(4)],
         ["Cross-Fault Sharpness", (m.naive_fault_sharpness_ratio * 100).toFixed(1) + "%", (m.g3vm_fault_sharpness_ratio * 100).toFixed(1) + "%"],
         ["Lithology Accuracy", (m.naive_lithology_accuracy * 100).toFixed(1) + "%", (m.g3vm_lithology_accuracy * 100).toFixed(1) + "%"],
         ["Fault-Zone Litho Acc", (m.naive_fault_lithology_accuracy * 100).toFixed(1) + "%", (m.g3vm_fault_lithology_accuracy * 100).toFixed(1) + "%"],
         ["Marginal W1 Distance", m.naive_marginal_w1.toFixed(5), m.g3vm_marginal_w1.toFixed(5)],
-        ["Stringer Spike Recovery", (m.naive_spike_recovery * 100).toFixed(1) + "%", (m.beltrami_spike_recovery * 100).toFixed(1) + "%"],
+        ["Vertical & Deviated Spike Rec", (m.naive_spike_recovery * 100).toFixed(1) + "%", (m.beltrami_spike_recovery * 100).toFixed(1) + "%"],
       ];
       document.getElementById("scorecardBody").innerHTML = rows
         .map(
@@ -734,6 +749,7 @@
         ["Thm 2.4 Step-0 Homotopy Error", m.step0_homotopy_error.toExponential(2)],
         ["Thm 2.5 RoPE Phase Error", t.theorem_2_5_relative_phase_error.toExponential(2)],
         ["Thm 2.6 Cascade Radial Drift", t.theorem_2_6_spherical_radial_drift.toExponential(2)],
+        ["Thm 2.7 so(6) Stiffness Drift", (m.stiffness_trace_drift || 0).toExponential(2)],
         ["4D H_clock (+) H_nope Invariance", m.timelapse_exogenous_invariance ? "VERIFIED (Exact)" : "FAILED"],
       ];
       document.getElementById("theoremBody").innerHTML = thmRows
@@ -1045,26 +1061,40 @@
       }
       ctx.stroke();
 
-      // 6. Sparse Boreholes & Beltrami Stringer Rings
+      // 6. Vertical & Deviated/Horizontal Boreholes + Beltrami Stringer Rings
       if (showBoreholes) {
         STATE.data.wells.forEach((w, idx) => {
+          const isDev = w.well_type && w.well_type !== "vertical";
           const pTop = project(0, w.y, w.x);
-          const pBot = project(Z - 1, w.y, w.x);
-          ctx.strokeStyle = idx === STATE.selectedWell ? "#00f5d4" : "rgba(255,255,255,0.75)";
-          ctx.lineWidth = idx === STATE.selectedWell ? 2.4 : 1.4;
+          ctx.strokeStyle = idx === STATE.selectedWell
+            ? "#00f5d4"
+            : (isDev ? "#ff9f1c" : "rgba(255,255,255,0.75)");
+          ctx.lineWidth = idx === STATE.selectedWell ? 2.6 : (isDev ? 2.2 : 1.4);
           ctx.beginPath();
-          ctx.moveTo(pTop[0], pTop[1]);
-          ctx.lineTo(pBot[0], pBot[1]);
+          if (w.traj_z && w.traj_z.length > 1) {
+            for (let s = 0; s < w.traj_z.length; s++) {
+              const pt = project(w.traj_z[s], w.traj_y[s], w.traj_x[s]);
+              if (s === 0) ctx.moveTo(pt[0], pt[1]);
+              else ctx.lineTo(pt[0], pt[1]);
+            }
+          } else {
+            const pBot = project(Z - 1, w.y, w.x);
+            ctx.moveTo(pTop[0], pTop[1]);
+            ctx.lineTo(pBot[0], pBot[1]);
+          }
           ctx.stroke();
 
           // Wellhead label
-          ctx.fillStyle = idx === STATE.selectedWell ? "#00f5d4" : "#e6edf3";
+          ctx.fillStyle = idx === STATE.selectedWell ? "#00f5d4" : (isDev ? "#ff9f1c" : "#e6edf3");
           ctx.font = "bold 10px sans-serif";
           ctx.fillText(`W${idx + 1}`, pTop[0] - 8, pTop[1] - 6);
 
           // Beltrami stringer spikes
           for (const szIdx of w.stringer_depths) {
-            const ps = project(szIdx, w.y, w.x);
+            const tz = (w.traj_z && w.traj_z[szIdx] !== undefined) ? w.traj_z[szIdx] : szIdx;
+            const ty = (w.traj_y && w.traj_y[szIdx] !== undefined) ? w.traj_y[szIdx] : w.y;
+            const tx = (w.traj_x && w.traj_x[szIdx] !== undefined) ? w.traj_x[szIdx] : w.x;
+            const ps = project(tz, ty, tx);
             ctx.beginPath();
             ctx.arc(ps[0], ps[1], 4.2, 0, Math.PI * 2);
             ctx.fillStyle = "#ffd43b";

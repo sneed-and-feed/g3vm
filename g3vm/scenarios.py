@@ -24,12 +24,17 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from .anisotropy import ThomsenTTIElasticModulusEngine
 from .engine import (
     BeltramiWellLogShell,
     ContinuousSpectralGeoField3D,
     DarkSnailGeo3DVelocityModeler,
     NaiveSmoothVelocityBaseline,
     compute_marginal_wasserstein1_vp,
+)
+from .io import (
+    sample_3d_cube_along_trajectory,
+    solve_minimum_curvature_trajectory,
 )
 
 LITHOLOGY_CATALOG: tuple[dict[str, Any], ...] = (
@@ -521,15 +526,104 @@ def build_geological_scenario(
         trace[s2_z] = 5.65
 
         beltrami_res = well_shell(trace)
+        md_vert = np.linspace(0.0, 3000.0, Z, dtype=np.float64)
+        traj_vert = solve_minimum_curvature_trajectory(
+            md_m=md_vert,
+            inc_deg=np.zeros(Z, dtype=np.float64),
+            azi_deg=np.zeros(Z, dtype=np.float64),
+            surface_yx_vox=(float(wy_c), float(wx_c)),
+            grid_shape=(Z, Y, X),
+            well_name=w_name,
+            well_type="vertical",
+        )
         wells_data.append(
             {
                 "name": w_name,
+                "well_type": "vertical",
                 "y": wy_c,
                 "x": wx_c,
                 "stringer_depths": [s1_z, s2_z],
                 "true_vp_trace": trace,
                 "beltrami": beltrami_res,
+                "trajectory": traj_vert,
             }
+        )
+
+    # Add 2 directional/horizontal production wellbores solved via Minimum Curvature:
+    # 1) Deviated Subsalt S-Curve Sidetrack (builds to 46 deg inclination across fault/salt flank)
+    md_dev = np.linspace(0.0, 3400.0, Z, dtype=np.float64)
+    inc_scurve = 46.0 * np.sin(np.pi * np.linspace(0.0, 1.0, Z)) ** 1.5
+    azi_scurve = np.full(Z, 68.0, dtype=np.float64)
+    traj_scurve = solve_minimum_curvature_trajectory(
+        md_m=md_dev,
+        inc_deg=inc_scurve,
+        azi_deg=azi_scurve,
+        surface_yx_vox=(0.28 * float(Y), 0.22 * float(X)),
+        grid_shape=(Z, Y, X),
+        well_name="Well-G7 (Deviated Subsalt S-Curve)",
+        well_type="deviated_scurve",
+    )
+    trace_scurve = sample_3d_cube_along_trajectory(true_vp_cube, traj_scurve).clone()
+    s1_dev, s2_dev = max(3, int(0.32 * Z)), min(Z - 3, int(0.68 * Z))
+    trace_scurve[s1_dev] = 5.35
+    trace_scurve[s2_dev] = 5.75
+    beltrami_scurve = well_shell(trace_scurve)
+
+    # 2) Horizontal EGS / Reservoir Doublet Lateral (kicks off to 88 deg horizontal lateral)
+    md_horiz = np.linspace(0.0, 3900.0, Z, dtype=np.float64)
+    inc_horiz = np.clip(np.linspace(0.0, 135.0, Z), 0.0, 88.0)
+    azi_horiz = np.full(Z, 82.0, dtype=np.float64)
+    traj_horiz = solve_minimum_curvature_trajectory(
+        md_m=md_horiz,
+        inc_deg=inc_horiz,
+        azi_deg=azi_horiz,
+        surface_yx_vox=(0.50 * float(Y), 0.16 * float(X)),
+        grid_shape=(Z, Y, X),
+        well_name="Well-H8 (Horizontal EGS Lateral)",
+        well_type="horizontal_lateral",
+    )
+    trace_horiz = sample_3d_cube_along_trajectory(true_vp_cube, traj_horiz).clone()
+    s1_hor, s2_hor = max(3, int(0.45 * Z)), min(Z - 3, int(0.76 * Z))
+    trace_horiz[s1_hor] = 5.45
+    trace_horiz[s2_hor] = 5.85
+    beltrami_horiz = well_shell(trace_horiz)
+
+    deviated_wells_data: list[dict[str, Any]] = [
+        {
+            "name": traj_scurve.well_name,
+            "well_type": traj_scurve.well_type,
+            "y": int(round(traj_scurve.y_vox[0])),
+            "x": int(round(traj_scurve.x_vox[0])),
+            "stringer_depths": [s1_dev, s2_dev],
+            "true_vp_trace": trace_scurve,
+            "beltrami": beltrami_scurve,
+            "trajectory": traj_scurve,
+        },
+        {
+            "name": traj_horiz.well_name,
+            "well_type": traj_horiz.well_type,
+            "y": int(round(traj_horiz.y_vox[0])),
+            "x": int(round(traj_horiz.x_vox[0])),
+            "stringer_depths": [s1_hor, s2_hor],
+            "true_vp_trace": trace_horiz,
+            "beltrami": beltrami_horiz,
+            "trajectory": traj_horiz,
+        },
+    ]
+
+    # Ground-truth coupled elastic & Thomsen TTI cubes
+    tti_gt_engine = ThomsenTTIElasticModulusEngine(num_lithologies=C).to(dev)
+    with torch.no_grad():
+        true_probs_bcz = (
+            F.one_hot(true_litho.long(), num_classes=C)
+            .float()
+            .permute(3, 0, 1, 2)
+            .unsqueeze(0)
+        )
+        true_tti_bundle = tti_gt_engine(
+            probs_post=true_probs_bcz,
+            vp_isotropic_kms=true_vp_cube.unsqueeze(0),
+            cavity_core=salt_cavity_info["cavity_core"].unsqueeze(0).unsqueeze(0),
         )
 
     # Synthesize 4D time-lapse monitor surveys (seasonal weathering drift + irreversible CO2/H2 plume shift)
@@ -552,6 +646,13 @@ def build_geological_scenario(
         "meta": SCENARIO_Descriptions[scenario_name],
         "grid_shape": (Z, Y, X),
         "true_vp_cube": true_vp_cube,
+        "true_vs_cube": true_tti_bundle.vs0_kms.squeeze(0),
+        "true_rho_cube": true_tti_bundle.rho_gcc.squeeze(0),
+        "true_vp_tti_cube": true_tti_bundle.vp_tti_kms.squeeze(0),
+        "true_epsilon_cube": true_tti_bundle.epsilon.squeeze(0),
+        "true_delta_cube": true_tti_bundle.delta.squeeze(0),
+        "true_gamma_cube": true_tti_bundle.gamma.squeeze(0),
+        "true_dip_deg_cube": true_tti_bundle.dip_deg.squeeze(0),
         "true_litho_cube": true_litho,
         "ell_sym_3d": ell_sym_3d,
         "u_fault_3d": u_fault_3d,
@@ -565,6 +666,7 @@ def build_geological_scenario(
         "precision_pi": precision_3d.reshape(N_vox, 1),
         "precision_3d": precision_3d,
         "wells": wells_data,
+        "deviated_wells": deviated_wells_data,
         "timelapse_monitors": [monitor_tick1, monitor_tick2],
         "true_plume_mask": plume_mask,
     }
@@ -581,8 +683,9 @@ def evaluate_scenario_comparison(
 ) -> dict[str, Any]:
     """
     Run `DarkSnailGeo3DVelocityModeler` vs. `NaiveSmoothVelocityBaseline` on a 3D basin
-    scenario and return full velocity cubes, cross-sections, borehole diagnostics, 4D
-    continuity splitting telemetry, and machine-checked theorem metrics.
+    scenario and return full velocity cubes, coupled elastic & Thomsen TTI cubes,
+    deviated/horizontal borehole diagnostics, 4D continuity splitting telemetry, and
+    machine-checked theorem metrics.
     """
     canonical_name = resolve_scenario_name(scenario_name)
     scen = build_geological_scenario(
@@ -642,6 +745,9 @@ def evaluate_scenario_comparison(
         theorem_audit = model.verify_formal_theorems()
 
     true_vp = scen["true_vp_cube"]
+    true_vs = scen["true_vs_cube"]
+    true_rho = scen["true_rho_cube"]
+    true_vp_tti = scen["true_vp_tti_cube"]
     true_litho = scen["true_litho_cube"]
     g3vm_vp = g3vm_out["vp_cube_kms"]
     naive_vp = naive_out["vp_cube_kms"]
@@ -651,6 +757,14 @@ def evaluate_scenario_comparison(
     naive_rmse = float(torch.sqrt(torch.mean((naive_vp - true_vp) ** 2)).item())
     g3vm_mae = float(torch.mean((g3vm_vp - true_vp).abs()).item())
     naive_mae = float(torch.mean((naive_vp - true_vp).abs()).item())
+
+    # TTI anisotropic & elastic multi-parameter RMSEs (naive isotropic baseline ignores epsilon/delta)
+    g3vm_vp_tti_rmse = float(
+        torch.sqrt(torch.mean((g3vm_out["vp_tti_cube_kms"] - true_vp_tti) ** 2)).item()
+    )
+    naive_vp_tti_rmse = float(torch.sqrt(torch.mean((naive_vp - true_vp_tti) ** 2)).item())
+    g3vm_vs_rmse = float(torch.sqrt(torch.mean((g3vm_out["vs_cube_kms"] - true_vs) ** 2)).item())
+    g3vm_rho_rmse = float(torch.sqrt(torch.mean((g3vm_out["rho_cube_gcc"] - true_rho) ** 2)).item())
 
     if bool(bdy_mask.any().item()):
         g3vm_fault_rmse = float(
@@ -691,14 +805,20 @@ def evaluate_scenario_comparison(
 
     beltrami_recoveries = [w["beltrami"].beltrami_spike_recovery for w in scen["wells"]]
     naive_recoveries = [w["beltrami"].naive_spike_recovery for w in scen["wells"]]
+    dev_recoveries = [w["beltrami"].beltrami_spike_recovery for w in scen["deviated_wells"]]
 
     metrics = {
         "scenario_name": canonical_name,
         "grid_shape": [Z, Y, X],
         "num_sparse_boreholes": len(scen["wells"]),
+        "num_deviated_boreholes": len(scen["deviated_wells"]),
         "g3vm_vp_rmse_kms": round(g3vm_rmse, 5),
         "naive_vp_rmse_kms": round(naive_rmse, 5),
         "rmse_reduction_pct": round(100.0 * (1.0 - g3vm_rmse / max(naive_rmse, 1e-8)), 2),
+        "g3vm_vp_tti_rmse_kms": round(g3vm_vp_tti_rmse, 5),
+        "naive_vp_tti_rmse_kms": round(naive_vp_tti_rmse, 5),
+        "g3vm_vs_rmse_kms": round(g3vm_vs_rmse, 5),
+        "g3vm_rho_rmse_gcc": round(g3vm_rho_rmse, 5),
         "g3vm_vp_mae_kms": round(g3vm_mae, 5),
         "naive_vp_mae_kms": round(naive_mae, 5),
         "g3vm_fault_zone_rmse_kms": round(g3vm_fault_rmse, 5),
@@ -712,10 +832,13 @@ def evaluate_scenario_comparison(
         "g3vm_marginal_w1": round(g3vm_w1, 6),
         "naive_marginal_w1": round(naive_w1, 6),
         "beltrami_spike_recovery": round(float(np.mean(beltrami_recoveries)), 4),
+        "deviated_well_spike_recovery": round(float(np.mean(dev_recoveries)), 4),
         "naive_spike_recovery": round(float(np.mean(naive_recoveries)), 4),
         "max_orthogonality_residual": g3vm_out["max_orthogonality_residual"],
         "step0_homotopy_error": step0_homotopy_err,
         "cascade_radial_drift": g3vm_out["cascade_radial_drift"],
+        "stiffness_trace_drift": g3vm_out["stiffness_trace_drift"],
+        "stiffness_frobenius_drift": g3vm_out["stiffness_frobenius_drift"],
         "jordan_cavity_voxels": int((spec_out["cavity_info"]["jordan_6way"] > 0.5).sum().item()),
         "jordan_cavity_medoid_zyx": list(spec_out["cavity_info"]["medoid_zyx"]),
         "timelapse_exogenous_invariance": bool(continuity_out["exogenous_drift_invariance"]),

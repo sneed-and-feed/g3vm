@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "g3vm"
-version = "0.1.0"
-description = "G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity Modeler with Skew-Symmetric Fault Tie-Breaking, Well-Log Curl Shielding, Jordan Salt-Cavity Enclosures, and Precision-Weighted Ridge Tomography"
+version = "0.2.0"
+description = "G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity & TTI Elastic Modeler with Skew-Symmetric Fault Tie-Breaking, Well-Log Curl Shielding, so(6) Stiffness Rotors, and LAS 2.0 / SEG-Y I/O"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }

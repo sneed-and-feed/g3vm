@@ -56,6 +56,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .anisotropy import (
+    ThomsenTTIElasticModulusEngine,
+    build_kelvin_mandel_so6_rotor,
+    build_so3_from_dip_azimuth,
+    build_vti_kelvin_stiffness_tensor,
+)
+
 
 # ============================================================================
 # Exact Floating-Point ULP Polish Primitives (from `darksnail/readout.py`)
@@ -85,7 +92,7 @@ def _exact_orthogonality_ulp_polish(v_f: torch.Tensor, out_base: torch.Tensor) -
             sinf = torch.full_like(sr, float("inf"))
 
             # Pass 1: Coordinate-wise residual cancellation + +-2 ULP sweep across all M_dim coordinates
-            for _ in range(2):
+            for _ in range(4):
                 if not bool((sr.abs() > 1e-8).any().item()):
                     break
                 for j in range(M_dim):
@@ -94,10 +101,10 @@ def _exact_orthogonality_ulp_polish(v_f: torch.Tensor, out_base: torch.Tensor) -
                     vj = sv[:, j : j + 1]
                     oj = so[:, j : j + 1]
                     best_oj = oj.clone()
-                    valid_v = vj.abs() > 1e-7
+                    valid_v = vj.abs() > 1e-12
                     safe_vj = torch.where(valid_v, vj, torch.ones_like(vj))
                     corr = sr / safe_vj
-                    valid_j = valid_v & (corr.abs() <= 1e-2)
+                    valid_j = valid_v & (corr.abs() <= 0.5)
                     base_j = torch.where(valid_j, oj - corr, oj)
                     ulp_j = (torch.nextafter(base_j, sinf) - base_j).abs()
                     for k in (0, 1, -1, 2, -2):
@@ -109,7 +116,7 @@ def _exact_orthogonality_ulp_polish(v_f: torch.Tensor, out_base: torch.Tensor) -
                         sr = torch.where(improve, cand_rem, sr)
                     so[:, j : j + 1] = best_oj
 
-            # Pass 2: Sub-slice any remaining rows and apply scale-projection + ULP polish
+            # Pass 2: Sub-slice any remaining rows and apply scale-projection + all-coordinate ULP polish
             rem_mask = sr.abs().squeeze(-1) > 1e-8
             if bool(rem_mask.any().item()):
                 sv_b = sv[rem_mask]
@@ -117,27 +124,30 @@ def _exact_orthogonality_ulp_polish(v_f: torch.Tensor, out_base: torch.Tensor) -
                 sr_b = sr[rem_mask]
                 vn_b = (sv_b * sv_b).sum(dim=-1, keepdim=True).clamp(min=1e-30)
                 sinf_b = torch.full_like(sr_b, float("inf"))
-                sord_b = sv_b.abs().argsort(dim=-1, descending=True)
-                j_max = sord_b[:, 0:1]
-                vj_max = torch.gather(sv_b, -1, j_max)
-                safe_vmax = torch.where(vj_max.abs() > 1e-7, vj_max, torch.ones_like(vj_max))
                 for s_mul in range(1, 256):
                     if not bool((sr_b.abs() > 1e-8).any().item()):
                         break
                     scale_f = 1.0 + float(s_mul if s_mul % 2 == 0 else -s_mul) * 3.7e-5
                     w = so_b * scale_f
                     w = w - ((sv_b * w).sum(dim=-1, keepdim=True) / vn_b) * sv_b
-                    rw = (sv_b * w).sum(dim=-1, keepdim=True)
-                    omax = torch.gather(w, -1, j_max)
-                    bmax = omax - (rw / safe_vmax)
-                    umax = (torch.nextafter(bmax, sinf_b) - bmax).abs()
-                    for k in (0, 1, -1, 2, -2, 3, -3, 4, -4):
-                        cmax = bmax if k == 0 else (bmax + float(k) * umax)
-                        c = w.scatter(-1, j_max, cmax)
-                        cr = (sv_b * c).sum(dim=-1, keepdim=True)
-                        imp = cr.abs() < sr_b.abs()
-                        so_b = torch.where(imp, c, so_b)
-                        sr_b = torch.where(imp, cr, sr_b)
+                    for j in range(M_dim):
+                        rw = (sv_b * w).sum(dim=-1, keepdim=True)
+                        vj = sv_b[:, j : j + 1]
+                        valid_v = vj.abs() > 1e-12
+                        safe_vj = torch.where(valid_v, vj, torch.ones_like(vj))
+                        oj = w[:, j : j + 1]
+                        bj = torch.where(valid_v, oj - (rw / safe_vj), oj)
+                        uj = (torch.nextafter(bj, sinf_b) - bj).abs()
+                        for k in (0, 1, -1, 2, -2):
+                            cj = bj if k == 0 else (bj + float(k) * uj)
+                            c = w.clone()
+                            c[:, j : j + 1] = cj
+                            cr = (sv_b * c).sum(dim=-1, keepdim=True)
+                            imp = valid_v & (cr.abs() < sr_b.abs())
+                            if bool(imp.any().item()):
+                                so_b = torch.where(imp, c, so_b)
+                                sr_b = torch.where(imp, cr, sr_b)
+                                w = torch.where(imp, c, w)
                 so[rem_mask] = so_b
             out_corr[mask] = so
         out_corr = out_corr.reshape(orig_shape)
@@ -1062,6 +1072,7 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
             num_fault_modes=self.M_fault, num_lithologies=self.C
         )
         self.cascade_op = SlowFastGeoCascade(dim=self.C)
+        self.tti_engine = ThomsenTTIElasticModulusEngine(num_lithologies=self.C)
 
     @staticmethod
     def beltrami_well_log_salience(well_vp_trace: torch.Tensor) -> torch.Tensor:
@@ -1194,8 +1205,8 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
 
     def verify_formal_theorems(self) -> dict[str, Any]:
         """
-        Numerically audit Theorems 2.1, 2.2, 2.3, 2.4, 2.5, and 2.6 from `OcclusionTriad.lean`
-        on the current model instance.
+        Numerically audit Theorems 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, and 2.7 (`so(6)` Kelvin-Mandel
+        stiffness rotor isometry) on the current model instance.
         """
         device = self.vp_lut.device
         W = torch.randn(self.M_fault, self.C, self.C, device=device, dtype=torch.float32)
@@ -1246,6 +1257,35 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
             max_cas_drift = max(max_cas_drift, cas_diag["max_spherical_radial_drift"])
             max_cas_ortho = max(max_cas_ortho, cas_diag["max_tangent_orthogonality_error"])
 
+        # Theorem 2.7: so(6) Kelvin-Mandel Voigt Stiffness Rotor Isometry
+        dip_test = torch.linspace(5.0, 68.0, 32, device=device, dtype=torch.float64)
+        azi_test = torch.linspace(0.0, 315.0, 32, device=device, dtype=torch.float64)
+        R3 = build_so3_from_dip_azimuth(dip_test, azi_test)
+        M6 = build_kelvin_mandel_so6_rotor(R3)
+        eye6 = torch.eye(6, device=device, dtype=torch.float64).unsqueeze(0)
+        so6_ortho_err = float(torch.max(torch.abs(torch.matmul(M6.transpose(-1, -2), M6) - eye6)).item())
+
+        C_vti = build_vti_kelvin_stiffness_tensor(
+            torch.full((32,), 3.4, device=device, dtype=torch.float64),
+            torch.full((32,), 1.85, device=device, dtype=torch.float64),
+            torch.full((32,), 2.38, device=device, dtype=torch.float64),
+            torch.full((32,), 0.21, device=device, dtype=torch.float64),
+            torch.full((32,), 0.09, device=device, dtype=torch.float64),
+            torch.full((32,), 0.18, device=device, dtype=torch.float64),
+        )
+        C_tti = torch.matmul(torch.matmul(M6, C_vti), M6.transpose(-1, -2))
+        tr_vti = torch.diagonal(C_vti, dim1=-2, dim2=-1).sum(dim=-1)
+        tr_tti = torch.diagonal(C_tti, dim1=-2, dim2=-1).sum(dim=-1)
+        stiff_trace_drift = float(torch.max(torch.abs(tr_tti - tr_vti)).item())
+        stiff_frob_drift = float(
+            torch.max(
+                torch.abs(
+                    torch.linalg.matrix_norm(C_tti, ord="fro")
+                    - torch.linalg.matrix_norm(C_vti, ord="fro")
+                )
+            ).item()
+        )
+
         return {
             "theorem_2_1_antisymmetry_error": swap_err,
             "theorem_2_1_self_interaction_error": diag_err,
@@ -1257,6 +1297,9 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
             "theorem_2_5_arithmetic_norm_loss": thm25["norm_attenuation_loss"],
             "theorem_2_6_spherical_radial_drift": max_cas_drift,
             "theorem_2_6_cascade_orthogonality_error": max_cas_ortho,
+            "theorem_2_7_so6_orthogonality_error": so6_ortho_err,
+            "theorem_2_7_stiffness_trace_drift": stiff_trace_drift,
+            "theorem_2_7_stiffness_frobenius_drift": stiff_frob_drift,
             "all_theorems_verified": (
                 swap_err == 0.0
                 and diag_err == 0.0
@@ -1266,6 +1309,9 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
                 and thm25["relative_phase_invariance_error"] < 1e-12
                 and thm25["norm_attenuation_loss"] > 0.0
                 and max_cas_drift <= 1e-8
+                and so6_ortho_err <= 1e-13
+                and stiff_trace_drift <= 1e-12
+                and stiff_frob_drift <= 1e-12
             ),
         }
 
@@ -1322,8 +1368,29 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
                 float(self.vp_lut.max().item()) * 1.15,
             )
 
+        probs_bcz = litho_probs.reshape(Z, Y, X, C).permute(3, 0, 1, 2).unsqueeze(0)
+        tti_bundle = self.tti_engine(
+            probs_post=probs_bcz,
+            vp_isotropic_kms=vp_cube.unsqueeze(0),
+        )
+
         return {
             "vp_cube_kms": vp_cube,
+            "vs_cube_kms": tti_bundle.vs0_kms.squeeze(0),
+            "rho_cube_gcc": tti_bundle.rho_gcc.squeeze(0),
+            "vp_tti_cube_kms": tti_bundle.vp_tti_kms.squeeze(0),
+            "vsv_tti_cube_kms": tti_bundle.vsv_tti_kms.squeeze(0),
+            "vsh_tti_cube_kms": tti_bundle.vsh_tti_kms.squeeze(0),
+            "epsilon_cube": tti_bundle.epsilon.squeeze(0),
+            "delta_cube": tti_bundle.delta.squeeze(0),
+            "gamma_cube": tti_bundle.gamma.squeeze(0),
+            "dip_deg_cube": tti_bundle.dip_deg.squeeze(0),
+            "azimuth_deg_cube": tti_bundle.azimuth_deg.squeeze(0),
+            "vp_vs_ratio_cube": tti_bundle.vp_vs_ratio.squeeze(0),
+            "poisson_ratio_cube": tti_bundle.poisson_ratio.squeeze(0),
+            "acoustic_impedance_zp": tti_bundle.acoustic_impedance_zp.squeeze(0),
+            "stiffness_trace_drift": tti_bundle.stiffness_trace_drift,
+            "stiffness_frobenius_drift": tti_bundle.stiffness_frobenius_drift,
             "lithology_cube": litho_id_cube,
             "litho_probs_3d": litho_probs.reshape(Z, Y, X, C),
             "d_ell_triad_3d": d_ell_triad.reshape(Z, Y, X, C),
