@@ -129,6 +129,7 @@ def serialize_evaluation_payload(
             "g3vm_vp_tti": _tensor_to_nested_list(g3vm_out["vp_tti_cube_kms"], 3),
             "g3vm_vs": _tensor_to_nested_list(g3vm_out["vs_cube_kms"], 3),
             "g3vm_rho": _tensor_to_nested_list(g3vm_out["rho_cube_gcc"], 3),
+            "g3vm_zp": _tensor_to_nested_list(g3vm_out["acoustic_impedance_zp"], 3),
             "g3vm_epsilon": _tensor_to_nested_list(g3vm_out["epsilon_cube"], 3),
             "g3vm_delta": _tensor_to_nested_list(g3vm_out["delta_cube"], 3),
             "g3vm_vp_vs_ratio": _tensor_to_nested_list(g3vm_out["vp_vs_ratio_cube"], 3),

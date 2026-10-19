@@ -416,8 +416,10 @@
           <select id="selectField">
             <option value="g3vm_vp">DarkSnail G3VM Vp Cube (km/s)</option>
             <option value="g3vm_vp_tti">DarkSnail G3VM TTI Anisotropic Vp(&psi;) (km/s)</option>
+            <option value="g3vm_zp">DarkSnail G3VM Acoustic Impedance Zp (g/cm&sup3;&middot;km/s)</option>
             <option value="g3vm_vs">DarkSnail G3VM Shear Velocity Vs (km/s)</option>
             <option value="g3vm_rho">DarkSnail G3VM Bulk Density &rho; (g/cm&sup3;)</option>
+            <option value="g3vm_vp_vs_ratio">DarkSnail G3VM Vp/Vs Ratio</option>
             <option value="g3vm_epsilon">Thomsen TTI Anisotropy &epsilon; (Shale/Fold)</option>
             <option value="g3vm_delta">Thomsen TTI Anisotropy &delta;</option>
             <option value="naive_vp">Naive RBF/Kriging Baseline Vp (cc/sol Smear)</option>
@@ -445,20 +447,20 @@
           <input type="range" id="sliderZ" min="0" max="31" value="16" />
 
           <div class="checkbox-list" style="margin-top: 4px;">
-            <label class="checkbox-item"><input type="checkbox" id="chkChairCut" checked /> 3D Chair-Cut Subvolume</label>
-            <label class="checkbox-item"><input type="checkbox" id="chkBoreholes" checked /> Vertical &amp; Deviated/Horiz Wells</label>
-            <label class="checkbox-item"><input type="checkbox" id="chkCavity" checked /> Jordan Salt/Karst Cavity (&beta;<sub>1</sub>)</label>
-            <label class="checkbox-item"><input type="checkbox" id="chkFaults" checked /> Structural Fault Ribbons</label>
+            <label class="checkbox-item"><input type="checkbox" id="chkChairCut" checked /> <span>3D Chair-Cut Subvolume</span></label>
+            <label class="checkbox-item"><input type="checkbox" id="chkBoreholes" checked /> <span>Vertical &amp; Deviated/Horiz Wells</span></label>
+            <label class="checkbox-item"><input type="checkbox" id="chkCavity" checked /> <span>Jordan Salt/Karst Cavity (&beta;<sub>1</sub>)</span></label>
+            <label class="checkbox-item"><input type="checkbox" id="chkFaults" checked /> <span>Structural Fault Ribbons</span></label>
           </div>
         </div>
 
         <div class="control-group">
           <div class="control-title">4. DarkSnail Operator Parameters</div>
-          <label>so(C) Triad Gain (&beta;<sub>triad</sub>) <span class="val" id="valTriadGain">1.00</span></label>
+          <label><span>so(C) Triad Gain (&beta;<sub>triad</sub>)</span> <span class="val" id="valTriadGain">1.00</span></label>
           <input type="range" id="sliderTriadGain" min="0" max="2.0" step="0.05" value="1.0" />
-          <label>Softmax Temp (&tau;<sub>v</sub>) <span class="val" id="valTauV">0.20</span></label>
+          <label><span>Softmax Temp (&tau;<sub>v</sub>)</span> <span class="val" id="valTauV">0.20</span></label>
           <input type="range" id="sliderTauV" min="0.08" max="0.50" step="0.02" value="0.20" />
-          <label>Ridge Tomography (&lambda;<sub>ridge</sub>) <span class="val" id="valLambda">0.010</span></label>
+          <label><span>Ridge Tomography (&lambda;<sub>ridge</sub>)</span> <span class="val" id="valLambda">0.010</span></label>
           <input type="range" id="sliderLambda" min="0.001" max="0.100" step="0.005" value="0.010" />
           <div class="btn-row">
             <button class="primary" id="btnApplyParams">Recompute Cube</button>
@@ -637,6 +639,12 @@
       if (f === "g3vm_rho") {
         return sampleColormap((val - 1.95) / (2.95 - 1.95), "turbo");
       }
+      if (f === "g3vm_zp") {
+        return sampleColormap((val - 3.4) / (17.8 - 3.4), "turbo");
+      }
+      if (f === "g3vm_vp_vs_ratio") {
+        return sampleColormap((val - 1.55) / (2.25 - 1.55), "turbo");
+      }
       if (f === "g3vm_epsilon" || f === "g3vm_delta") {
         return sampleColormap(val / 0.24, "triad");
       }
@@ -791,13 +799,64 @@
         "Mode: " + fieldSel.options[fieldSel.selectedIndex].text;
 
       // 1. Inline Dip Slice (Z x X at Y = sy)
-      drawSliceCanvas("canvasInline", X, Z, ( c, r ) => getVoxelColor(r, sy, c), sx, sz, STATE.data.wells.map(w => ({ c: w.x, rList: w.stringer_depths, name: w.name })));
+      drawSliceCanvas(
+        "canvasInline",
+        X,
+        Z,
+        (c, r) => getVoxelColor(r, sy, c),
+        sx,
+        sz,
+        STATE.data.wells.map((w, idx) => ({
+          c: w.x,
+          rList: w.stringer_depths,
+          name: w.name,
+          isDev: w.well_type && w.well_type !== "vertical",
+          isSelected: idx === STATE.selectedWell,
+          curveCols: w.traj_x || [],
+          curveRows: w.traj_z || [],
+        }))
+      );
 
       // 2. Crossline Strike Slice (Z x Y at X = sx)
-      drawSliceCanvas("canvasCrossline", Y, Z, ( c, r ) => getVoxelColor(r, c, sx), sy, sz, []);
+      drawSliceCanvas(
+        "canvasCrossline",
+        Y,
+        Z,
+        (c, r) => getVoxelColor(r, c, sx),
+        sy,
+        sz,
+        STATE.data.wells
+          .map((w, idx) => ({
+            c: w.y,
+            rList: w.stringer_depths,
+            name: w.name,
+            isDev: w.well_type && w.well_type !== "vertical",
+            isSelected: idx === STATE.selectedWell,
+            curveCols: w.traj_y || [],
+            curveRows: w.traj_z || [],
+          }))
+          .filter((m) => m.isDev || m.isSelected)
+      );
 
       // 3. Depth Horizon Slice (Y x X at Z = sz)
-      drawSliceCanvas("canvasDepth", X, Y, ( c, r ) => getVoxelColor(sz, r, c), sx, sy, STATE.data.wells.map(w => ({ c: w.x, r: w.y, name: w.name, isMap: true })));
+      drawSliceCanvas(
+        "canvasDepth",
+        X,
+        Y,
+        (c, r) => getVoxelColor(sz, r, c),
+        sx,
+        sy,
+        STATE.data.wells.map((w, idx) => ({
+          c: w.x,
+          r: w.y,
+          name: w.name,
+          isMap: true,
+          isDev: w.well_type && w.well_type !== "vertical",
+          isSelected: idx === STATE.selectedWell,
+          curveCols: w.traj_x || [],
+          curveRows: w.traj_y || [],
+        }))
+      );
     }
 
     function drawSliceCanvas(canvasId, cols, rows, colorFn, crossCol, crossRow, markers) {
@@ -833,18 +892,60 @@
       // Draw borehole trajectories or map pins
       for (const m of markers) {
         if (m.isMap) {
+          if (m.curveCols && m.curveCols.length > 1) {
+            ctx.strokeStyle = m.isSelected ? "#00f5d4" : "#ff9f1c";
+            ctx.lineWidth = m.isSelected ? 2.6 : 2.0;
+            ctx.beginPath();
+            for (let s = 0; s < m.curveCols.length; s++) {
+              const cxPt = (m.curveCols[s] + 0.5) * scaleX;
+              const cyPt = (m.curveRows[s] + 0.5) * scaleY;
+              if (s === 0) ctx.moveTo(cxPt, cyPt);
+              else ctx.lineTo(cxPt, cyPt);
+            }
+            ctx.stroke();
+          }
           const px = (m.c + 0.5) * scaleX;
           const py = (m.r + 0.5) * scaleY;
           ctx.beginPath();
-          ctx.arc(px, py, 4.5, 0, Math.PI * 2);
-          ctx.fillStyle = "#00f5d4";
+          ctx.arc(px, py, m.isDev ? 5.2 : 4.2, 0, Math.PI * 2);
+          ctx.fillStyle = m.isSelected ? "#00f5d4" : (m.isDev ? "#ff9f1c" : "#e6edf3");
           ctx.fill();
           ctx.strokeStyle = "#000";
           ctx.lineWidth = 1.2;
           ctx.stroke();
+        } else if (m.curveCols && m.curveCols.length > 1) {
+          // Curved Deviated / Horizontal Wellbore Tube in 2D Section
+          ctx.strokeStyle = "rgba(0,0,0,0.75)";
+          ctx.lineWidth = m.isSelected ? 4.4 : 3.6;
+          ctx.beginPath();
+          for (let s = 0; s < m.curveCols.length; s++) {
+            const cxPt = (m.curveCols[s] + 0.5) * scaleX;
+            const cyPt = (m.curveRows[s] + 0.5) * scaleY;
+            if (s === 0) ctx.moveTo(cxPt, cyPt);
+            else ctx.lineTo(cxPt, cyPt);
+          }
+          ctx.stroke();
+
+          ctx.strokeStyle = m.isSelected ? "#00f5d4" : "#ff9f1c";
+          ctx.lineWidth = m.isSelected ? 2.4 : 2.0;
+          ctx.stroke();
+
+          for (const rz of m.rList) {
+            const cIdx = Math.min(rz, m.curveCols.length - 1);
+            const px = (m.curveCols[cIdx] + 0.5) * scaleX;
+            const py = (m.curveRows[cIdx] + 0.5) * scaleY;
+            ctx.beginPath();
+            ctx.arc(px, py, 3.8, 0, Math.PI * 2);
+            ctx.fillStyle = "#00f5d4";
+            ctx.fill();
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1.0;
+            ctx.stroke();
+          }
         } else {
           const px = (m.c + 0.5) * scaleX;
-          ctx.strokeStyle = "rgba(255,255,255,0.55)";
+          ctx.strokeStyle = m.isSelected ? "#00f5d4" : "rgba(255,255,255,0.55)";
+          ctx.lineWidth = m.isSelected ? 2.0 : 1.2;
           ctx.setLineDash([3, 3]);
           ctx.beginPath();
           ctx.moveTo(px, 0);
@@ -1065,11 +1166,14 @@
       if (showBoreholes) {
         STATE.data.wells.forEach((w, idx) => {
           const isDev = w.well_type && w.well_type !== "vertical";
+          const isHoriz = Boolean(w.well_type && w.well_type.includes("horizontal"));
           const pTop = project(0, w.y, w.x);
-          ctx.strokeStyle = idx === STATE.selectedWell
+          const tubeColor = idx === STATE.selectedWell
             ? "#00f5d4"
-            : (isDev ? "#ff9f1c" : "rgba(255,255,255,0.75)");
-          ctx.lineWidth = idx === STATE.selectedWell ? 2.6 : (isDev ? 2.2 : 1.4);
+            : (isHoriz ? "#00e5ff" : (isDev ? "#ff9f1c" : "rgba(255,255,255,0.78)"));
+
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
           ctx.beginPath();
           if (w.traj_z && w.traj_z.length > 1) {
             for (let s = 0; s < w.traj_z.length; s++) {
@@ -1077,17 +1181,54 @@
               if (s === 0) ctx.moveTo(pt[0], pt[1]);
               else ctx.lineTo(pt[0], pt[1]);
             }
+            // Outer dark casing for 3D depth contrast
+            ctx.strokeStyle = "rgba(8, 12, 20, 0.88)";
+            ctx.lineWidth = idx === STATE.selectedWell ? 6.2 : 5.2;
+            ctx.stroke();
+
+            // Inner glowing directional tube
+            ctx.strokeStyle = tubeColor;
+            ctx.lineWidth = idx === STATE.selectedWell ? 3.6 : 2.9;
+            ctx.stroke();
+
+            // Bottom-hole TD marker for deviated/horizontal well
+            const lastIdx = w.traj_z.length - 1;
+            const pTD = project(w.traj_z[lastIdx], w.traj_y[lastIdx], w.traj_x[lastIdx]);
+            ctx.beginPath();
+            ctx.arc(pTD[0], pTD[1], 4.0, 0, Math.PI * 2);
+            ctx.fillStyle = tubeColor;
+            ctx.fill();
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
           } else {
             const pBot = project(Z - 1, w.y, w.x);
             ctx.moveTo(pTop[0], pTop[1]);
             ctx.lineTo(pBot[0], pBot[1]);
+            ctx.strokeStyle = tubeColor;
+            ctx.lineWidth = idx === STATE.selectedWell ? 2.4 : 1.4;
+            ctx.stroke();
           }
-          ctx.stroke();
 
-          // Wellhead label
-          ctx.fillStyle = idx === STATE.selectedWell ? "#00f5d4" : (isDev ? "#ff9f1c" : "#e6edf3");
-          ctx.font = "bold 10px sans-serif";
-          ctx.fillText(`W${idx + 1}`, pTop[0] - 8, pTop[1] - 6);
+          // Wellhead label badge
+          const shortTag = isHoriz
+            ? `W${idx + 1} (88° Horiz)`
+            : (isDev ? `W${idx + 1} (S-Curve)` : `W${idx + 1}`);
+          if (isDev || idx === STATE.selectedWell) {
+            ctx.font = "bold 10.5px sans-serif";
+            const tw = ctx.measureText(shortTag).width;
+            ctx.fillStyle = "rgba(10, 15, 24, 0.86)";
+            ctx.fillRect(pTop[0] - tw * 0.5 - 4, pTop[1] - 19, tw + 8, 14);
+            ctx.strokeStyle = tubeColor;
+            ctx.lineWidth = 1.0;
+            ctx.strokeRect(pTop[0] - tw * 0.5 - 4, pTop[1] - 19, tw + 8, 14);
+            ctx.fillStyle = tubeColor;
+            ctx.fillText(shortTag, pTop[0] - tw * 0.5, pTop[1] - 8);
+          } else {
+            ctx.fillStyle = "#e6edf3";
+            ctx.font = "bold 10px sans-serif";
+            ctx.fillText(shortTag, pTop[0] - 8, pTop[1] - 6);
+          }
 
           // Beltrami stringer spikes
           for (const szIdx of w.stringer_depths) {
@@ -1096,11 +1237,11 @@
             const tx = (w.traj_x && w.traj_x[szIdx] !== undefined) ? w.traj_x[szIdx] : w.x;
             const ps = project(tz, ty, tx);
             ctx.beginPath();
-            ctx.arc(ps[0], ps[1], 4.2, 0, Math.PI * 2);
-            ctx.fillStyle = "#ffd43b";
+            ctx.arc(ps[0], ps[1], isDev ? 4.8 : 4.0, 0, Math.PI * 2);
+            ctx.fillStyle = isDev ? "#00f5d4" : "#ffd43b";
             ctx.fill();
             ctx.strokeStyle = "#000";
-            ctx.lineWidth = 1.0;
+            ctx.lineWidth = 1.2;
             ctx.stroke();
           }
         });
@@ -1361,6 +1502,29 @@
     });
 
     window.addEventListener("resize", renderAll);
+
+    // Apply optional URL query parameters (?scenario=thrust_anticline&field=g3vm_vp_tti&well=6)
+    (function initFromQueryParams() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("scenario")) {
+        document.getElementById("selectScenario").value = params.get("scenario");
+      }
+      if (params.has("field")) {
+        const f = params.get("field");
+        document.getElementById("selectField").value = f;
+        STATE.activeField = f;
+      }
+      if (params.has("well")) {
+        STATE.selectedWell = parseInt(params.get("well"), 10);
+      }
+      if (params.has("sliceZ")) STATE.sliceZ = parseInt(params.get("sliceZ"), 10);
+      if (params.has("sliceY")) STATE.sliceY = parseInt(params.get("sliceY"), 10);
+      if (params.has("sliceX")) STATE.sliceX = parseInt(params.get("sliceX"), 10);
+      if (params.has("yaw")) STATE.camYaw = parseFloat(params.get("yaw"));
+      if (params.has("pitch")) STATE.camPitch = parseFloat(params.get("pitch"));
+      if (params.has("zoom")) STATE.camZoom = parseFloat(params.get("zoom"));
+    })();
+
     loadScenarioData();
   </script>
 </body>
