@@ -249,6 +249,7 @@ def test_suite8_web_studio_endpoints_and_portable_bundle():
     assert payload["grid_shape"] == [16, 16, 16]
     assert len(payload["wells"]) == 8  # 6 vertical + 2 deviated/horizontal wells
     assert "g3vm_vp_tti" in payload["cubes"]
+    assert "g3vm_zp" in payload["cubes"]
     assert "g3vm_vs" in payload["cubes"]
     assert "g3vm_rho" in payload["cubes"]
 
@@ -256,7 +257,25 @@ def test_suite8_web_studio_endpoints_and_portable_bundle():
         tmp = Path(tmpdir)
         html_out = export_portable_html_studio(tmp / "portable.html", grid_shape=(16, 16, 16))
         assert html_out.exists()
-        assert "G3VM_OFFLINE_SCENARIOS" in html_out.read_text(encoding="utf-8")
+        html_txt = html_out.read_text(encoding="utf-8")
+        assert "window.G3VM_PORTABLE_MODE = true;" in html_txt
+        assert "window.G3VM_OFFLINE_SCENARIOS" in html_txt
+        assert "window.fetch = async function" in html_txt
+        for req_key in (
+            '"g3vm_vp_tti"',
+            '"g3vm_zp"',
+            '"g3vm_vs"',
+            '"g3vm_rho"',
+            '"g3vm_epsilon"',
+            '"g3vm_delta"',
+            '"g3vm_vp_vs_ratio"',
+            '"Well-G7 (Deviated Subsalt S-Curve)"',
+            '"Well-H8 (Horizontal EGS Lateral)"',
+            '"traj_z"',
+            '"traj_y"',
+            '"traj_x"',
+        ):
+            assert req_key in html_txt
 
         npz_out = tmp / "cube.npz"
         rc = cli_main(["export", "--scenario", "subsalt_graben", "--grid-size", "16", "--output", str(npz_out)])

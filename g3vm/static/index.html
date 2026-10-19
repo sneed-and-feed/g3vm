@@ -652,6 +652,20 @@
       return sampleColormap((val - 1.7) / (6.4 - 1.7), "turbo");
     }
 
+    function resolveOfflineScenario(payload) {
+      if (!window.G3VM_OFFLINE_SCENARIOS) return null;
+      const src =
+        window.G3VM_OFFLINE_SCENARIOS[payload.scenario_name] ||
+        Object.values(window.G3VM_OFFLINE_SCENARIOS)[0];
+      if (!src) return null;
+      const copy = JSON.parse(JSON.stringify(src));
+      if (payload.triad_gain === 0) {
+        copy.cubes.g3vm_vp = copy.cubes.naive_vp;
+        copy.cubes.err_g3vm = copy.cubes.err_naive;
+      }
+      return copy;
+    }
+
     async function loadScenarioData() {
       const status = document.getElementById("statusIndicator");
       status.textContent = "COMPUTING...";
@@ -665,12 +679,49 @@
         grid_size: 32,
       };
 
-      const res = await fetch("/api/evaluate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
+      let data = null;
+      if (Boolean(window.G3VM_PORTABLE_MODE) || window.G3VM_OFFLINE_SCENARIOS) {
+        data = resolveOfflineScenario(payload);
+      }
+
+      if (!data) {
+        try {
+          const res = await fetch("/api/evaluate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          data = await res.json();
+        } catch (_err) {
+          // Static host fallback (e.g., if g3vm/static/index.html is opened on raw.githack.com)
+          try {
+            const fallbackRes = await fetch("../../results/g3vm_portable_studio.html");
+            if (fallbackRes.ok) {
+              const htmlText = await fallbackRes.text();
+              const marker = "window.G3VM_OFFLINE_SCENARIOS = ";
+              const startIdx = htmlText.indexOf(marker);
+              if (startIdx !== -1) {
+                const jsonStart = startIdx + marker.length;
+                const endIdx = htmlText.indexOf(";\n(function()", jsonStart);
+                const sliceEnd = endIdx !== -1 ? endIdx : htmlText.indexOf(";</script>", jsonStart);
+                if (sliceEnd !== -1) {
+                  window.G3VM_OFFLINE_SCENARIOS = JSON.parse(htmlText.slice(jsonStart, sliceEnd));
+                  window.G3VM_PORTABLE_MODE = true;
+                  data = resolveOfflineScenario(payload);
+                }
+              }
+            }
+          } catch (_fallbackErr) {}
+        }
+      }
+
+      if (!data) {
+        status.textContent = "OFFLINE ERR";
+        status.style.color = "var(--accent-red)";
+        return;
+      }
+
       STATE.data = data;
 
       const [Z, Y, X] = data.grid_shape;
@@ -684,7 +735,7 @@
       populateSidebarAndTables();
       renderAll();
 
-      status.textContent = "LIVE";
+      status.textContent = Boolean(window.G3VM_PORTABLE_MODE) ? "PORTABLE LIVE" : "LIVE";
       status.style.color = "var(--accent-cyan)";
     }
 

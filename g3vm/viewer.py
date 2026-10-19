@@ -175,38 +175,46 @@ def export_portable_html_studio(
             grid_shape=grid_shape,
         )
 
+    scenarios_json = json.dumps(
+        embedded_scenarios,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
     embedded_script = (
         "<script>\n"
-        f"window.G3VM_OFFLINE_SCENARIOS = {json.dumps(embedded_scenarios, separators=(',', ':'))};\n"
+        "window.G3VM_PORTABLE_MODE = true;\n"
+        f"window.G3VM_OFFLINE_SCENARIOS = {scenarios_json};\n"
+        "(function() {\n"
+        "  const _origFetch = window.fetch ? window.fetch.bind(window) : null;\n"
+        "  window.fetch = async function(input, init) {\n"
+        "    const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');\n"
+        "    if (Boolean(window.G3VM_PORTABLE_MODE) && url.includes('/api/')) {\n"
+        "      if (url.includes('/api/health')) {\n"
+        "        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.2.1'}), {\n"
+        "          status: 200, headers: {'Content-Type': 'application/json'}\n"
+        "        });\n"
+        "      }\n"
+        "      let bodyObj = {};\n"
+        "      try { bodyObj = init && init.body ? JSON.parse(init.body) : {}; } catch (e) {}\n"
+        "      const scen = bodyObj.scenario_name || 'subsalt_graben';\n"
+        "      const src = (window.G3VM_OFFLINE_SCENARIOS && window.G3VM_OFFLINE_SCENARIOS[scen])\n"
+        "        || Object.values(window.G3VM_OFFLINE_SCENARIOS || {})[0];\n"
+        "      const payload = JSON.parse(JSON.stringify(src));\n"
+        "      if (bodyObj.triad_gain === 0) {\n"
+        "        payload.cubes.g3vm_vp = payload.cubes.naive_vp;\n"
+        "        payload.cubes.err_g3vm = payload.cubes.err_naive;\n"
+        "      }\n"
+        "      return new Response(JSON.stringify(payload), {\n"
+        "        status: 200, headers: {'Content-Type': 'application/json'}\n"
+        "      });\n"
+        "    }\n"
+        "    return _origFetch ? _origFetch(input, init) : Promise.reject(new Error('fetch unavailable'));\n"
+        "  };\n"
+        "})();\n"
         "</script>\n"
     )
-    # Inject offline fallback into loadScenarioData()
-    old_fetch_block = """      const res = await fetch("/api/evaluate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();"""
 
-    new_fetch_block = """      let data = null;
-      if (window.G3VM_OFFLINE_SCENARIOS && window.G3VM_OFFLINE_SCENARIOS[payload.scenario_name]) {
-        data = JSON.parse(JSON.stringify(window.G3VM_OFFLINE_SCENARIOS[payload.scenario_name]));
-        if (payload.triad_gain === 0) {
-          data.cubes.g3vm_vp = data.cubes.naive_vp;
-          data.cubes.err_g3vm = data.cubes.err_naive;
-        }
-      } else {
-        const res = await fetch("/api/evaluate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        data = await res.json();
-      }"""
-
-    patched_html = html_src.replace(old_fetch_block, new_fetch_block).replace(
-        "</head>", f"{embedded_script}</head>"
-    )
+    patched_html = html_src.replace("</head>", f"{embedded_script}</head>", 1)
     out_file.write_text(patched_html, encoding="utf-8")
     return out_file
 

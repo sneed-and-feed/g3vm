@@ -1,5 +1,9 @@
 # G3VM (`DarkSnail-Geo3D`) — 3D Geological Velocity & TTI Elastic Modeler
 
+> **Live 3D WebGL Studio (Zero-Install Browser Demo):**
+> - **[Launch Interactive 3D Studio (`v0.2.1` CDN)](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.2.1/results/g3vm_portable_studio.html)** | **[`main` Dev Build](https://raw.githack.com/sneed-and-feed/g3vm/main/results/g3vm_portable_studio.html)**
+> - **Deep-Link Presets:** [**SEG/EAGE Overthrust TTI Vp(ψ) + `Well-G7` S-Curve**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.2.1/results/g3vm_portable_studio.html?scenario=thrust_anticline&field=g3vm_vp_tti&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12) · [**Marmousi2 Subsalt Acoustic Impedance Zp + `Well-H8` 88° Lateral**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.2.1/results/g3vm_portable_studio.html?scenario=subsalt_graben&field=g3vm_zp&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12)
+
 **G3VM** (`DarkSnail-Geo3D`) is a 3D geological velocity and anisotropic elastic modeler (Seequent Leapfrog / Petex style) powered by the formally verified mathematical primitives of **Project DarkSnail**:
 
 - **Skew-Symmetric Fault & Unconformity Tie-Breaking** in $\mathfrak{so}(C)$ (`SkewSymmetricFaultTriad`, Theorems 2.1, 2.2, 2.3, 2.4, 2.6)
