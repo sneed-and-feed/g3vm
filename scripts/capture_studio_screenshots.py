@@ -38,8 +38,8 @@ def main() -> int:
     out_dir = ROOT / "results"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Regenerate Matplotlib showcase figures
-    render_leapfrog_showcase_figure(out_dir / "g3vm_leapfrog_showcase.png", grid_shape=(48, 48, 48))
+    # 1. Regenerate Matplotlib showcase figures (Mode B Blind Evaluation & Non-Circular Beltrami)
+    render_leapfrog_showcase_figure(out_dir / "g3vm_leapfrog_showcase.png", grid_shape=(32, 24, 24))
     render_well_log_beltrami_figure(out_dir / "g3vm_well_log_beltrami.png", grid_shape=(48, 48, 48))
     print("[+] Regenerated g3vm_leapfrog_showcase.png and g3vm_well_log_beltrami.png")
 

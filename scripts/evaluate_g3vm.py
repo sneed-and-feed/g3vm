@@ -32,6 +32,8 @@ from g3vm import (
     SCENARIO_Descriptions,
     evaluate_scenario_comparison,
     export_portable_html_studio,
+    render_leapfrog_showcase_figure,
+    render_well_log_beltrami_figure,
     run_referee_audit_suite,
 )
 
@@ -157,11 +159,17 @@ def main() -> int:
     bench_json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     audit_json_path.write_text(json.dumps(audit_res, indent=2), encoding="utf-8")
     export_portable_html_studio(html_path, grid_shape=(24, 24, 24))
+    showcase_png = out_dir / "g3vm_leapfrog_showcase.png"
+    beltrami_png = out_dir / "g3vm_well_log_beltrami.png"
+    render_leapfrog_showcase_figure(showcase_png, grid_shape=(32, 24, 24))
+    render_well_log_beltrami_figure(beltrami_png, grid_shape=(48, 48, 48))
 
     print(f"[+] Saved evaluation summary : {eval_json_path}")
     print(f"[+] Saved benchmark summary  : {bench_json_path}")
     print(f"[+] Saved referee audit JSON : {audit_json_path}")
     print(f"[+] Saved portable 3D studio : {html_path}")
+    print(f"[+] Saved Mode B showcase    : {showcase_png}")
+    print(f"[+] Saved Beltrami well logs : {beltrami_png}")
     return 0
 
 

@@ -33,9 +33,9 @@
 
 ![G3VM v0.5.0 3D Workstation — Marmousi2 Subsalt Acoustic Impedance Zp & Horizontal Well-H8 Lateral](results/g3vm_studio_v020_zp.png)
 
-![G3VM 6-Scenario 3D Subsurface Velocity Showcase](results/g3vm_leapfrog_showcase.png)
+![G3VM v0.5.0 Mode B Blind Benchmark Showcase (SNR=20dB, Zero Target Leakage: Ground Truth vs. CV-Tuned Matérn-3/2 Kriging vs. Blind G3VM)](results/g3vm_leapfrog_showcase.png)
 
-![Beltrami Callosal Well-Log Shell Across 6 Sparse Boreholes](results/g3vm_well_log_beltrami.png)
+![G3VM v0.5.0 Pure Non-Circular Beltrami Shell (K=8+8=16 Tokens, SNR=20dB, 10% Caliper Washout) vs. Equal-Budget (K=16) & Coarse Pooling](results/g3vm_well_log_beltrami.png)
 
 ---
 

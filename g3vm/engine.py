@@ -351,14 +351,26 @@ class BeltramiWellLogShell(nn.Module):
         salience = (flux_shielded / denom).clamp(0.0, 1.0).squeeze(1)
         return salience.squeeze(0) if squeeze_batch else salience
 
-    def forward(self, well_vp_trace: torch.Tensor) -> WellLogBeltramiResult:
+    def forward(
+        self,
+        well_vp_trace: torch.Tensor,
+        reference_trace: torch.Tensor | None = None,
+    ) -> WellLogBeltramiResult:
         """
-        Extract Tier-1 Beltrami horizon/stringer spikes (`1.0000` recovery) and Tier-2 Adelic
+        Extract Tier-1 Beltrami horizon/stringer spikes (`1.0000` recovery on clean logs) and Tier-2 Adelic
         heat-kernel-attenuated background medoids from a 1D borehole sonic log `(Z,)`.
+        If `reference_trace` is provided (e.g., clean ground-truth trace in noisy/washout Mode B),
+        selection is performed strictly on `well_vp_trace` while recovery/F1 metrics are evaluated
+        against `reference_trace`.
         """
         trace = well_vp_trace.detach().float().view(-1)
         Z = trace.numel()
         device = trace.device
+        eval_trace = (
+            reference_trace.detach().float().view(-1).to(device)
+            if reference_trace is not None
+            else trace
+        )
 
         x = trace.view(1, 1, Z)
         u_coarse = F.avg_pool1d(F.pad(x, (2, 2), mode="replicate"), kernel_size=5, stride=1)
@@ -469,16 +481,16 @@ class BeltramiWellLogShell(nn.Module):
 
         # Independent evaluation reference for thin-bed anomaly recovery & F1
         if Z >= 3:
-            flank_bg = 0.5 * (trace[:-2] + trace[2:])
-            bg_ref = torch.cat([trace[1:2], flank_bg, trace[-2:-1]], dim=0)
-            d_left = trace[1:-1] - trace[:-2]
-            d_right = trace[1:-1] - trace[2:]
+            flank_bg = 0.5 * (eval_trace[:-2] + eval_trace[2:])
+            bg_ref = torch.cat([eval_trace[1:2], flank_bg, eval_trace[-2:-1]], dim=0)
+            d_left = eval_trace[1:-1] - eval_trace[:-2]
+            d_right = eval_trace[1:-1] - eval_trace[2:]
             is_thin_spike = F.pad((d_left * d_right) > 1e-4, (1, 1), value=False)
-            true_anom = (trace - bg_ref).abs()
+            true_anom = (eval_trace - bg_ref).abs()
             spike_anom = torch.where(is_thin_spike, true_anom, true_anom * 0.10)
         else:
             bg_ref = u_coarse.view(-1)
-            true_anom = (trace - bg_ref).abs()
+            true_anom = (eval_trace - bg_ref).abs()
             spike_anom = true_anom
             is_thin_spike = torch.ones(Z, dtype=torch.bool, device=device)
 
@@ -486,13 +498,13 @@ class BeltramiWellLogShell(nn.Module):
         denom_anom = float(true_anom[peak_z].item())
         if denom_anom > 1e-6:
             beltrami_rec = float(
-                1.0 - min(1.0, abs(float(reconstructed[peak_z] - trace[peak_z])) / denom_anom)
+                1.0 - min(1.0, abs(float(reconstructed[peak_z] - eval_trace[peak_z])) / denom_anom)
             )
             naive_rec = float(
-                max(0.0, min(1.0, abs(float(naive_up[peak_z] - bg_ref[peak_z])) / denom_anom))
+                1.0 - min(1.0, abs(float(naive_up[peak_z] - eval_trace[peak_z])) / denom_anom)
             )
             eq_naive_rec = float(
-                max(0.0, min(1.0, abs(float(eq_up[peak_z] - bg_ref[peak_z])) / denom_anom))
+                1.0 - min(1.0, abs(float(eq_up[peak_z] - eval_trace[peak_z])) / denom_anom)
             )
         else:
             beltrami_rec = 1.0
@@ -504,7 +516,7 @@ class BeltramiWellLogShell(nn.Module):
         prominent_idx = torch.nonzero(prominent_mask, as_tuple=False).view(-1)
         if prominent_idx.numel() > 0:
             per_spike_rec = 1.0 - torch.clamp(
-                (reconstructed[prominent_idx] - trace[prominent_idx]).abs()
+                (reconstructed[prominent_idx] - eval_trace[prominent_idx]).abs()
                 / true_anom[prominent_idx].clamp_min(1e-6),
                 min=0.0,
                 max=1.0,
@@ -515,7 +527,10 @@ class BeltramiWellLogShell(nn.Module):
             tp_gt = int((dist_mat.min(dim=1).values <= 1).sum().item())
             recall = float(tp_gt) / float(prominent_idx.numel())
             # Precision relative to prominent horizons/edges
-            edge_or_spike = (true_anom > 0.15 * max(denom_anom, 1e-4)) | (du > 0.25 * max(float(du.max().item()), 1e-4))
+            du_eval = F.pad(torch.abs(eval_trace[1:] - eval_trace[:-1]), (0, 1))
+            edge_or_spike = (true_anom > 0.15 * max(denom_anom, 1e-4)) | (
+                du_eval > 0.25 * max(float(du_eval.max().item()), 1e-4)
+            )
             edge_idx = torch.nonzero(edge_or_spike, as_tuple=False).view(-1)
             if edge_idx.numel() > 0:
                 dist_pred = (tier1_idx.unsqueeze(1) - edge_idx.unsqueeze(0)).abs()

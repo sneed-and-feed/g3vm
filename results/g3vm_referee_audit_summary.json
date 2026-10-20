@@ -1,5 +1,5 @@
 {
-  "peak_heap_mb": 1.04,
+  "peak_heap_mb": 1.038,
   "blind_scenarios_snr20db": {
     "subsalt_graben": {
       "scenario_name": "subsalt_graben",
@@ -331,7 +331,7 @@
       "washout_fraction": 0.0,
       "beltrami_peak_recovery": 1.0,
       "beltrami_all_stringers_recovery": 1.0,
-      "beltrami_thin_bed_f1": 1.0,
+      "beltrami_thin_bed_f1": 0.9214,
       "equal_budget_uniform_recovery": 0.375,
       "coarse_grid_uniform_recovery": 0.1173
     },
@@ -339,31 +339,31 @@
       "condition": "Moderate Noise (SNR=20dB, Washout=0%)",
       "snr_db": 20.0,
       "washout_fraction": 0.0,
-      "beltrami_peak_recovery": 1.0,
-      "beltrami_all_stringers_recovery": 0.9519,
-      "beltrami_thin_bed_f1": 0.9611,
-      "equal_budget_uniform_recovery": 0.3872,
-      "coarse_grid_uniform_recovery": 0.1264
+      "beltrami_peak_recovery": 0.9218,
+      "beltrami_all_stringers_recovery": 0.8182,
+      "beltrami_thin_bed_f1": 0.8829,
+      "equal_budget_uniform_recovery": 0.3392,
+      "coarse_grid_uniform_recovery": 0.1205
     },
     {
       "condition": "High Noise + 10% Caliper Washout (SNR=15dB, Washout=10%)",
       "snr_db": 15.0,
       "washout_fraction": 0.1,
-      "beltrami_peak_recovery": 0.8916,
-      "beltrami_all_stringers_recovery": 0.8544,
-      "beltrami_thin_bed_f1": 0.9261,
-      "equal_budget_uniform_recovery": 0.325,
-      "coarse_grid_uniform_recovery": 0.1822
+      "beltrami_peak_recovery": 0.808,
+      "beltrami_all_stringers_recovery": 0.6177,
+      "beltrami_thin_bed_f1": 0.7317,
+      "equal_budget_uniform_recovery": 0.3639,
+      "coarse_grid_uniform_recovery": 0.1249
     },
     {
       "condition": "Severe Noise + 20% Caliper Washout (SNR=10dB, Washout=20%)",
       "snr_db": 10.0,
       "washout_fraction": 0.2,
-      "beltrami_peak_recovery": 0.9168,
-      "beltrami_all_stringers_recovery": 0.8266,
-      "beltrami_thin_bed_f1": 0.9192,
-      "equal_budget_uniform_recovery": 0.337,
-      "coarse_grid_uniform_recovery": 0.3766
+      "beltrami_peak_recovery": 0.5638,
+      "beltrami_all_stringers_recovery": 0.3987,
+      "beltrami_thin_bed_f1": 0.5186,
+      "equal_budget_uniform_recovery": 0.3735,
+      "coarse_grid_uniform_recovery": 0.1511
     }
   ]
 }

@@ -292,13 +292,15 @@ def create_studio_app(default_grid_shape: tuple[int, int, int] = (32, 32, 32)) -
 
 def render_leapfrog_showcase_figure(
     output_path: str | Path,
-    grid_shape: tuple[int, int, int] = (48, 48, 48),
+    grid_shape: tuple[int, int, int] = (32, 24, 24),
 ) -> dict[str, Any]:
     """
-    Generate the high-DPI multi-panel showcase figure comparing Ground Truth,
-    Naive RBF/Kriging Baseline (Isotropic Cross-Fault Smoothing), and DarkSnail G3VM across
-    all six benchmark scenarios (including US DOE Utah FORGE and Lunar Lava Tube ISRU).
+    Generate the high-DPI multi-panel Mode B (Zero Target Leakage, SNR = 20 dB) showcase figure
+    comparing Ground Truth, Cross-Validated 3D Anisotropic Matérn-3/2 Kriging, and Blind
+    DarkSnail G3VM across all six benchmark scenarios (including US DOE Utah FORGE and Lunar ISRU).
     """
+    from .blind_benchmark import evaluate_blind_holdout_and_baselines
+
     out_file = Path(output_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -310,23 +312,39 @@ def render_leapfrog_showcase_figure(
         "utah_forge_egs_doublet",
         "lunar_lava_tube_isru",
     ]
-    bundles = {name: evaluate_scenario_comparison(name, grid_shape=grid_shape) for name in scenarios}
+    bundles = {
+        name: evaluate_blind_holdout_and_baselines(
+            name,
+            grid_shape=(32, 24, 24),
+            snr_db=20.0,
+            fault_jitter_voxels=0,
+            return_cubes=True,
+        )
+        for name in scenarios
+    }
 
     plt.style.use("dark_background")
-    fig, axes = plt.subplots(len(scenarios), 4, figsize=(20, 25.5), dpi=160)
+    fig, axes = plt.subplots(len(scenarios), 4, figsize=(21, 26.0), dpi=160)
     fig.patch.set_facecolor("#0b0f17")
 
     for row_idx, name in enumerate(scenarios):
         b = bundles[name]
-        scen = b["scenario"]
-        g3vm_vp = b["g3vm_output"]["vp_cube_kms"].cpu().numpy()
-        naive_vp = b["naive_output"]["vp_cube_kms"].cpu().numpy()
-        true_vp = scen["true_vp_cube"].cpu().numpy()
+        cubes = b["cubes"]
+        scen = cubes["scenario"]
+        g3vm_vp = cubes["g3vm_blind_vp"].cpu().numpy()
+        krig_vp = cubes["krig_vp"].cpu().numpy()
+        true_vp = cubes["true_vp"].cpu().numpy()
         y_mid = true_vp.shape[1] // 2
-        m = b["metrics"]
+
+        cw = b["whole_cube_blind_rmse_kms"]
+        lw = b["lowo_heldout_well_rmse_kms"]
+        dw = b["heldout_deviated_well_rmse_kms"]
+        ef = b["bounded_edge_gradient_fidelity"]
+        kp = b["kriging_tuned_params"]
+
         vp_vmin = 0.05 if name == "lunar_lava_tube_isru" else 1.7
         vp_vmax = 5.55 if name == "lunar_lava_tube_isru" else 6.4
-        err_vmax = 1.8 if name == "lunar_lava_tube_isru" else 1.3
+        err_lim = 1.6 if name == "lunar_lava_tube_isru" else 1.1
 
         panels = [
             (
@@ -337,26 +355,26 @@ def render_leapfrog_showcase_figure(
                 vp_vmax,
             ),
             (
-                naive_vp[:, y_mid, :],
-                f"Naive RBF/Kriging Baseline (Isotropic Smoothing)\nRMSE: {m['naive_vp_rmse_kms']:.3f} km/s | Fault Sharpness: {m['naive_fault_sharpness_ratio']*100:.1f}%",
+                krig_vp[:, y_mid, :],
+                f"Tuned Anisotropic Matérn-3/2 Kriging (lz={kp['ell_z']:.0f}, lxy={kp['ell_xy']:.0f})\nCube RMSE: {cw['tuned_anisotropic_kriging']:.3f} | LOWO Well: {lw['tuned_anisotropic_kriging']:.3f} | EdgeFid: {ef['tuned_anisotropic_kriging']*100:.1f}%",
                 "turbo",
                 vp_vmin,
                 vp_vmax,
             ),
             (
                 g3vm_vp[:, y_mid, :],
-                f"DarkSnail G3VM (so(C) Triad + Ridge Tomo)\nRMSE: {m['g3vm_vp_rmse_kms']:.3f} km/s (-{m['rmse_reduction_pct']:.1f}%) | Sharpness: {m['g3vm_fault_sharpness_ratio']*100:.1f}%",
+                f"Blind DarkSnail G3VM (Mode B, SNR=20dB, Zero Leakage)\nCube RMSE: {cw['blind_darksnail_g3vm']:.3f} | LOWO Well: {lw['blind_darksnail_g3vm']:.3f} | EdgeFid: {ef['blind_darksnail_g3vm']*100:.1f}%",
                 "turbo",
                 vp_vmin,
                 vp_vmax,
             ),
             (
-                np.abs(naive_vp[:, y_mid, :] - true_vp[:, y_mid, :])
+                np.abs(krig_vp[:, y_mid, :] - true_vp[:, y_mid, :])
                 - np.abs(g3vm_vp[:, y_mid, :] - true_vp[:, y_mid, :]),
-                f"Fault-Smear Error Eliminated (|Err_Naive| - |Err_G3VM|)\n<v, d_ell> = {m['max_orthogonality_residual']:.1e} | W1: {m['g3vm_marginal_w1']:.4f}",
-                "magma",
-                0.0,
-                err_vmax,
+                f"Signed Blind Error Gain (|Err_Kriging| - |Err_BlindG3VM|)\nDevWell RMSE: {dw['blind_darksnail_g3vm']:.3f} vs Krig {dw['tuned_anisotropic_kriging']:.3f} | FKrig Cube: {cw['fault_partitioned_kriging']:.3f}",
+                "coolwarm",
+                -err_lim,
+                err_lim,
             ),
         ]
 
@@ -364,7 +382,7 @@ def render_leapfrog_showcase_figure(
             ax = axes[row_idx, col_idx]
             ax.set_facecolor("#111726")
             im = ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax, aspect="auto", interpolation="nearest")
-            ax.set_title(title, fontsize=9.0, fontweight="bold", color="#e6edf3", pad=6)
+            ax.set_title(title, fontsize=8.8, fontweight="bold", color="#e6edf3", pad=6)
             ax.set_xlabel("Crossline X (East)", fontsize=8.0, color="#9da7b3")
             ax.set_ylabel("Depth Z (Vox)", fontsize=8.0, color="#9da7b3")
             ax.tick_params(colors="#8b949e", labelsize=7.5)
@@ -385,8 +403,8 @@ def render_leapfrog_showcase_figure(
                         )
 
     fig.suptitle(
-        "G3VM (DarkSnail-Geo3D) v0.5.0: Marmousi2, SEG/EAGE Overthrust, 4D CCS/H2, EGS/TBM, Utah FORGE & Lunar Lava Tube ISRU",
-        fontsize=13.0,
+        "G3VM v0.5.0 Mode B Blind Benchmark (SNR=20dB, Zero Target Leakage): Ground Truth vs. CV-Tuned Matérn-3/2 Kriging vs. Blind G3VM",
+        fontsize=12.5,
         fontweight="bold",
         color="#58a6ff",
         y=0.992,
@@ -394,7 +412,7 @@ def render_leapfrog_showcase_figure(
     plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.98])
     fig.savefig(out_file, facecolor=fig.get_facecolor())
     plt.close(fig)
-    return {name: bundles[name]["metrics"] for name in scenarios}
+    return {name: {k: v for k, v in bundles[name].items() if k != "cubes"} for name in scenarios}
 
 
 def render_well_log_beltrami_figure(
@@ -402,26 +420,74 @@ def render_well_log_beltrami_figure(
     grid_shape: tuple[int, int, int] = (48, 48, 48),
 ) -> dict[str, Any]:
     """
-    Generate the 6-borehole sonic log & Beltrami exterior curl spike-shielding figure
-    demonstrating `1.0000` (`100.0%`) carbonate/fracture stringer recovery vs. naive voxel dilution.
+    Generate the 6-borehole sonic log & pure non-circular Beltrami exterior-curl figure under
+    20 dB sonic noise and 10% borehole caliper washout dropouts, comparing against an
+    Equal-Token-Budget (K=16 tokens) Uniform Pooler and Coarse Seismic-Grid (Z//8) Pooler.
     """
+    import torch
+
+    from .blind_benchmark import _add_deterministic_noise
+    from .engine import BeltramiWellLogShell
+    from .scenarios import build_geological_scenario
+
     out_file = Path(output_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
-    bundle = evaluate_scenario_comparison("subsalt_graben", grid_shape=grid_shape)
-    wells = bundle["scenario"]["wells"]
-    Z = grid_shape[0]
-    depths = np.arange(Z)
+    scen_sub = build_geological_scenario("subsalt_graben", grid_shape=grid_shape)
+    scen_forge = build_geological_scenario("utah_forge_egs_doublet", grid_shape=grid_shape)
+    scen_lunar = build_geological_scenario("lunar_lava_tube_isru", grid_shape=(32, 24, 24))
 
+    selected_wells = [
+        scen_sub["wells"][0],
+        scen_forge["deviated_wells"][0],
+        scen_forge["deviated_wells"][1],
+        scen_lunar["wells"][0],
+        scen_lunar["deviated_wells"][0],
+        scen_lunar["deviated_wells"][1],
+    ]
+
+    shell = BeltramiWellLogShell(outlier_budget=8, condensed_budget=8)
     plt.style.use("dark_background")
-    fig, axes = plt.subplots(1, len(wells), figsize=(22, 7.5), dpi=160, sharey=True)
+    fig, axes = plt.subplots(1, len(selected_wells), figsize=(23, 7.8), dpi=160)
     fig.patch.set_facecolor("#0b0f17")
 
-    for idx, w in enumerate(wells):
+    out_summary: dict[str, Any] = {}
+
+    for idx, w in enumerate(selected_wells):
         ax = axes[idx]
         ax.set_facecolor("#111726")
-        b = w["beltrami"]
-        true_tr = w["true_vp_trace"].cpu().numpy()
+        clean_t = w["true_vp_trace"].float()
+        Z_w = clean_t.numel()
+        depths = np.arange(Z_w)
+
+        # Apply honest 20 dB sonic noise + 10% caliper washout dropout
+        noisy_t = _add_deterministic_noise(clean_t, snr_db=20.0, seed=500 + idx)
+        gen = torch.Generator()
+        gen.manual_seed(700 + idx)
+        perm = torch.randperm(Z_w - 4, generator=gen) + 2
+        n_drop = max(1, int(round(0.10 * Z_w)))
+        drop_mask = torch.zeros(Z_w, dtype=torch.bool)
+        # Ensure we test realistic random caliper washouts
+        drop_mask[perm[:n_drop]] = True
+        valid_z = torch.nonzero(~drop_mask, as_tuple=False).view(-1).float()
+        valid_v = noisy_t[~drop_mask]
+        obs_t = torch.tensor(
+            np.interp(np.arange(Z_w, dtype=np.float32), valid_z.numpy(), valid_v.numpy()),
+            dtype=torch.float32,
+        )
+
+        b = shell(obs_t, reference_trace=clean_t)
+        eq_bins = min(max(4, 16), max(4, Z_w // 2))
+        eq_down = torch.nn.functional.adaptive_avg_pool1d(obs_t.view(1, 1, Z_w), eq_bins)
+        eq_up = (
+            torch.nn.functional.interpolate(eq_down, size=Z_w, mode="linear", align_corners=False)
+            .view(-1)
+            .cpu()
+            .numpy()
+        )
+
+        true_tr = clean_t.cpu().numpy()
+        obs_tr = obs_t.cpu().numpy()
         rec_tr = b.reconstructed_vp.cpu().numpy()
         naive_tr = b.naive_pooled_vp.cpu().numpy()
         salience = b.shielded_salience.cpu().numpy()
@@ -429,78 +495,92 @@ def render_well_log_beltrami_figure(
         t2_idx = b.tier2_medoid_indices.cpu().numpy().astype(int)
         t2_vals = b.tier2_medoid_values.cpu().numpy()
 
-        ax.plot(true_tr, depths, color="#58a6ff", linewidth=1.9, label="True Sonic Log Vp")
+        # Shade caliper washout intervals
+        for dz_i in torch.nonzero(drop_mask, as_tuple=False).view(-1).tolist():
+            ax.axhspan(dz_i - 0.45, dz_i + 0.45, color="#ff5470", alpha=0.16)
+
+        ax.plot(true_tr, depths, color="#58a6ff", linewidth=1.7, alpha=0.85, label="Clean Ground Truth Vp")
+        ax.plot(obs_tr, depths, color="#adb5bd", linestyle=":", linewidth=1.1, label="Noisy+Washout Input (20dB)")
+        ax.plot(
+            eq_up,
+            depths,
+            color="#ff9f1c",
+            linestyle="-.",
+            linewidth=1.5,
+            label=f"Equal-Budget K=16 Pool ({b.equal_budget_naive_recovery*100:.1f}%)",
+        )
         ax.plot(
             naive_tr,
             depths,
             color="#ff6b6b",
             linestyle="--",
-            linewidth=1.5,
-            label=f"Naive Pool ({b.naive_spike_recovery*100:.1f}%)",
+            linewidth=1.3,
+            label=f"Coarse Z//8 Pool ({b.naive_spike_recovery*100:.1f}%)",
         )
         ax.plot(
             rec_tr,
             depths,
             color="#00f5d4",
-            linestyle=":",
-            linewidth=1.9,
-            label=f"Beltrami ({b.beltrami_spike_recovery*100:.1f}%)",
+            linewidth=1.8,
+            label=f"Beltrami K=16 (All-Spikes: {b.all_stringers_recovery*100:.1f}%, F1={b.thin_bed_f1:.2f})",
         )
         ax.scatter(
-            true_tr[t1_idx],
+            obs_tr[t1_idx],
             t1_idx,
             color="#ffd43b",
-            s=32,
+            s=30,
             zorder=5,
             edgecolors="#000000",
-            label="Tier-1 Spikes",
+            label="Tier-1 Spikes (Pure Curl)",
         )
         ax.scatter(
             t2_vals,
             t2_idx,
             color="#c77dff",
             marker="s",
-            s=24,
+            s=22,
             zorder=4,
             label="Tier-2 Medoids",
         )
 
         ax_top = ax.twiny()
         ax_top.fill_betweenx(
-            depths, 0.0, salience, color="#ff9f1c", alpha=0.18, label="Beltrami Curl"
+            depths, 0.0, salience, color="#00f5d4", alpha=0.12
         )
         ax_top.set_xlim(0.0, 1.35)
-        ax_top.tick_params(labelsize=7.0, colors="#ff9f1c")
-        ax_top.set_xlabel("Beltrami Flux", fontsize=7.5, color="#ff9f1c")
+        ax_top.tick_params(labelsize=6.8, colors="#00f5d4")
+        ax_top.set_xlabel("Beltrami Exterior Curl", fontsize=7.2, color="#00f5d4")
 
         ax.set_title(
-            f"{w['name']}\n(Y={w['y']}, X={w['x']})",
-            fontsize=9.0,
+            f"{w['name']}\n[20dB, 10% Washout | Rec: {b.all_stringers_recovery*100:.1f}% | F1: {b.thin_bed_f1:.2f}]",
+            fontsize=7.6,
             fontweight="bold",
             color="#e6edf3",
             pad=10,
         )
         ax.set_xlabel("Vp (km/s)", fontsize=8.5, color="#9da7b3")
         if idx == 0:
-            ax.set_ylabel("Depth Index Z (Shallow -> Deep)", fontsize=9.5, color="#9da7b3")
-            ax.invert_yaxis()
+            ax.set_ylabel("Depth Station Index Z (Shallow -> Deep)", fontsize=9.0, color="#9da7b3")
+        ax.invert_yaxis()
         ax.grid(True, color="#21262d", linestyle=":", linewidth=0.7)
-        ax.legend(loc="lower left", fontsize=6.8, framealpha=0.85, facecolor="#0d1117")
+        ax.legend(loc="lower left", fontsize=6.2, framealpha=0.88, facecolor="#0d1117")
+
+        out_summary[w["name"]] = {
+            "beltrami_spike_recovery": float(b.beltrami_spike_recovery),
+            "all_stringers_recovery": float(b.all_stringers_recovery),
+            "equal_budget_naive_recovery": float(b.equal_budget_naive_recovery),
+            "naive_spike_recovery": float(b.naive_spike_recovery),
+            "thin_bed_f1": float(b.thin_bed_f1),
+        }
 
     fig.suptitle(
-        "Beltrami Callosal Well-Log Shell Across 6 Sparse Boreholes: 1.0000 Stringer Spike Recovery vs. Naive Dilution",
-        fontsize=13,
+        "G3VM v0.5.0 Pure Non-Circular Beltrami Shell (K=8+8=16 Tokens, SNR=20dB, 10% Caliper Washout) vs. Equal-Budget (K=16) & Coarse Pooling",
+        fontsize=12.2,
         fontweight="bold",
         color="#00f5d4",
-        y=0.98,
+        y=0.985,
     )
-    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.94])
+    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.945])
     fig.savefig(out_file, facecolor=fig.get_facecolor())
     plt.close(fig)
-    return {
-        w["name"]: {
-            "beltrami_spike_recovery": float(w["beltrami"].beltrami_spike_recovery),
-            "naive_spike_recovery": float(w["beltrami"].naive_spike_recovery),
-        }
-        for w in wells
-    }
+    return out_summary

@@ -413,6 +413,7 @@ def evaluate_blind_holdout_and_baselines(
     fault_jitter_voxels: int = 0,
     washout_fraction: float = 0.0,
     device: str | torch.device = "cpu",
+    return_cubes: bool = False,
 ) -> dict[str, Any]:
     """
     Evaluate Leave-One-Well-Out (LOWO) blind vertical well holdout, unseen 3D deviated/horizontal
@@ -655,6 +656,20 @@ def evaluate_blind_holdout_and_baselines(
             "fault_partitioned_kriging": round(fid_fkrig, 4),
             "blind_darksnail_g3vm": round(fid_g3vm, 4),
         },
+        **(
+            {
+                "cubes": {
+                    "true_vp": true_vp,
+                    "naive_vp": naive_full,
+                    "krig_vp": krig_full,
+                    "fkrig_vp": fkrig_full,
+                    "g3vm_blind_vp": g3vm_blind_vp,
+                    "scenario": scen,
+                }
+            }
+            if return_cubes
+            else {}
+        ),
     }
 
 
@@ -706,7 +721,7 @@ def evaluate_beltrami_noise_and_washout_ablation(
             else:
                 interp_trace = noisy_trace
 
-            res = shell(interp_trace)
+            res = shell(interp_trace, reference_trace=clean_trace)
             b_recs.append(res.beltrami_spike_recovery)
             all_recs.append(res.all_stringers_recovery)
             eq_recs.append(res.equal_budget_naive_recovery)

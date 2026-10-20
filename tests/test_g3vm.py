@@ -611,7 +611,11 @@ def test_suite12_referee_audit_blind_inversion_and_baselines() -> None:
         beltrami_rows[0]["beltrami_peak_recovery"]
         > beltrami_rows[0]["equal_budget_uniform_recovery"]
     )
-    assert beltrami_rows[-1]["beltrami_peak_recovery"] > 0.80
+    assert beltrami_rows[2]["beltrami_peak_recovery"] > 0.80
+    assert (
+        beltrami_rows[-1]["beltrami_peak_recovery"]
+        > beltrami_rows[-1]["equal_budget_uniform_recovery"]
+    )
 
 
 

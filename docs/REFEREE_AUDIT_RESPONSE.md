@@ -36,20 +36,22 @@ All four methods are trained on the **exact same training wells** and evaluated 
 
 | Scenario (`32x24x24`, `SNR=20 dB`) | LOWO Held-Out Well RMSE: `NaiveBox` | LOWO Held-Out Well RMSE: `TunedKriging` | LOWO Held-Out Well RMSE: `FaultKriging` | LOWO Held-Out Well RMSE: `BlindG3VM` | Unseen 3D Deviated Well RMSE: `TunedKriging` | Unseen 3D Deviated Well RMSE: `BlindG3VM` | Whole-Cube Blind RMSE: `TunedKriging` | Whole-Cube Blind RMSE: `FaultKriging` | Whole-Cube Blind RMSE: `BlindG3VM` | Bounded Edge Fidelity: `TunedKriging` | Bounded Edge Fidelity: `BlindG3VM` |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`01` `subsalt_graben`** | `0.8816` | `0.9187` | `0.9085` | **`0.7796`** | `0.6364` | **`0.5221`** | `0.5834` | `0.6383` | **`0.4910`** | `9.5%` | **`53.6%`** |
-| **`02` `thrust_anticline`** | `0.6560` | `0.6105` | `0.6353` | **`0.5672`** | **`0.4519`** | `0.4840` | `0.5460` | `0.5256` | **`0.4939`** | `9.9%` | **`23.0%`** |
-| **`03` `unconformity_trap`** | `0.6905` | `0.7066` | **`0.6631`** | `0.6669` | `0.6238` | **`0.4736`** | `0.5567` | `0.5362` | **`0.4408`** | `3.7%` | **`57.5%`** |
-| **`04` `egs_tbm_hazard`** | `0.5530` | `0.5690` | `0.5756` | `0.5915` | **`0.4523`** | `0.6662` | `0.4672` | **`0.4415`** | `0.4608` | `3.3%` | **`34.4%`** |
-| **`05` `utah_forge_egs_doublet`** | `0.7707` | `0.7978` | `0.5836` | **`0.5273`** | `0.5489` | **`0.4700`** | `0.6702` | `0.4053` | **`0.3516`** | `9.7%` | **`70.0%`** |
-| **`06` `lunar_lava_tube_isru`** | `0.5705` | `0.5196` | **`0.4063`** | `0.4477` | `1.9846` | **`1.1552`** | `1.1088` | `0.8747` | **`0.6305`** | `25.6%` | **`35.6%`** |
+| **`01` `subsalt_graben`** | `0.8816` | `0.9187` | `0.9085` | **`0.7796`** | `0.6364` | **`0.5221`** | `0.5834` | `0.6383` | **`0.5149`** | `9.5%` | **`53.6%`** |
+| **`02` `thrust_anticline`** | `0.6560` | `0.6105` | `0.6353` | **`0.5672`** | **`0.4519`** | `0.4840` | `0.5460` | **`0.5256`** | `0.5627` | `9.9%` | **`23.0%`** |
+| **`03` `unconformity_trap`** | `0.6905` | `0.7066` | **`0.6631`** | `0.6669` | `0.6238` | **`0.4736`** | `0.5567` | `0.5362` | **`0.4850`** | `3.7%` | **`57.5%`** |
+| **`04` `egs_tbm_hazard`** | **`0.5530`** | `0.5690` | `0.5756` | `0.5915` | **`0.4523`** | `0.6662` | `0.4672` | **`0.4415`** | `0.4771` | `3.3%` | **`34.4%`** |
+| **`05` `utah_forge_egs_doublet`** | `0.7707` | `0.7978` | `0.5836` | **`0.5273`** | `0.5489` | **`0.4700`** | `0.6702` | `0.4053` | **`0.3526`** | `9.7%` | **`70.0%`** |
+| **`06` `lunar_lava_tube_isru`** | `0.5705` | `0.5196` | **`0.4063`** | `0.4477` | `1.9846` | **`1.1552`** | `1.1088` | `0.8747` | **`0.5903`** | `25.6%` | **`35.6%`** |
+
+![G3VM v0.5.0 Mode B Blind Benchmark Showcase (SNR=20dB, Zero Target Leakage)](../results/g3vm_leapfrog_showcase.png)
 
 ### Key Takeaways from the Blind Benchmark (Mode B):
-1. **Realistic Error Magnitudes**: Once oracle knowledge of `true_litho_cube` is removed and $20\text{ dB}$ observation noise is added, blind whole-cube $V_p$ RMSE is `0.35–0.63 km/s` (rather than `0.02–0.15 km/s` in Mode A), and bounded edge fidelity is `23%–70%` (rather than `96%–100%`).
+1. **Realistic Error Magnitudes**: Once oracle knowledge of `true_litho_cube` is removed and $20\text{ dB}$ observation noise is added, blind whole-cube $V_p$ RMSE is `0.35–0.59 km/s` (rather than `0.02–0.15 km/s` in Mode A), and bounded edge fidelity is `23%–70%` (rather than `96%–100%`).
 2. **Where `BlindG3VM` Wins Cleanly**:
-   - Across **all 6 scenarios**, `BlindG3VM` achieves the highest **Bounded Edge Gradient Fidelity** (`23.0%–70.0%` vs. `3.3%–25.6%` for `TunedAnisotropicKriging`).
-   - On scenarios dominated by large regional fault steps or vacuum/salt enclosures (**`01` Subsalt Graben**, **`03` Unconformity Trap**, **`05` Utah FORGE Doublet**, and **`06` Lunar Lava Tube ISRU**), `BlindG3VM` reduces whole-cube blind RMSE by **15.8% to 47.5%** over cross-validated `TunedAnisotropicKriging` and reduces unseen 3D deviated-well RMSE by **14.4% to 41.8%** (for example, from $1.9846\text{ km/s}$ to $1.1552\text{ km/s}$ on the deviated `VIPER-TR2` and `LRS-IL3` lunar boreholes).
+   - Across **all 6 scenarios**, `BlindG3VM` achieves higher **Bounded Edge Gradient Fidelity** (`23.0%–70.0%`) than cross-validated `TunedAnisotropicKriging` (`3.3%–25.6%`).
+   - On scenarios dominated by large regional fault steps or vacuum/salt enclosures (**`01` Subsalt Graben**, **`03` Unconformity Trap**, **`05` Utah FORGE Doublet**, and **`06` Lunar Lava Tube ISRU**), `BlindG3VM` reduces whole-cube blind RMSE by **11.7% to 47.4%** over cross-validated `TunedAnisotropicKriging` and reduces unseen 3D deviated-well RMSE by **14.4% to 41.8%** (for example, from $1.9846\text{ km/s}$ to $1.1552\text{ km/s}$ on the deviated `VIPER-TR2` and `LRS-IL3` lunar boreholes).
 3. **Where Tuned Kriging Competes or Wins**:
-   - On **`04` `egs_tbm_hazard`** (where a small localized karst cavity sits inside a continuous crystalline horst and the 6 perimeter vertical wells all lie outside the central karst cavity), `FaultPartitionedKriging` ($0.4415\text{ km/s}$) and `TunedAnisotropicKriging` ($0.4523\text{ km/s}$ on deviated wells) slightly edge out `BlindG3VM` ($0.4608\text{ km/s}$ whole-cube) because noisy seismic attribute fluctuations ($\mathrm{SNR} = 20\text{ dB}$) trigger small false-positive lithology switches in the discrete softmax readout when the anomaly is small relative to the grid spacing. Reporting this openly makes the trade-off between continuous kriging and discrete-continuous $\mathfrak{so}(C)$ tie-breaking completely transparent.
+   - On **`04` `egs_tbm_hazard`** (where a small localized karst cavity sits inside a continuous crystalline horst and the 6 perimeter vertical wells all lie outside the central karst cavity) and on whole-cube **`02` `thrust_anticline`**, `FaultPartitionedKriging` ($0.4415\text{ km/s}$ and $0.5256\text{ km/s}$) and `TunedAnisotropicKriging` ($0.4523\text{ km/s}$ on deviated wells) slightly edge out `BlindG3VM` ($0.4771\text{ km/s}$ and $0.5627\text{ km/s}$ whole-cube) because noisy seismic attribute fluctuations ($\mathrm{SNR} = 20\text{ dB}$) trigger localized false-positive lithology switches in the discrete softmax readout when the anomaly is small relative to the grid spacing. Reporting this openly (and visualizing both positive red gains and negative blue losses in the rightmost `coolwarm` column of `g3vm_leapfrog_showcase.png`) makes the trade-off between continuous kriging and discrete-continuous $\mathfrak{so}(C)$ tie-breaking completely transparent.
 
 ---
 
@@ -86,12 +88,14 @@ We fixed both issues in [`g3vm/engine.py`](../g3vm/engine.py):
 2. **Equal-Token-Budget Comparator (`K = K_out + K_med = 16` tokens)**:
    Since `BeltramiWellLogShell` retains $K_{\mathrm{out}} + K_{\mathrm{med}} = 8 + 8 = 16$ total tokens across `Z = 32–48` depth samples, we now evaluate it against an **Equal-Budget Uniform Pooler (`16` bins)** in addition to the coarse seismic-grid pooler (`Z // 8` bins), across additive sonic noise and borehole caliper washout dropouts:
 
-| Sonic Log Condition (`lunar_lava_tube_isru`, 8 Wells, $K=16$ Tokens) | Beltrami Peak Stringer Recovery | Beltrami All-Stringers Recovery | Beltrami Thin-Bed Detection F1 | Equal-Budget ($K=16$) Uniform Pooling Recovery | Coarse-Grid (`Z//8`) Uniform Pooling Recovery |
+| Sonic Log Condition (`lunar_lava_tube_isru`, 8 Wells, $K=16$ Tokens, Evaluated vs. Clean Ground Truth) | Beltrami Peak Stringer Recovery | Beltrami All-Stringers Recovery | Beltrami Thin-Bed Detection F1 | Equal-Budget ($K=16$) Uniform Pooling Recovery | Coarse-Grid (`Z//8`) Uniform Pooling Recovery |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Clean** ($\mathrm{SNR} = \infty$, Washout $= 0\%$) | **`100.00%`** (`1.0000`) | **`100.00%`** (`1.0000`) | **`1.0000`** | `37.50%` (`0.3750`) | `11.73%` (`0.1173`) |
-| **Moderate Sonic Noise** ($\mathrm{SNR} = 20\text{ dB}$, Washout $= 0\%$) | **`100.00%`** (`1.0000`) | **`95.19%`** (`0.9519`) | **`0.9611`** | `38.72%` (`0.3872`) | `12.64%` (`0.1264`) |
-| **High Noise + 10% Caliper Washout** ($\mathrm{SNR} = 15\text{ dB}$, Washout $= 10\%$) | **`89.16%`** (`0.8916`) | **`85.44%`** (`0.8544`) | **`0.9261`** | `32.50%` (`0.3250`) | `18.22%` (`0.1822`) |
-| **Severe Noise + 20% Caliper Washout** ($\mathrm{SNR} = 10\text{ dB}$, Washout $= 20\%$) | **`91.68%`** (`0.9168`) | **`82.66%`** (`0.8266`) | **`0.9192`** | `33.70%` (`0.3370`) | `37.66%` (`0.3766`) |
+| **Clean** ($\mathrm{SNR} = \infty$, Washout $= 0\%$) | **`100.00%`** (`1.0000`) | **`100.00%`** (`1.0000`) | **`0.9214`** | `37.50%` (`0.3750`) | `11.73%` (`0.1173`) |
+| **Moderate Sonic Noise** ($\mathrm{SNR} = 20\text{ dB}$, Washout $= 0\%$) | **`92.18%`** (`0.9218`) | **`81.82%`** (`0.8182`) | **`0.8829`** | `33.92%` (`0.3392`) | `12.05%` (`0.1205`) |
+| **High Noise + 10% Caliper Washout** ($\mathrm{SNR} = 15\text{ dB}$, Washout $= 10\%$) | **`80.80%`** (`0.8080`) | **`61.77%`** (`0.6177`) | **`0.7317`** | `36.39%` (`0.3639`) | `12.49%` (`0.1249`) |
+| **Severe Noise + 20% Caliper Washout** ($\mathrm{SNR} = 10\text{ dB}$, Washout $= 20\%$) | **`56.38%`** (`0.5638`) | **`39.87%`** (`0.3987`) | **`0.5186`** | `37.35%` (`0.3735`) | `15.11%` (`0.1511`) |
+
+![G3VM v0.5.0 Pure Non-Circular Beltrami Shell (K=8+8=16 Tokens, SNR=20dB, 10% Caliper Washout) vs. Equal-Budget (K=16) & Coarse Pooling](../results/g3vm_well_log_beltrami.png)
 
 ---
 
@@ -103,25 +107,25 @@ Evaluated under Mode B (zero target leakage) on `lunar_lava_tube_isru` and `utah
 
 | Observation $\mathrm{SNR}$ ($\text{dB}$) | Lunar LOWO Well RMSE: `TunedKriging` | Lunar LOWO Well RMSE: `BlindG3VM` | Lunar Whole-Cube RMSE: `TunedKriging` | Lunar Whole-Cube RMSE: `BlindG3VM` | Utah FORGE LOWO Well RMSE: `TunedKriging` | Utah FORGE LOWO Well RMSE: `BlindG3VM` | Utah FORGE Whole-Cube RMSE: `TunedKriging` | Utah FORGE Whole-Cube RMSE: `BlindG3VM` |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Clean** ($\infty\text{ dB}$) | `0.5029` | **`0.4606`** | `1.1208` | **`0.6401`** | `0.7971` | **`0.5453`** | `0.6574` | **`0.3519`** |
-| **20.0 dB** | `0.5196` | **`0.4477`** | `1.1088` | **`0.6305`** | `0.7978` | **`0.5273`** | `0.6702` | **`0.3516`** |
-| **10.0 dB** | `0.6134` | **`0.4714`** | `1.1086` | **`0.6626`** | `0.8349` | **`0.5456`** | `0.7400` | **`0.4158`** |
-| **5.0 dB** | `0.7828` | **`0.6253`** | `1.1506` | **`0.7897`** | `0.9287` | **`0.6186`** | `0.8733` | **`0.5284`** |
+| **Clean** ($\infty\text{ dB}$) | `0.5029` | **`0.4164`** | `1.1208` | **`0.5753`** | `0.7971` | **`0.5571`** | `0.6574` | **`0.3521`** |
+| **20.0 dB** | `0.5196` | **`0.4477`** | `1.1088` | **`0.5903`** | `0.7978` | **`0.5273`** | `0.6702` | **`0.3526`** |
+| **10.0 dB** | `0.6134` | **`0.4855`** | `1.1086` | **`0.6319`** | `0.8349` | **`0.5321`** | `0.7400` | **`0.4126`** |
+| **5.0 dB** | `0.7828` | **`0.6150`** | `1.1506` | **`0.7530`** | `0.9287` | **`0.5809`** | `0.8733` | **`0.5323`** |
 
 ### 3.2 Fault-Pick Localization Error / Mispick Jitter Sweep ($\Delta x_{\mathrm{jitter}} \in \{0, 1, 2, 3\}$ Voxels)
 
 A critical distinction raised by the referee is that **algebraic well-posedness does not guarantee geological accuracy if the interpreted fault structure is wrong**. Because `SkewSymmetricFaultTriad` enforces a sharp discontinuity along the supplied fault corridor `u_fault_blind`, shifting `u_fault_blind` laterally by $\Delta x_{\mathrm{jitter}}$ voxels creates a "double-penalty" zone where footwall rock is assigned hanging-wall velocity.
 
-Sweeping $\Delta x_{\mathrm{jitter}} \in \{0, 1, 2, 3\}$ voxels on Scenario `02` (`thrust_anticline`, $\mathrm{SNR} = 20\text{ dB}$) reveals the exact error crossover:
+Sweeping $\Delta x_{\mathrm{jitter}} \in \{0, 1, 2, 3\}$ voxels on Scenario `02` (`thrust_anticline`, $\mathrm{SNR} = 20\text{ dB}$) reveals how fault-pick localization errors degrade both whole-cube RMSE and bounded edge fidelity:
 
 | Fault-Pick Lateral Mispick $\Delta x_{\mathrm{jitter}}$ (Voxels) | `BlindG3VM` Whole-Cube RMSE ($\text{km/s}$) | `FaultPartitionedKriging` Whole-Cube RMSE ($\text{km/s}$) | `TunedAnisotropicKriging` Whole-Cube RMSE ($\text{km/s}$) | `BlindG3VM` Bounded Edge Fidelity |
 | :---: | :---: | :---: | :---: | :---: |
-| **`0` voxels (Exact Pick)** | **`0.4939`** | `0.5256` | `0.5460` | **`23.00%`** |
-| **`1` voxel** ($\sim 4.2\%$ of basin width) | **`0.5060`** | `0.5337` | `0.5460` | `14.12%` |
-| **`2` voxels** ($\sim 8.3\%$ of basin width) | **`0.5194`** | `0.5332` | `0.5460` | `13.21%` |
-| **`3` voxels** ($\sim 12.5\%$ of basin width) | `0.5356` | **`0.5181`** | `0.5460` | `12.64%` |
+| **`0` voxels (Exact Pick)** | `0.5627` | **`0.5256`** | `0.5460` | **`23.01%`** |
+| **`1` voxel** ($\sim 4.2\%$ of basin width) | `0.5770` | **`0.5337`** | `0.5460` | `13.01%` |
+| **`2` voxels** ($\sim 8.3\%$ of basin width) | `0.5865` | **`0.5332`** | `0.5460` | `11.76%` |
+| **`3` voxels** ($\sim 12.5\%$ of basin width) | `0.5934` | **`0.5181`** | `0.5460` | `10.68%` |
 
-- **Crossover Threshold**: For fault localization errors of `0–2` voxels, `BlindG3VM` outperforms both `FaultPartitionedKriging` and `TunedAnisotropicKriging`. Once the fault pick is mislocated by $\ge 3$ voxels (`12.5%` of the crossline domain width), the double-penalty of placing a sharp step in the wrong location causes `BlindG3VM` ($0.5356\text{ km/s}$) to degrade behind softer `FaultPartitionedKriging` ($0.5181\text{ km/s}$).
+- **Double-Penalty Under Mispicked Faults**: As the fault pick is shifted laterally by `1–3` voxels (`4.2%–12.5%` of the crossline domain width), `BlindG3VM` Bounded Edge Fidelity drops from `23.01%` to `10.68%` and whole-cube RMSE degrades from $0.5627\text{ km/s}$ to $0.5934\text{ km/s}$, whereas softer `FaultPartitionedKriging` ($0.5181\text{ km/s}$) and `TunedAnisotropicKriging` ($0.5460\text{ km/s}$) avoid the sharp double-penalty of placing a step discontinuity at the wrong crossline coordinate.
 
 ---
 
