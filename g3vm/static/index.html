@@ -3,21 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>G3VM Studio // DarkSnail-Geo3D Subsurface Velocity Modeler</title>
+  <title>G3VM Studio // DarkSnail-Geo3D Subsurface Velocity &amp; Rock-Physics Workstation</title>
   <style>
     :root {
-      --bg-root: #090d14;
-      --bg-panel: #101724;
-      --bg-card: #151e2e;
-      --border: #223049;
-      --text-main: #e6edf3;
-      --text-muted: #8b9bb4;
-      --accent-blue: #4ea1ff;
-      --accent-cyan: #00f5d4;
-      --accent-amber: #ffb703;
-      --accent-red: #ff5d73;
+      --bg-root: #06090f;
+      --bg-panel: #0b101b;
+      --bg-panel-alt: #0e1524;
+      --bg-card: #111a2b;
+      --bg-input: #070b12;
+      --border: #1e2c44;
+      --border-hi: #2b4266;
+      --text-main: #e6edf6;
+      --text-muted: #8496b0;
+      --text-dim: #566882;
+      --accent-blue: #3b9eff;
+      --accent-cyan: #00f2d4;
+      --accent-amber: #ffbe0b;
+      --accent-red: #ff5470;
       --accent-purple: #b57cff;
-      --accent-green: #2ec4b6;
+      --accent-green: #10b981;
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "Cascadia Code", "Consolas", "SFMono-Regular", monospace;
     }
     * {
       box-sizing: border-box;
@@ -25,267 +31,464 @@
       padding: 0;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      font-family: var(--font-sans);
       background: var(--bg-root);
       color: var(--text-main);
       height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
     }
-    /* Header */
+
+    /* Architectural Top Command Bar */
     header {
-      height: 54px;
-      background: linear-gradient(90deg, #0d1420 0%, #131d30 100%);
+      height: 48px;
+      background: linear-gradient(90deg, #070b12 0%, #0d1626 55%, #09101c 100%);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px;
+      padding: 0 14px;
       flex-shrink: 0;
+      position: relative;
+    }
+    header::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 260px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent-cyan), transparent);
     }
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
     .brand-logo {
-      width: 30px;
-      height: 30px;
-      border-radius: 6px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      width: 28px;
+      height: 28px;
+      border-radius: 3px;
+      background: rgba(0, 242, 212, 0.12);
+      border: 1px solid var(--accent-cyan);
+      box-shadow: inset 0 0 8px rgba(0, 242, 212, 0.25);
       display: flex;
       align-items: center;
       justify-content: center;
+      font-family: var(--font-mono);
       font-weight: 800;
-      color: #06101e;
-      font-size: 14px;
+      color: var(--accent-cyan);
+      font-size: 12px;
       letter-spacing: -0.5px;
     }
+    .brand-title-wrap {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+    }
     .brand-title {
-      font-size: 15px;
+      font-family: var(--font-mono);
+      font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.4px;
+      color: var(--text-main);
+      text-transform: uppercase;
     }
     .brand-sub {
-      font-size: 11px;
+      font-family: var(--font-mono);
+      font-size: 10px;
       color: var(--text-muted);
-      margin-left: 6px;
+      letter-spacing: 0.2px;
     }
     .header-badges {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
     }
     .pill {
-      font-size: 11px;
-      font-family: "Consolas", "SFMono-Regular", monospace;
-      padding: 4px 9px;
-      border-radius: 999px;
-      background: rgba(78, 161, 255, 0.12);
-      border: 1px solid rgba(78, 161, 255, 0.35);
-      color: var(--accent-blue);
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+      padding: 3px 8px;
+      border-radius: 2px;
+      background: rgba(59, 158, 255, 0.09);
+      border: 1px solid rgba(59, 158, 255, 0.35);
+      border-left: 2px solid var(--accent-blue);
+      color: #a6d4ff;
       white-space: nowrap;
     }
     .pill.ok {
-      background: rgba(0, 245, 212, 0.12);
-      border-color: rgba(0, 245, 212, 0.4);
+      background: rgba(0, 242, 212, 0.08);
+      border-color: rgba(0, 242, 212, 0.32);
+      border-left: 2px solid var(--accent-cyan);
       color: var(--accent-cyan);
     }
     .pill.warn {
-      background: rgba(255, 183, 3, 0.14);
-      border-color: rgba(255, 183, 3, 0.45);
+      background: rgba(255, 190, 11, 0.1);
+      border-color: rgba(255, 190, 11, 0.4);
+      border-left: 2px solid var(--accent-amber);
       color: var(--accent-amber);
     }
+
+    /* Scenario Preset Deck Bar */
     .preset-bar {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 16px;
-      background: #0c121d;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 5px 14px;
+      background: #080c15;
       border-bottom: 1px solid var(--border);
       overflow-x: auto;
       flex-shrink: 0;
     }
+    .preset-deck-left {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .preset-tag {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      letter-spacing: 0.8px;
+      margin-right: 4px;
+      padding-right: 6px;
+      border-right: 1px solid var(--border);
+    }
     .preset-btn {
-      font-size: 11px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
       font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 5px;
+      padding: 4px 9px;
+      border-radius: 2px;
       border: 1px solid var(--border);
-      background: #141d2e;
+      background: #0d1422;
       color: var(--text-muted);
       cursor: pointer;
       white-space: nowrap;
-      transition: all 0.15s ease;
+      transition: all 0.12s ease;
+      width: auto;
     }
     .preset-btn:hover {
       border-color: var(--accent-blue);
       color: var(--text-main);
+      background: #131e33;
     }
     .preset-btn.active {
-      background: rgba(0, 245, 212, 0.14);
+      background: rgba(0, 242, 212, 0.13);
       border-color: var(--accent-cyan);
       color: var(--accent-cyan);
-    }
-    .dropzone-box {
-      border: 1px dashed rgba(0, 245, 212, 0.45);
-      border-radius: 6px;
-      padding: 8px;
-      text-align: center;
-      background: rgba(0, 245, 212, 0.04);
-      color: var(--text-muted);
-      font-size: 10.5px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .dropzone-box:hover, .dropzone-box.dragover {
-      background: rgba(0, 245, 212, 0.12);
-      border-color: var(--accent-cyan);
-      color: var(--text-main);
+      box-shadow: inset 0 0 6px rgba(0, 242, 212, 0.18);
     }
 
-    /* Main Grid Layout */
+    /* Main 3-Column Workstation Grid */
     .workspace {
       flex: 1;
       display: grid;
-      grid-template-columns: 300px 1fr 370px;
-      gap: 10px;
-      padding: 10px;
+      grid-template-columns: 318px 1fr 405px;
+      gap: 8px;
+      padding: 8px;
       min-height: 0;
     }
     .panel {
       background: var(--bg-panel);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 3px;
       display: flex;
       flex-direction: column;
       min-height: 0;
       overflow: hidden;
+      position: relative;
+    }
+    .panel::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 6px;
+      height: 6px;
+      border-top: 1.5px solid var(--accent-cyan);
+      border-left: 1.5px solid var(--accent-cyan);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .panel::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 6px;
+      height: 6px;
+      border-top: 1.5px solid var(--accent-blue);
+      border-right: 1.5px solid var(--accent-blue);
+      pointer-events: none;
+      z-index: 2;
     }
     .panel-header {
-      padding: 9px 12px;
-      background: rgba(255, 255, 255, 0.02);
+      padding: 7px 10px;
+      background: linear-gradient(90deg, rgba(59, 158, 255, 0.08) 0%, rgba(14, 21, 36, 0.4) 100%);
       border-bottom: 1px solid var(--border);
-      font-size: 12px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.7px;
       color: var(--accent-blue);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
     }
     .panel-body {
-      padding: 12px;
+      padding: 8px;
       overflow-y: auto;
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-    }
-
-    /* Controls */
-    .control-group {
-      background: var(--bg-card);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 6px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
       gap: 8px;
     }
+    .panel-body::-webkit-scrollbar {
+      width: 5px;
+    }
+    .panel-body::-webkit-scrollbar-track {
+      background: var(--bg-root);
+    }
+    .panel-body::-webkit-scrollbar-thumb {
+      background: var(--border-hi);
+      border-radius: 2px;
+    }
+
+    /* Technical Control Modules */
+    .control-group {
+      background: var(--bg-card);
+      border: 1px solid rgba(59, 158, 255, 0.14);
+      border-radius: 2px;
+      padding: 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .control-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 4px;
+    }
     .control-title {
-      font-size: 11px;
+      font-family: var(--font-mono);
+      font-size: 10px;
       font-weight: 700;
-      color: var(--text-muted);
+      color: var(--accent-cyan);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
+    }
+    .control-code {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
     }
     label {
-      font-size: 12px;
+      font-size: 11px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       color: var(--text-main);
     }
     label span.val {
-      font-family: "Consolas", monospace;
+      font-family: var(--font-mono);
       color: var(--accent-cyan);
-      font-size: 11.5px;
+      font-size: 11px;
+      font-weight: 600;
     }
     select, button {
       width: 100%;
-      padding: 7px 9px;
-      border-radius: 5px;
-      border: 1px solid var(--border);
-      background: #0c121d;
+      padding: 5px 8px;
+      border-radius: 2px;
+      border: 1px solid var(--border-hi);
+      background: var(--bg-input);
       color: var(--text-main);
-      font-size: 12px;
+      font-family: var(--font-sans);
+      font-size: 11.5px;
       cursor: pointer;
     }
     select:focus, button:focus {
-      outline: 1px solid var(--accent-blue);
+      outline: 1px solid var(--accent-cyan);
     }
     input[type="range"] {
       width: 100%;
+      height: 4px;
       accent-color: var(--accent-cyan);
       cursor: pointer;
     }
     .btn-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
+      gap: 5px;
     }
     button.primary {
-      background: linear-gradient(135deg, #1b4f9c, #123770);
-      border-color: #3878d6;
+      background: linear-gradient(180deg, #194a8d 0%, #103160 100%);
+      border-color: #3b82f6;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
     button.primary:hover {
-      background: linear-gradient(135deg, #2463bf, #18478f);
+      background: linear-gradient(180deg, #215bb0 0%, #15407d 100%);
     }
     button.accent {
-      background: rgba(0, 245, 212, 0.14);
-      border-color: rgba(0, 245, 212, 0.45);
+      background: rgba(0, 242, 212, 0.11);
+      border-color: rgba(0, 242, 212, 0.45);
       color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
       font-weight: 600;
     }
     button.accent:hover {
-      background: rgba(0, 245, 212, 0.24);
+      background: rgba(0, 242, 212, 0.22);
     }
-    .checkbox-list {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
+    button.mini-btn {
+      width: auto;
+      padding: 2px 6px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      background: #0b1322;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
     }
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .checkbox-item input {
-      accent-color: var(--accent-cyan);
+    button.mini-btn:hover {
+      color: var(--accent-cyan);
+      border-color: var(--accent-cyan);
     }
 
-    /* Center Column */
+    /* Bespoke Display Layer Submenu Matrix */
+    .display-submenu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 6px;
+      background: rgba(7, 11, 18, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
+      font-size: 10.5px;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.12s ease;
+    }
+    .layer-toggle:hover {
+      border-color: rgba(59, 158, 255, 0.4);
+      color: var(--text-main);
+    }
+    .layer-toggle input[type="checkbox"] {
+      accent-color: var(--accent-cyan);
+      width: 12px;
+      height: 12px;
+      margin: 0;
+      cursor: pointer;
+    }
+    .layer-toggle.full-span {
+      grid-column: 1 / -1;
+    }
+
+    .dropzone-box {
+      border: 1px dashed rgba(0, 242, 212, 0.4);
+      border-radius: 2px;
+      padding: 7px;
+      text-align: center;
+      background: rgba(0, 242, 212, 0.03);
+      color: var(--text-muted);
+      font-size: 10.5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .dropzone-box:hover, .dropzone-box.dragover {
+      background: rgba(0, 242, 212, 0.1);
+      border-color: var(--accent-cyan);
+      color: var(--text-main);
+    }
+
+    /* Center Column: 3D Viewport + 2D Orthogonal Sections */
     .center-col {
       display: grid;
-      grid-template-rows: 1.15fr 0.85fr;
-      gap: 10px;
+      grid-template-rows: 1.24fr 0.76fr;
+      gap: 8px;
       min-height: 0;
     }
     .viewport-3d-wrap {
       position: relative;
       flex: 1;
-      background: radial-gradient(circle at 50% 45%, #162238 0%, #090d14 85%);
+      background:
+        linear-gradient(rgba(59, 158, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59, 158, 255, 0.03) 1px, transparent 1px),
+        radial-gradient(circle at 50% 54%, #132038 0%, #060910 85%);
+      background-size: 24px 24px, 24px 24px, 100% 100%;
       min-height: 0;
       display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* Docked Top HUD Ribbon inside 3D Viewport (Zero overlap with 3D cube or well badges) */
+    .viewport-overlay {
+      width: 100%;
+      background: rgba(7, 11, 19, 0.92);
+      border-bottom: 1px solid var(--border);
+      padding: 5px 10px;
+      display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      z-index: 3;
+      flex-shrink: 0;
+    }
+    .hud-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .hud-title {
+      color: var(--accent-cyan);
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hud-mode {
+      color: var(--text-muted);
+      padding-left: 8px;
+      border-left: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .hud-cursor {
+      color: var(--text-main);
+      background: rgba(59, 158, 255, 0.1);
+      border: 1px solid rgba(59, 158, 255, 0.3);
+      padding: 2px 7px;
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+    .canvas3d-stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
     }
     #canvas3d {
       width: 100%;
@@ -296,45 +499,62 @@
     #canvas3d:active {
       cursor: grabbing;
     }
-    .viewport-overlay {
-      position: absolute;
-      top: 10px;
-      left: 12px;
-      pointer-events: none;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      background: rgba(11, 15, 23, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 8px 11px;
-      border-radius: 6px;
-      font-size: 11.5px;
-    }
     .viewport-toolbar {
       position: absolute;
-      bottom: 10px;
-      left: 12px;
+      bottom: 8px;
+      left: 10px;
       display: flex;
-      gap: 6px;
+      gap: 5px;
+      z-index: 4;
+      flex-wrap: wrap;
     }
     .viewport-toolbar button {
       width: auto;
-      padding: 4px 9px;
-      font-size: 11px;
-      background: rgba(16, 23, 36, 0.88);
+      padding: 4px 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: rgba(8, 13, 23, 0.9);
+      border: 1px solid var(--border-hi);
+      color: var(--text-muted);
+    }
+    .viewport-toolbar button:hover,
+    .viewport-toolbar button.active-drawer {
+      color: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      background: rgba(0, 242, 212, 0.12);
+    }
+
+    /* Floating Quick Display Submenu Drawer inside 3D Viewport */
+    .viewport-QuickSubmenu {
+      position: absolute;
+      bottom: 38px;
+      left: 10px;
+      width: 340px;
+      background: rgba(8, 13, 23, 0.96);
+      border: 1px solid var(--accent-cyan);
+      border-radius: 2px;
+      padding: 8px 10px;
+      z-index: 6;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .viewport-QuickSubmenu.open {
+      display: flex;
     }
 
     /* 2D Cross-Section Dock */
     .cross-sections-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      gap: 8px;
       min-height: 0;
     }
     .slice-card {
       background: var(--bg-panel);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 2px;
       display: flex;
       flex-direction: column;
       min-height: 0;
@@ -344,7 +564,7 @@
       flex: 1;
       position: relative;
       min-height: 0;
-      background: #090d14;
+      background: #05080e;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -356,12 +576,84 @@
       display: block;
     }
 
-    /* Right Column: Well Log + Telemetry Table */
-    .well-canvas-wrap {
-      height: 255px;
-      background: #0a0f18;
+    /* Right Column: Granular Telemetry Submenu + Borehole Beltrami Log + Scorecard */
+    .telemetry-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+      background: var(--bg-input);
+      padding: 3px;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 2px;
+    }
+    .telemetry-tab-btn {
+      padding: 4px 4px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-align: center;
+    }
+    .telemetry-tab-btn.active {
+      background: rgba(0, 242, 212, 0.14);
+      border-color: rgba(0, 242, 212, 0.45);
+      color: var(--accent-cyan);
+    }
+    .telemetry-pane {
+      display: none;
+    }
+    .telemetry-pane.active {
+      display: block;
+    }
+    .kv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    .kv-cell {
+      background: rgba(6, 9, 15, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-left: 2px solid var(--border-hi);
+      padding: 4px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .kv-cell.hi-cyan {
+      border-left-color: var(--accent-cyan);
+    }
+    .kv-cell.hi-blue {
+      border-left-color: var(--accent-blue);
+    }
+    .kv-cell.hi-amber {
+      border-left-color: var(--accent-amber);
+    }
+    .kv-cell.full {
+      grid-column: 1 / -1;
+    }
+    .kv-k {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+    .kv-v {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .well-canvas-wrap {
+      height: 205px;
+      background: #060a12;
+      border: 1px solid var(--border);
+      border-radius: 2px;
       position: relative;
       flex-shrink: 0;
     }
@@ -373,21 +665,22 @@
     table.scorecard {
       width: 100%;
       border-collapse: collapse;
-      font-size: 11.5px;
+      font-size: 11px;
     }
     table.scorecard th, table.scorecard td {
-      padding: 6px 7px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 4.5px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       text-align: left;
     }
     table.scorecard th {
       color: var(--text-muted);
+      font-family: var(--font-mono);
       font-weight: 600;
-      font-size: 10.5px;
+      font-size: 9.5px;
       text-transform: uppercase;
     }
     table.scorecard td.num {
-      font-family: "Consolas", monospace;
+      font-family: var(--font-mono);
       text-align: right;
     }
     .win {
@@ -400,24 +693,30 @@
     .litho-legend {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 4px;
+      gap: 3px;
     }
     .litho-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 11px;
+      font-size: 10.5px;
       padding: 3px 6px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.02);
+      border-radius: 2px;
+      background: rgba(6, 9, 15, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .litho-item.active-unit {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 242, 212, 0.1);
     }
     .swatch {
-      width: 11px;
-      height: 11px;
-      border-radius: 3px;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
       display: inline-block;
       margin-right: 6px;
       vertical-align: middle;
+      border: 1px solid rgba(255, 255, 255, 0.25);
     }
   </style>
 </head>
@@ -425,9 +724,9 @@
   <header>
     <div class="brand">
       <div class="brand-logo">G3</div>
-      <div>
-        <span class="brand-title">G3VM Studio v0.3.0</span>
-        <span class="brand-sub">DarkSnail-Geo3D Beltrami-Triad Subsurface Velocity Engine</span>
+      <div class="brand-title-wrap">
+        <span class="brand-title">G3VM Studio // Workstation v0.3.0</span>
+        <span class="brand-sub">DarkSnail-Geo3D Beltrami-Triad Subsurface Velocity &amp; TTI Elastic Engine</span>
       </div>
     </div>
     <div class="header-badges">
@@ -440,24 +739,32 @@
   </header>
 
   <div class="preset-bar" id="presetBar">
-    <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-right: 4px;">Presets:</span>
-    <button class="preset-btn active" data-preset="subsalt_graben">1. Subsalt Graben &amp; Salt Diapir</button>
-    <button class="preset-btn" data-preset="thrust_anticline">2. Overthrust Duplex &amp; Reef</button>
-    <button class="preset-btn" data-preset="unconformity_trap">3. 4D CCS / H2 Fault Trap</button>
-    <button class="preset-btn" data-preset="egs_tbm_hazard">4. EGS Granite &amp; TBM Karst</button>
-    <button class="preset-btn" data-preset="utah_forge_egs_doublet" style="border-color: rgba(0, 245, 212, 0.5);">Real Field: Utah FORGE EGS Doublet (16A/16B)</button>
+    <div class="preset-deck-left">
+      <span class="preset-tag">Basin Deck</span>
+      <button class="preset-btn active" data-preset="subsalt_graben">01 // Subsalt Graben &amp; Diapir</button>
+      <button class="preset-btn" data-preset="thrust_anticline">02 // Overthrust Duplex &amp; Reef</button>
+      <button class="preset-btn" data-preset="unconformity_trap">03 // 4D CCS / H2 Fault Trap</button>
+      <button class="preset-btn" data-preset="egs_tbm_hazard">04 // EGS Granite &amp; TBM Karst</button>
+      <button class="preset-btn" data-preset="utah_forge_egs_doublet">05 // Real Field: Utah FORGE Doublet (16A/16B)</button>
+    </div>
+    <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); white-space: nowrap;">
+      <span id="hdrActiveFormation">UNIT: --</span>
+    </div>
   </div>
 
   <div class="workspace">
-    <!-- Left Sidebar: Controls -->
+    <!-- Left Sidebar: Geological, Slicing, Display Layer Submenu & Operator Controls -->
     <div class="panel">
       <div class="panel-header">
-        <span>Geological &amp; Triad Controls</span>
+        <span>SYS // Subsurface &amp; Display Stack</span>
         <span id="statusIndicator" style="color: var(--accent-cyan); font-size: 10px;">READY</span>
       </div>
       <div class="panel-body">
         <div class="control-group">
-          <div class="control-title">1. Basin Benchmark Scenario</div>
+          <div class="control-title-row">
+            <span class="control-title">1. Basin Benchmark Scenario</span>
+            <span class="control-code">MOD-01</span>
+          </div>
           <select id="selectScenario">
             <option value="subsalt_graben">Marmousi2 / Gulf Subsalt Graben &amp; Salt Diapir</option>
             <option value="thrust_anticline">SEG/EAGE 3D Overthrust Duplex &amp; Reef</option>
@@ -465,11 +772,14 @@
             <option value="egs_tbm_hazard">EGS Superhot Granite &amp; TBM Karst Look-Ahead</option>
             <option value="utah_forge_egs_doublet">Real Field: Utah FORGE EGS Doublet (16A/16B)</option>
           </select>
-          <div id="scenarioSummary" style="font-size: 11px; color: var(--text-muted); line-height: 1.35;"></div>
+          <div id="scenarioSummary" style="font-size: 10.5px; color: var(--text-muted); line-height: 1.35;"></div>
         </div>
 
         <div class="control-group">
-          <div class="control-title">2. Active 3D Property Cube</div>
+          <div class="control-title-row">
+            <span class="control-title">2. Active 3D Property Cube</span>
+            <span class="control-code">VOL-17</span>
+          </div>
           <select id="selectField">
             <option value="g3vm_vp">DarkSnail G3VM Vp Cube (km/s)</option>
             <option value="g3vm_vp_tti">DarkSnail G3VM TTI Anisotropic Vp(&psi;) (km/s)</option>
@@ -496,24 +806,46 @@
         </div>
 
         <div class="control-group">
-          <div class="control-title">3. 3D Fence &amp; Chair-Cut Planes</div>
+          <div class="control-title-row">
+            <span class="control-title">3. 3D Fence &amp; Chair-Cut Planes</span>
+            <span class="control-code">SLICE-ZYX</span>
+          </div>
           <label>Inline Y (North) <span class="val" id="valSliceY">16</span></label>
           <input type="range" id="sliderY" min="0" max="31" value="16" />
           <label>Crossline X (East) <span class="val" id="valSliceX">16</span></label>
           <input type="range" id="sliderX" min="0" max="31" value="16" />
           <label>Depth Horizon Z <span class="val" id="valSliceZ">16</span></label>
           <input type="range" id="sliderZ" min="0" max="31" value="16" />
+        </div>
 
-          <div class="checkbox-list" style="margin-top: 4px;">
-            <label class="checkbox-item"><input type="checkbox" id="chkChairCut" checked /> <span>3D Chair-Cut Subvolume</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="chkBoreholes" checked /> <span>Vertical &amp; Deviated/Horiz Wells</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="chkCavity" checked /> <span>Jordan Salt/Karst Cavity (&beta;<sub>1</sub>)</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="chkFaults" checked /> <span>Structural Fault Ribbons</span></label>
+        <div class="control-group">
+          <div class="control-title-row">
+            <span class="control-title">4. Display Layer Submenu</span>
+            <div style="display:flex; gap:4px;">
+              <button class="mini-btn" id="btnLayersAll" title="Enable all 3D/2D overlays">All On</button>
+              <button class="mini-btn" id="btnLayersClean" title="Clean volume view without callout badges">Clean</button>
+            </div>
+          </div>
+          <div class="display-submenu-grid">
+            <label class="layer-toggle"><input type="checkbox" id="chkChairCut" checked /> <span>Chair-Cut Block</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chkBoreholes" checked /> <span>Well Trajectories</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chkWellBadges" checked /> <span>Wellhead Badges</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chkSpikeRings" checked /> <span>Beltrami Spikes</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chkFaults" checked /> <span>Fault Ribbons</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chkEllipsoids" checked /> <span>TTI Frac Stages</span></label>
+            <label class="layer-toggle full-span"><input type="checkbox" id="chkCavity" checked /> <span id="lblCavity">Enclosed &beta;<sub>1</sub> Anomaly Body</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chkCrosshairs" checked /> <span>3D Slice Axes</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chk2DWellProj" checked /> <span>2D Well Tracks</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chkHudOverlay" checked /> <span>Top HUD Ribbon</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chkColorbar" checked /> <span>3D Colorbar Scale</span></label>
           </div>
         </div>
 
         <div class="control-group">
-          <div class="control-title">4. DarkSnail Operator Parameters</div>
+          <div class="control-title-row">
+            <span class="control-title">5. DarkSnail Operator Parameters</span>
+            <span class="control-code">SO(C)</span>
+          </div>
           <label><span>so(C) Triad Gain (&beta;<sub>triad</sub>)</span> <span class="val" id="valTriadGain">1.00</span></label>
           <input type="range" id="sliderTriadGain" min="0" max="2.0" step="0.05" value="1.0" />
           <label><span>Softmax Temp (&tau;<sub>v</sub>)</span> <span class="val" id="valTauV">0.20</span></label>
@@ -527,17 +859,23 @@
         </div>
 
         <div class="control-group">
-          <div class="control-title">5. Client-Side .LAS / .DEV / .SEGY Dropzone</div>
+          <div class="control-title-row">
+            <span class="control-title">6. Client-Side .LAS / .DEV / .SEGY I/O</span>
+            <span class="control-code">ZERO-UPLOAD</span>
+          </div>
           <div class="dropzone-box" id="fileDropzone">
             <input type="file" id="fileInputDrop" accept=".las,.dev,.segy,.sgy" style="display:none;" multiple />
             <div><strong>Drag &amp; Drop .LAS / .DEV / .SEGY</strong></div>
-            <div style="font-size: 9.5px; margin-top: 2px;">Zero-upload in-browser ArrayBuffer &amp; 48&sup3; Beltrami Curl Inspector</div>
+            <div style="font-size: 9.5px; margin-top: 2px;">In-browser ArrayBuffer &amp; Beltrami Exterior-Curl Inspector</div>
             <div id="dropzoneStatus" style="font-size: 9.5px; color: var(--accent-cyan); margin-top: 3px;"></div>
           </div>
         </div>
 
         <div class="control-group">
-          <div class="control-title">6. Canonical Lithostratigraphic Column</div>
+          <div class="control-title-row">
+            <span class="control-title">7. Scenario Lithostratigraphic Column</span>
+            <span class="control-code" id="lithoColumnTag">8 UNITS</span>
+          </div>
           <div class="litho-legend" id="lithoLegend"></div>
         </div>
       </div>
@@ -548,22 +886,46 @@
       <div class="panel">
         <div class="panel-header">
           <span>3D Subsurface Velocity &amp; Structural Chair-Cut Block</span>
-          <span id="hoverReadout" style="font-family: Consolas, monospace; font-size: 11px; color: var(--accent-cyan);">
-            Drag to orbit | Scroll to zoom | Click 2D slices to probe
+          <span id="hoverReadout" style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-cyan);">
+            ORBIT: DRAG | ZOOM: WHEEL | PROBE: CLICK 2D SLICES
           </span>
         </div>
         <div class="viewport-3d-wrap">
-          <canvas id="canvas3d"></canvas>
-          <div class="viewport-overlay">
-            <div><strong style="color: var(--accent-cyan);" id="overlayTitle">Marmousi2 Subsalt Graben</strong></div>
-            <div id="overlayMode">Mode: DarkSnail G3VM Vp (km/s)</div>
-            <div id="overlayCursor">Cursor: (Z=16, Y=16, X=16) | Vp: -- km/s</div>
+          <div class="viewport-overlay" id="viewportHudBar">
+            <div class="hud-left">
+              <span class="hud-title" id="overlayTitle">Marmousi2 Subsalt Graben</span>
+              <span class="hud-mode" id="overlayMode">Mode: DarkSnail G3VM Vp (km/s)</span>
+            </div>
+            <div class="hud-cursor" id="overlayCursor">Cursor (Z=16, Y=16, X=16) | Vp: -- km/s</div>
           </div>
-          <div class="viewport-toolbar">
-            <button id="btnCamIso">Isometric View</button>
-            <button id="btnCamDip">Inline Dip View</button>
-            <button id="btnCamStrike">Crossline View</button>
-            <button id="btnCamMap">Map View</button>
+
+          <div class="canvas3d-stage">
+            <canvas id="canvas3d"></canvas>
+
+            <!-- Expandable Quick Display Submenu Drawer inside 3D Viewport -->
+            <div class="viewport-QuickSubmenu" id="viewportSubmenuDrawer">
+              <div class="control-title-row">
+                <span class="control-title">Viewport Overlay &amp; Callout Submenu</span>
+                <button class="mini-btn" id="btnCloseSubmenuDrawer">&times;</button>
+              </div>
+              <div style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);" id="drawerVoxelSummary">
+                Active Voxel Telemetry Ready
+              </div>
+              <div class="btn-row">
+                <button class="mini-btn" id="btnDrawerToggleBadges">Toggle Well Badges</button>
+                <button class="mini-btn" id="btnDrawerToggleSpikes">Toggle Spike Rings</button>
+                <button class="mini-btn" id="btnDrawerToggleFaults">Toggle Fault Planes</button>
+                <button class="mini-btn" id="btnDrawerToggleCavity">Toggle &beta;1 Anomaly</button>
+              </div>
+            </div>
+
+            <div class="viewport-toolbar">
+              <button id="btnCamIso">Isometric</button>
+              <button id="btnCamDip">Inline Dip</button>
+              <button id="btnCamStrike">Crossline Strike</button>
+              <button id="btnCamMap">Map Horizon</button>
+              <button id="btnOpenSubmenuDrawer" style="border-color: rgba(0, 242, 212, 0.45); color: var(--accent-cyan);">Display Submenu &#9652;</button>
+            </div>
           </div>
         </div>
       </div>
@@ -572,7 +934,7 @@
         <div class="slice-card">
           <div class="panel-header">
             <span>Inline Dip Section (Z &times; X)</span>
-            <span id="lblInlineY" style="font-family: Consolas, monospace;">Y = 16</span>
+            <span id="lblInlineY" style="font-family: var(--font-mono); color: var(--accent-cyan);">Y = 16</span>
           </div>
           <div class="slice-canvas-wrap">
             <canvas id="canvasInline"></canvas>
@@ -582,7 +944,7 @@
         <div class="slice-card">
           <div class="panel-header">
             <span>Crossline Strike Section (Z &times; Y)</span>
-            <span id="lblCrossX" style="font-family: Consolas, monospace;">X = 16</span>
+            <span id="lblCrossX" style="font-family: var(--font-mono); color: var(--accent-cyan);">X = 16</span>
           </div>
           <div class="slice-canvas-wrap">
             <canvas id="canvasCrossline"></canvas>
@@ -592,7 +954,7 @@
         <div class="slice-card">
           <div class="panel-header">
             <span>Depth Horizon Slice (Y &times; X)</span>
-            <span id="lblDepthZ" style="font-family: Consolas, monospace;">Z = 16</span>
+            <span id="lblDepthZ" style="font-family: var(--font-mono); color: var(--accent-cyan);">Z = 16</span>
           </div>
           <div class="slice-canvas-wrap">
             <canvas id="canvasDepth"></canvas>
@@ -601,23 +963,64 @@
       </div>
     </div>
 
-    <!-- Right Sidebar: Borehole Beltrami Log + Quantitative Scorecard -->
+    <!-- Right Sidebar: Granular Telemetry Inspector Submenu + Borehole Beltrami Log + Scorecard -->
     <div class="panel">
       <div class="panel-header">
-        <span>Borehole Beltrami Shell &amp; Benchmark Scorecard</span>
+        <span>INSP // Granular Telemetry &amp; Beltrami Shell</span>
+        <span id="inspectorCoordTag" style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-cyan);">Z16 Y16 X16</span>
       </div>
       <div class="panel-body">
+        <!-- New Granular Information Display Submenu / Inspector -->
+        <div class="control-group" id="granularTelemetrySubmenu">
+          <div class="control-title-row">
+            <span class="control-title">Granular Voxel &amp; Borehole Telemetry</span>
+            <button class="mini-btn" id="btnExpandAllTelemetry" title="Toggle between single-tab and all-sections expanded view">Expand All</button>
+          </div>
+          <div class="telemetry-tabs" id="telemetryTabBar">
+            <button class="telemetry-tab-btn active" data-tab="tabStrat">1. Strat/Pos</button>
+            <button class="telemetry-tab-btn" data-tab="tabElastic">2. TTI Tensor</button>
+            <button class="telemetry-tab-btn" data-tab="tabOperator">3. DarkSnail</button>
+            <button class="telemetry-tab-btn" data-tab="tabBorehole">4. Well/DLS</button>
+          </div>
+
+          <!-- Tab 1: Coordinates & Stratigraphy -->
+          <div class="telemetry-pane active" id="tabStrat">
+            <div class="kv-grid" id="gridTelemetryStrat"></div>
+          </div>
+
+          <!-- Tab 2: Coupled Elastic & Thomsen TTI Tensor State -->
+          <div class="telemetry-pane" id="tabElastic">
+            <div class="kv-grid" id="gridTelemetryElastic"></div>
+          </div>
+
+          <!-- Tab 3: DarkSnail Operator & 4D Continuity State -->
+          <div class="telemetry-pane" id="tabOperator">
+            <div class="kv-grid" id="gridTelemetryOperator"></div>
+          </div>
+
+          <!-- Tab 4: Selected Borehole Directional & Beltrami Telemetry -->
+          <div class="telemetry-pane" id="tabBorehole">
+            <div class="kv-grid" id="gridTelemetryBorehole"></div>
+          </div>
+        </div>
+
         <div class="control-group">
-          <div class="control-title">Borehole Sonic Log &amp; Exterior Curl Spike Shield</div>
+          <div class="control-title-row">
+            <span class="control-title">Borehole Sonic Log &amp; Exterior Curl Shield</span>
+            <span class="control-code">BELTRAMI-1D</span>
+          </div>
           <select id="selectWell"></select>
           <div class="well-canvas-wrap">
             <canvas id="canvasWell"></canvas>
           </div>
-          <div id="wellStats" style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;"></div>
+          <div id="wellStats" style="font-size: 10.5px; font-family: var(--font-mono); color: var(--text-muted); display: flex; justify-content: space-between;"></div>
         </div>
 
         <div class="control-group">
-          <div class="control-title">Head-to-Head Benchmark: DarkSnail G3VM vs. Naive RBF</div>
+          <div class="control-title-row">
+            <span class="control-title">Benchmark: DarkSnail G3VM vs. Naive RBF</span>
+            <span class="control-code">HEAD-TO-HEAD</span>
+          </div>
           <table class="scorecard">
             <thead>
               <tr>
@@ -631,7 +1034,10 @@
         </div>
 
         <div class="control-group">
-          <div class="control-title">Machine-Checked Invariants (OcclusionTriad.lean)</div>
+          <div class="control-title-row">
+            <span class="control-title">Machine-Checked Invariants (OcclusionTriad.lean)</span>
+            <span class="control-code">LEAN 4</span>
+          </div>
           <table class="scorecard">
             <tbody id="theoremBody"></tbody>
           </table>
@@ -641,6 +1047,34 @@
   </div>
 
   <script>
+    const SCENARIO_CAVITY_LABELS = {
+      subsalt_graben: "Louann Salt Diapir (\u03b2\u2081)",
+      thrust_anticline: "Sub-Thrust Reef / Evaporite (\u03b2\u2081)",
+      unconformity_trap: "H\u2082 Salt Storage Cavern (\u03b2\u2081)",
+      egs_tbm_hazard: "Flooded Karst Cavity (\u03b2\u2081)",
+      utah_forge_egs_doublet: "Stimulated EGS Cloud (\u03b2\u2081)",
+    };
+
+    const FIELD_SCALE_META = {
+      g3vm_vp: { min: 1.7, max: 6.4, unit: "km/s", mode: "turbo", label: "G3VM Vp" },
+      g3vm_vp_tti: { min: 1.7, max: 6.4, unit: "km/s", mode: "turbo", label: "G3VM Vp(TTI)" },
+      g3vm_zp: { min: 3.4, max: 17.8, unit: "g/cm\u00b3\u00b7km/s", mode: "turbo", label: "Impedance Zp" },
+      g3vm_vs: { min: 0.9, max: 3.6, unit: "km/s", mode: "turbo", label: "Shear Vs" },
+      g3vm_rho: { min: 1.95, max: 2.95, unit: "g/cm\u00b3", mode: "turbo", label: "Density \u03c1" },
+      g3vm_vp_vs_ratio: { min: 1.55, max: 2.25, unit: "ratio", mode: "turbo", label: "Vp/Vs" },
+      g3vm_epsilon: { min: 0.0, max: 0.24, unit: "\u03b5", mode: "triad", label: "Thomsen \u03b5" },
+      g3vm_delta: { min: 0.0, max: 0.24, unit: "\u03b4", mode: "triad", label: "Thomsen \u03b4" },
+      g3vm_gamma: { min: 0.0, max: 0.24, unit: "\u03b3", mode: "triad", label: "Thomsen \u03b3" },
+      naive_vp: { min: 1.7, max: 6.4, unit: "km/s", mode: "turbo", label: "Naive RBF Vp" },
+      true_vp: { min: 1.7, max: 6.4, unit: "km/s", mode: "turbo", label: "True Vp" },
+      err_g3vm: { min: 0.0, max: 1.2, unit: "km/s", mode: "error", label: "|Err G3VM|" },
+      err_naive: { min: 0.0, max: 1.2, unit: "km/s", mode: "error", label: "|Err RBF|" },
+      g3vm_litho: { min: 0, max: 7, unit: "ID", mode: "litho", label: "Facies ID" },
+      triad_norm: { min: 0.0, max: 8.0, unit: "norm", mode: "triad", label: "||d_ell||_2" },
+      precision_pi: { min: 0.05, max: 1.4, unit: "\u03a0", mode: "turbo", label: "Precision \u03a0" },
+      timelapse_nope_plume: { min: 0.0, max: 0.35, unit: "km/s", mode: "error", label: "4D H_nope" },
+    };
+
     let STATE = {
       data: null,
       activeField: "g3vm_vp",
@@ -654,19 +1088,19 @@
       isDragging3D: false,
       lastMouseX: 0,
       lastMouseY: 0,
+      expandAllTelemetry: false,
+      activeTelemetryTab: "tabStrat",
     };
 
-    // Turbo-like geophysical colormap for velocity (km/s)
+    // High-contrast geophysical colormap
     function sampleColormap(t, mode) {
       t = Math.max(0.0, Math.min(1.0, t));
       if (mode === "error" || mode === "triad") {
-        // Magma / Inferno style
         const r = Math.min(255, Math.floor(255 * Math.pow(t, 0.55)));
         const g = Math.min(255, Math.floor(255 * Math.pow(t, 1.6)));
         const b = Math.min(255, Math.floor(255 * (0.25 + 0.75 * Math.sin(Math.PI * t))));
         return [r, g, b];
       }
-      // Petrel / Turbo high-contrast seismic velocity ramp
       const r = Math.round(255 * Math.max(0, Math.min(1, 1.5 - Math.abs(4 * t - 3))));
       const g = Math.round(255 * Math.max(0, Math.min(1, 1.5 - Math.abs(4 * t - 2))));
       const b = Math.round(255 * Math.max(0, Math.min(1, 1.5 - Math.abs(4 * t - 1))));
@@ -674,7 +1108,7 @@
     }
 
     function hexToRgb(hex) {
-      const clean = hex.replace("#", "");
+      const clean = (hex || "#3b9eff").replace("#", "");
       const num = parseInt(clean, 16);
       return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
     }
@@ -689,35 +1123,26 @@
         return hexToRgb(cat.color);
       }
       const val = cubes[f][z][y][x];
-      if (f === "err_g3vm" || f === "err_naive") {
-        return sampleColormap(val / 1.2, "error");
-      }
-      if (f === "triad_norm") {
-        return sampleColormap(val / 8.0, "triad");
-      }
-      if (f === "precision_pi") {
-        return sampleColormap((val - 0.05) / 1.35, "turbo");
-      }
-      if (f === "timelapse_nope_plume") {
-        return sampleColormap(val / 0.35, "error");
-      }
-      if (f === "g3vm_vs") {
-        return sampleColormap((val - 0.9) / (3.6 - 0.9), "turbo");
-      }
-      if (f === "g3vm_rho") {
-        return sampleColormap((val - 1.95) / (2.95 - 1.95), "turbo");
-      }
-      if (f === "g3vm_zp") {
-        return sampleColormap((val - 3.4) / (17.8 - 3.4), "turbo");
-      }
-      if (f === "g3vm_vp_vs_ratio") {
-        return sampleColormap((val - 1.55) / (2.25 - 1.55), "turbo");
-      }
-      if (f === "g3vm_epsilon" || f === "g3vm_delta" || f === "g3vm_gamma") {
-        return sampleColormap(val / 0.24, "triad");
-      }
-      // Velocity in [1.7, 6.4] km/s
-      return sampleColormap((val - 1.7) / (6.4 - 1.7), "turbo");
+      const meta = FIELD_SCALE_META[f] || FIELD_SCALE_META.g3vm_vp;
+      return sampleColormap((val - meta.min) / Math.max(1e-6, meta.max - meta.min), meta.mode);
+    }
+
+    // Estimate local structural dip & strike azimuth from central differences of Vp cube at (z,y,x)
+    function computeLocalDipAzimuth(z, y, x) {
+      if (!STATE.data) return { dipDeg: 0.0, aziDeg: 0.0 };
+      const [Z, Y, X] = STATE.data.grid_shape;
+      const v = STATE.data.cubes.g3vm_vp;
+      const z0 = Math.max(0, z - 1), z1 = Math.min(Z - 1, z + 1);
+      const y0 = Math.max(0, y - 1), y1 = Math.min(Y - 1, y + 1);
+      const x0 = Math.max(0, x - 1), x1 = Math.min(X - 1, x + 1);
+      const gz = (v[z1][y][x] - v[z0][y][x]) / Math.max(1, z1 - z0);
+      const gy = (v[z][y1][x] - v[z][y0][x]) / Math.max(1, y1 - y0);
+      const gx = (v[z][y][x1] - v[z][y][x0]) / Math.max(1, x1 - x0);
+      const horiz = Math.sqrt(gx * gx + gy * gy + 1e-12);
+      const vert = Math.abs(gz) + 1e-6;
+      const dipDeg = Math.min(75.0, (Math.atan2(horiz, vert) * 180.0) / Math.PI);
+      const aziDeg = (((Math.atan2(gy, gx) * 180.0) / Math.PI) + 360.0) % 360.0;
+      return { dipDeg, aziDeg };
     }
 
     function resolveOfflineScenario(payload) {
@@ -762,7 +1187,6 @@
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           data = await res.json();
         } catch (_err) {
-          // Static host fallback (e.g., if g3vm/static/index.html is opened on raw.githack.com)
           try {
             const fallbackRes = await fetch("../../results/g3vm_portable_studio.html");
             if (fallbackRes.ok) {
@@ -813,6 +1237,13 @@
       document.getElementById("scenarioSummary").textContent = d.meta.summary;
       document.getElementById("overlayTitle").textContent = d.meta.title;
 
+      // Update scenario-specific enclosed anomaly checkbox label
+      const cavLbl = document.getElementById("lblCavity");
+      if (cavLbl) {
+        cavLbl.textContent =
+          SCENARIO_CAVITY_LABELS[d.scenario_name] || "Enclosed \u03b2\u2081 Anomaly Body";
+      }
+
       // Header pills
       const m = d.metrics;
       document.getElementById("badgeOrtho").textContent =
@@ -824,14 +1255,17 @@
       document.getElementById("badgeRmse").textContent =
         `Vp RMSE: ${m.g3vm_vp_rmse_kms.toFixed(3)} km/s (-${m.rmse_reduction_pct.toFixed(1)}% vs RBF)`;
 
-      // Lithology legend
+      // Scenario-specific Lithostratigraphic column legend
       const leg = document.getElementById("lithoLegend");
+      const activeLid = d.cubes.g3vm_litho[STATE.sliceZ]?.[STATE.sliceY]?.[STATE.sliceX] ?? -1;
       leg.innerHTML = d.lithology_catalog
         .map(
           (item) => `
-        <div class="litho-item">
-          <span><span class="swatch" style="background:${item.color}"></span>${item.id}: ${item.name}</span>
-          <span style="font-family:Consolas,monospace;color:var(--accent-cyan);">${item.vp_kms.toFixed(2)} km/s</span>
+        <div class="litho-item ${item.id === activeLid ? 'active-unit' : ''}" data-lid="${item.id}">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <span class="swatch" style="background:${item.color}"></span>${item.id}: ${item.name}
+          </span>
+          <span style="font-family:var(--font-mono);color:var(--accent-cyan);margin-left:6px;flex-shrink:0;">${item.vp_kms.toFixed(2)} km/s</span>
         </div>`
         )
         .join("");
@@ -889,6 +1323,201 @@
         .join("");
     }
 
+    // Update the 4-section Granular Voxel & Borehole Telemetry Submenu
+    function updateGranularTelemetryInspector() {
+      const d = STATE.data;
+      if (!d) return;
+      const [Z, Y, X] = d.grid_shape;
+      const sz = STATE.sliceZ;
+      const sy = STATE.sliceY;
+      const sx = STATE.sliceX;
+      const c = d.cubes;
+
+      document.getElementById("inspectorCoordTag").textContent = `Z=${sz} Y=${sy} X=${sx}`;
+
+      const depthM = (sz / Math.max(1, Z - 1)) * 3000.0;
+      const depthFt = depthM * 3.28084;
+      const northM = (sy / Math.max(1, Y - 1)) * 4800.0;
+      const eastM = (sx / Math.max(1, X - 1)) * 4800.0;
+
+      const lid = c.g3vm_litho[sz][sy][sx];
+      const trueLid = c.true_litho ? c.true_litho[sz][sy][sx] : lid;
+      const catUnit = d.lithology_catalog[lid] || d.lithology_catalog[0];
+      const trueUnit = d.lithology_catalog[trueLid] || catUnit;
+
+      // Highlight active lithology row in left sidebar
+      document.querySelectorAll("#lithoLegend .litho-item").forEach((el) => {
+        el.classList.toggle("active-unit", parseInt(el.dataset.lid, 10) === lid);
+      });
+      const hdrUnit = document.getElementById("hdrActiveFormation");
+      if (hdrUnit) {
+        hdrUnit.innerHTML = `ACTIVE FORMATION: <strong style="color:var(--accent-cyan)">[${lid}] ${catUnit.name}</strong>`;
+      }
+
+      const g3Vp = c.g3vm_vp[sz][sy][sx];
+      const rbfVp = c.naive_vp[sz][sy][sx];
+      const trueVp = c.true_vp[sz][sy][sx];
+      const errG3 = g3Vp - trueVp;
+      const errRbf = rbfVp - trueVp;
+
+      const vpTti = c.g3vm_vp_tti ? c.g3vm_vp_tti[sz][sy][sx] : g3Vp;
+      const vs0 = c.g3vm_vs ? c.g3vm_vs[sz][sy][sx] : g3Vp / 1.75;
+      const rho = c.g3vm_rho ? c.g3vm_rho[sz][sy][sx] : 2.4;
+      const zp = c.g3vm_zp ? c.g3vm_zp[sz][sy][sx] : g3Vp * rho;
+      const vpVs = c.g3vm_vp_vs_ratio ? c.g3vm_vp_vs_ratio[sz][sy][sx] : g3Vp / Math.max(0.8, vs0);
+      const r2 = vpVs * vpVs;
+      const poissonNu = Math.max(0.05, Math.min(0.45, (r2 - 2.0) / Math.max(1e-6, 2.0 * (r2 - 1.0))));
+      const eps = c.g3vm_epsilon ? c.g3vm_epsilon[sz][sy][sx] : 0.0;
+      const dlt = c.g3vm_delta ? c.g3vm_delta[sz][sy][sx] : 0.0;
+      const gam = c.g3vm_gamma ? c.g3vm_gamma[sz][sy][sx] : 0.0;
+      const { dipDeg, aziDeg } = computeLocalDipAzimuth(sz, sy, sx);
+
+      const triadNorm = c.triad_norm ? c.triad_norm[sz][sy][sx] : 0.0;
+      const precPi = c.precision_pi ? c.precision_pi[sz][sy][sx] : 1.0;
+      const adelicGam = c.adelic_gamma ? c.adelic_gamma[sz][sy][sx] : 1.0;
+      const nopePlume = c.timelapse_nope_plume ? c.timelapse_nope_plume[sz][sy][sx] : 0.0;
+      const jordanFlag = (c.jordan_cavity && c.jordan_cavity[sz][sy][sx] > 0.5) ? "ENCLOSED (\u03b2\u2081=1)" : "EXTERIOR (\u03b2\u2081=0)";
+
+      // 1. Stratigraphy & Coordinates Grid
+      document.getElementById("gridTelemetryStrat").innerHTML = `
+        <div class="kv-cell hi-cyan full">
+          <span class="kv-k">Active Stratigraphic Formation (G3VM)</span>
+          <span class="kv-v"><span class="swatch" style="background:${catUnit.color}"></span>[${lid}] ${catUnit.name}</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Voxel Coordinate</span>
+          <span class="kv-v">(Z=${sz}, Y=${sy}, X=${sx})</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Physical Depth TVD</span>
+          <span class="kv-v">${depthM.toFixed(0)} m (${depthFt.toFixed(0)} ft)</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Inline North / East</span>
+          <span class="kv-v">Y:${northM.toFixed(0)}m X:${eastM.toFixed(0)}m</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Ground Truth Facies</span>
+          <span class="kv-v">[${trueLid}] ${trueUnit.name.slice(0, 22)}</span>
+        </div>
+        <div class="kv-cell hi-cyan">
+          <span class="kv-k">G3VM Vp / Signed &Delta;Vp</span>
+          <span class="kv-v">${g3Vp.toFixed(3)} km/s (${errG3 >= 0 ? '+' : ''}${errG3.toFixed(3)})</span>
+        </div>
+        <div class="kv-cell hi-amber">
+          <span class="kv-k">Naive RBF Vp / &Delta;Vp</span>
+          <span class="kv-v">${rbfVp.toFixed(3)} km/s (${errRbf >= 0 ? '+' : ''}${errRbf.toFixed(3)})</span>
+        </div>
+      `;
+
+      // 2. Elastic & Thomsen TTI Tensor Grid
+      document.getElementById("gridTelemetryElastic").innerHTML = `
+        <div class="kv-cell hi-cyan">
+          <span class="kv-k">Isotropic Vp0 / TTI Vp(&psi;)</span>
+          <span class="kv-v">${g3Vp.toFixed(3)} / ${vpTti.toFixed(3)} km/s</span>
+        </div>
+        <div class="kv-cell hi-blue">
+          <span class="kv-k">Shear Vs0 &amp; Density &rho;</span>
+          <span class="kv-v">${vs0.toFixed(3)} km/s | ${rho.toFixed(2)} g/cm&sup3;</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Acoustic Impedance Zp</span>
+          <span class="kv-v">${zp.toFixed(2)} g/cm&sup3;&middot;km/s</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Vp/Vs &amp; Poisson &nu;</span>
+          <span class="kv-v">${vpVs.toFixed(3)} | &nu; = ${poissonNu.toFixed(3)}</span>
+        </div>
+        <div class="kv-cell hi-amber">
+          <span class="kv-k">Thomsen (&epsilon;, &delta;, &gamma;)</span>
+          <span class="kv-v">${eps.toFixed(3)}, ${dlt.toFixed(3)}, ${gam.toFixed(3)}</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Local Bedding Dip / Azi</span>
+          <span class="kv-v">${dipDeg.toFixed(1)}&deg; / ${aziDeg.toFixed(0)}&deg;</span>
+        </div>
+      `;
+
+      // 3. DarkSnail Operator & 4D State Grid
+      document.getElementById("gridTelemetryOperator").innerHTML = `
+        <div class="kv-cell hi-cyan">
+          <span class="kv-k">so(C) Triad Shift ||&Delta;&ell;||_2</span>
+          <span class="kv-v">${triadNorm.toFixed(4)}</span>
+        </div>
+        <div class="kv-cell hi-blue">
+          <span class="kv-k">Sensor Precision &Pi;(z,y,x)</span>
+          <span class="kv-v">${precPi.toFixed(3)} ${precPi < 0.35 ? '(SHADOW)' : '(ILLUM)'}</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Jordan 6-Way Cavity (&beta;1)</span>
+          <span class="kv-v">${jordanFlag}</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Adelic Heat Kernel &gamma;</span>
+          <span class="kv-v">${adelicGam.toFixed(3)}</span>
+        </div>
+        <div class="kv-cell hi-amber">
+          <span class="kv-k">4D H_nope Plume |&Delta;Vp|</span>
+          <span class="kv-v">${nopePlume.toFixed(3)} km/s</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Live Ortho &lt;v, d_ell&gt;</span>
+          <span class="kv-v">${d.metrics.max_orthogonality_residual.toExponential(2)}</span>
+        </div>
+      `;
+
+      // 4. Selected Borehole Directional & Beltrami Telemetry
+      const w = d.wells[STATE.selectedWell] || d.wells[0];
+      if (w) {
+        const hasTraj = w.traj_z && w.traj_z.length > 1;
+        let maxInc = w.max_inc_deg !== undefined ? w.max_inc_deg : (w.well_type === "vertical" ? 0.0 : 65.0);
+        let azi = w.azi_deg !== undefined ? w.azi_deg : (w.well_type === "vertical" ? 0.0 : 105.0);
+        let maxDls = w.max_dls_deg_30m !== undefined ? w.max_dls_deg_30m : (w.well_type === "vertical" ? 0.0 : 3.25);
+        let mdM = w.total_md_m !== undefined ? w.total_md_m : 3000.0;
+        let tvdM = w.total_tvd_m !== undefined ? w.total_tvd_m : 3000.0;
+        const tdZ = hasTraj ? w.traj_z[w.traj_z.length - 1].toFixed(1) : (Z - 1);
+        const tdY = hasTraj ? w.traj_y[w.traj_y.length - 1].toFixed(1) : w.y;
+        const tdX = hasTraj ? w.traj_x[w.traj_x.length - 1].toFixed(1) : w.x;
+
+        document.getElementById("gridTelemetryBorehole").innerHTML = `
+          <div class="kv-cell hi-cyan full">
+            <span class="kv-k">Selected Borehole &amp; Trajectory Class</span>
+            <span class="kv-v">${w.name} [${w.well_type || 'vertical'}]</span>
+          </div>
+          <div class="kv-cell">
+            <span class="kv-k">Surface Pad / TD Voxel</span>
+            <span class="kv-v">Pad(${w.y},${w.x}) &rarr; TD(${tdZ},${tdY},${tdX})</span>
+          </div>
+          <div class="kv-cell hi-blue">
+            <span class="kv-k">Max Inclination / Azimuth</span>
+            <span class="kv-v">${maxInc.toFixed(1)}&deg; / ${azi.toFixed(1)}&deg;</span>
+          </div>
+          <div class="kv-cell">
+            <span class="kv-k">Total MD / TVD</span>
+            <span class="kv-v">${mdM.toFixed(0)} m / ${tvdM.toFixed(0)} m</span>
+          </div>
+          <div class="kv-cell hi-amber">
+            <span class="kv-k">Max Dogleg Severity</span>
+            <span class="kv-v">${maxDls.toFixed(2)}&deg; / 30m</span>
+          </div>
+          <div class="kv-cell">
+            <span class="kv-k">Pinned Stringer Z Bins</span>
+            <span class="kv-v">Z = [${(w.stringer_depths || []).join(", ")}]</span>
+          </div>
+          <div class="kv-cell hi-cyan">
+            <span class="kv-k">Beltrami vs. Naive Spike</span>
+            <span class="kv-v">${(w.beltrami_spike_recovery * 100).toFixed(1)}% vs ${(w.naive_spike_recovery * 100).toFixed(1)}%</span>
+          </div>
+        `;
+      }
+
+      const drawerSummary = document.getElementById("drawerVoxelSummary");
+      if (drawerSummary) {
+        drawerSummary.textContent =
+          `Z=${sz} (${depthM.toFixed(0)}m) | ${catUnit.name} | G3VM=${g3Vp.toFixed(2)} vs RBF=${rbfVp.toFixed(2)} km/s`;
+      }
+    }
+
     // Render 2D Slices
     function render2DSlices() {
       if (!STATE.data) return;
@@ -916,65 +1545,52 @@
       document.getElementById("overlayMode").textContent =
         "Mode: " + fieldSel.options[fieldSel.selectedIndex].text;
 
-      // 1. Inline Dip Slice (Z x X at Y = sy)
-      drawSliceCanvas(
-        "canvasInline",
-        X,
-        Z,
-        (c, r) => getVoxelColor(r, sy, c),
-        sx,
-        sz,
-        STATE.data.wells.map((w, idx) => ({
-          c: w.x,
-          rList: w.stringer_depths,
-          name: w.name,
-          isDev: w.well_type && w.well_type !== "vertical",
-          isSelected: idx === STATE.selectedWell,
-          curveCols: w.traj_x || [],
-          curveRows: w.traj_z || [],
-        }))
-      );
+      const showHud = document.getElementById("chkHudOverlay").checked;
+      document.getElementById("viewportHudBar").style.display = showHud ? "flex" : "none";
 
-      // 2. Crossline Strike Slice (Z x Y at X = sx)
-      drawSliceCanvas(
-        "canvasCrossline",
-        Y,
-        Z,
-        (c, r) => getVoxelColor(r, c, sx),
-        sy,
-        sz,
-        STATE.data.wells
-          .map((w, idx) => ({
-            c: w.y,
+      const show2DWellProj = document.getElementById("chk2DWellProj").checked;
+      const inlineWells = show2DWellProj
+        ? STATE.data.wells.map((w, idx) => ({
+            c: w.x,
             rList: w.stringer_depths,
             name: w.name,
             isDev: w.well_type && w.well_type !== "vertical",
             isSelected: idx === STATE.selectedWell,
-            curveCols: w.traj_y || [],
+            curveCols: w.traj_x || [],
             curveRows: w.traj_z || [],
           }))
-          .filter((m) => m.isDev || m.isSelected)
-      );
+        : [];
 
-      // 3. Depth Horizon Slice (Y x X at Z = sz)
-      drawSliceCanvas(
-        "canvasDepth",
-        X,
-        Y,
-        (c, r) => getVoxelColor(sz, r, c),
-        sx,
-        sy,
-        STATE.data.wells.map((w, idx) => ({
-          c: w.x,
-          r: w.y,
-          name: w.name,
-          isMap: true,
-          isDev: w.well_type && w.well_type !== "vertical",
-          isSelected: idx === STATE.selectedWell,
-          curveCols: w.traj_x || [],
-          curveRows: w.traj_y || [],
-        }))
-      );
+      const crossWells = show2DWellProj
+        ? STATE.data.wells
+            .map((w, idx) => ({
+              c: w.y,
+              rList: w.stringer_depths,
+              name: w.name,
+              isDev: w.well_type && w.well_type !== "vertical",
+              isSelected: idx === STATE.selectedWell,
+              curveCols: w.traj_y || [],
+              curveRows: w.traj_z || [],
+            }))
+            .filter((m) => m.isDev || m.isSelected)
+        : [];
+
+      const mapWells = show2DWellProj
+        ? STATE.data.wells.map((w, idx) => ({
+            c: w.x,
+            r: w.y,
+            name: w.name,
+            isMap: true,
+            isDev: w.well_type && w.well_type !== "vertical",
+            isSelected: idx === STATE.selectedWell,
+            curveCols: w.traj_x || [],
+            curveRows: w.traj_y || [],
+          }))
+        : [];
+
+      drawSliceCanvas("canvasInline", X, Z, (c, r) => getVoxelColor(r, sy, c), sx, sz, inlineWells);
+      drawSliceCanvas("canvasCrossline", Y, Z, (c, r) => getVoxelColor(r, c, sx), sy, sz, crossWells);
+      drawSliceCanvas("canvasDepth", X, Y, (c, r) => getVoxelColor(sz, r, c), sx, sy, mapWells);
     }
 
     function drawSliceCanvas(canvasId, cols, rows, colorFn, crossCol, crossRow, markers) {
@@ -1011,8 +1627,8 @@
       for (const m of markers) {
         if (m.isMap) {
           if (m.curveCols && m.curveCols.length > 1) {
-            ctx.strokeStyle = m.isSelected ? "#00f5d4" : "#ff9f1c";
-            ctx.lineWidth = m.isSelected ? 2.6 : 2.0;
+            ctx.strokeStyle = m.isSelected ? "#00f2d4" : "#ff9f1c";
+            ctx.lineWidth = m.isSelected ? 2.5 : 1.9;
             ctx.beginPath();
             for (let s = 0; s < m.curveCols.length; s++) {
               const cxPt = (m.curveCols[s] + 0.5) * scaleX;
@@ -1025,16 +1641,15 @@
           const px = (m.c + 0.5) * scaleX;
           const py = (m.r + 0.5) * scaleY;
           ctx.beginPath();
-          ctx.arc(px, py, m.isDev ? 5.2 : 4.2, 0, Math.PI * 2);
-          ctx.fillStyle = m.isSelected ? "#00f5d4" : (m.isDev ? "#ff9f1c" : "#e6edf3");
+          ctx.arc(px, py, m.isDev ? 5.0 : 4.0, 0, Math.PI * 2);
+          ctx.fillStyle = m.isSelected ? "#00f2d4" : (m.isDev ? "#ff9f1c" : "#e6edf3");
           ctx.fill();
           ctx.strokeStyle = "#000";
           ctx.lineWidth = 1.2;
           ctx.stroke();
         } else if (m.curveCols && m.curveCols.length > 1) {
-          // Curved Deviated / Horizontal Wellbore Tube in 2D Section
           ctx.strokeStyle = "rgba(0,0,0,0.75)";
-          ctx.lineWidth = m.isSelected ? 4.4 : 3.6;
+          ctx.lineWidth = m.isSelected ? 4.2 : 3.4;
           ctx.beginPath();
           for (let s = 0; s < m.curveCols.length; s++) {
             const cxPt = (m.curveCols[s] + 0.5) * scaleX;
@@ -1044,8 +1659,8 @@
           }
           ctx.stroke();
 
-          ctx.strokeStyle = m.isSelected ? "#00f5d4" : "#ff9f1c";
-          ctx.lineWidth = m.isSelected ? 2.4 : 2.0;
+          ctx.strokeStyle = m.isSelected ? "#00f2d4" : "#ff9f1c";
+          ctx.lineWidth = m.isSelected ? 2.3 : 1.9;
           ctx.stroke();
 
           for (const rz of m.rList) {
@@ -1053,8 +1668,8 @@
             const px = (m.curveCols[cIdx] + 0.5) * scaleX;
             const py = (m.curveRows[cIdx] + 0.5) * scaleY;
             ctx.beginPath();
-            ctx.arc(px, py, 3.8, 0, Math.PI * 2);
-            ctx.fillStyle = "#00f5d4";
+            ctx.arc(px, py, 3.6, 0, Math.PI * 2);
+            ctx.fillStyle = "#00f2d4";
             ctx.fill();
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 1.0;
@@ -1062,8 +1677,8 @@
           }
         } else {
           const px = (m.c + 0.5) * scaleX;
-          ctx.strokeStyle = m.isSelected ? "#00f5d4" : "rgba(255,255,255,0.55)";
-          ctx.lineWidth = m.isSelected ? 2.0 : 1.2;
+          ctx.strokeStyle = m.isSelected ? "#00f2d4" : "rgba(255,255,255,0.52)";
+          ctx.lineWidth = m.isSelected ? 1.9 : 1.1;
           ctx.setLineDash([3, 3]);
           ctx.beginPath();
           ctx.moveTo(px, 0);
@@ -1073,8 +1688,8 @@
           for (const rz of m.rList) {
             const py = (rz + 0.5) * scaleY;
             ctx.beginPath();
-            ctx.arc(px, py, 3.5, 0, Math.PI * 2);
-            ctx.fillStyle = "#ffd43b";
+            ctx.arc(px, py, 3.3, 0, Math.PI * 2);
+            ctx.fillStyle = "#ffbe0b";
             ctx.fill();
           }
         }
@@ -1083,8 +1698,8 @@
       // Crosshairs
       const cx = (crossCol + 0.5) * scaleX;
       const cy = (crossRow + 0.5) * scaleY;
-      ctx.strokeStyle = "rgba(0, 245, 212, 0.85)";
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = "rgba(0, 242, 212, 0.85)";
+      ctx.lineWidth = 1.1;
       ctx.beginPath();
       ctx.moveTo(cx, 0);
       ctx.lineTo(cx, canvas.height);
@@ -1093,13 +1708,13 @@
       ctx.stroke();
     }
 
-    // Render 3D Chair-Cut & Fence Volume
+    // Render 3D Chair-Cut & Fence Volume with Non-Overlapping Callout Badges & Colorbar
     function render3DViewport() {
       if (!STATE.data) return;
       const canvas = document.getElementById("canvas3d");
       const rect = canvas.parentElement.getBoundingClientRect();
       canvas.width = Math.max(300, Math.floor(rect.width));
-      canvas.height = Math.max(220, Math.floor(rect.height));
+      canvas.height = Math.max(200, Math.floor(rect.height));
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1109,12 +1724,18 @@
       const sx = STATE.sliceX;
       const chairCut = document.getElementById("chkChairCut").checked;
       const showBoreholes = document.getElementById("chkBoreholes").checked;
+      const showWellBadges = document.getElementById("chkWellBadges").checked;
+      const showSpikeRings = document.getElementById("chkSpikeRings").checked;
       const showCavity = document.getElementById("chkCavity").checked;
       const showFaults = document.getElementById("chkFaults").checked;
+      const showEllipsoids = document.getElementById("chkEllipsoids").checked;
+      const showCrosshairs = document.getElementById("chkCrosshairs").checked;
+      const showColorbar = document.getElementById("chkColorbar").checked;
 
-      const cx = canvas.width * 0.5;
-      const cy = canvas.height * 0.52;
-      const scale = Math.min(canvas.width, canvas.height) * 0.0175 * STATE.camZoom;
+      // Center 3D block with generous top headroom so wellhead badges never clip
+      const cx = canvas.width * (showColorbar ? 0.46 : 0.50);
+      const cy = canvas.height * 0.55;
+      const scale = Math.min(canvas.width, canvas.height) * 0.0168 * STATE.camZoom;
 
       const cosY = Math.cos(STATE.camYaw);
       const sinY = Math.sin(STATE.camYaw);
@@ -1122,7 +1743,6 @@
       const sinP = Math.sin(STATE.camPitch);
 
       function project(z, y, x) {
-        // Center coordinates around [-N/2, N/2], with Z pointing downward
         const dx = x - X * 0.5;
         const dy = y - Y * 0.5;
         const dz = z - Z * 0.5;
@@ -1148,7 +1768,6 @@
         });
       }
 
-      // Sample step=1 for crisp 32^3 chair-cut & fence faces
       // 1. Horizontal Slice Z = sz
       for (let y = 0; y < Y; y++) {
         for (let x = 0; x < X; x++) {
@@ -1197,7 +1816,7 @@
         }
       }
 
-      // 4. Enclosed Jordan Salt / Karst Cavity Voxels (beta_1)
+      // 4. Enclosed Jordan Anomaly Body Voxels (beta_1)
       if (showCavity) {
         const cav = STATE.data.cubes.jordan_cavity;
         for (let z = 1; z < Z - 1; z += 2) {
@@ -1207,8 +1826,8 @@
                 const p = project(z, y, x);
                 quads.push({
                   circle: p,
-                  radius: 3.0 * STATE.camZoom,
-                  fill: "rgba(0, 245, 212, 0.55)",
+                  radius: 2.9 * STATE.camZoom,
+                  fill: "rgba(0, 242, 212, 0.52)",
                   depth: p[2],
                 });
               }
@@ -1217,7 +1836,7 @@
         }
       }
 
-      // 5. Structural Fault Ribbon Planes & 4,700 ft Opal Mound Basement Unconformity
+      // 5. Structural Fault Ribbon Planes & Unconformity Surfaces
       if (showFaults && STATE.data.fault_planes_meta) {
         for (const fp of STATE.data.fault_planes_meta) {
           const rgb = hexToRgb(fp.color || "#ff6b6b");
@@ -1233,7 +1852,7 @@
                 project(Z, y, xBot),
                 rgb,
                 1.0,
-                0.28
+                0.26
               );
             }
           } else if (fp.z_level !== undefined) {
@@ -1249,7 +1868,7 @@
                   project(zBase + 0.08 * Z * ((xn - X * 0.5) / X), y, xn),
                   rgb,
                   1.0,
-                  0.22
+                  0.20
                 );
               }
             }
@@ -1258,7 +1877,7 @@
       }
 
       // 5b. Stimulated TTI EGS Fracture Ellipsoids (Stage 1-3 Corridors in Utah FORGE)
-      if (showFaults && STATE.data.scenario_name === "utah_forge_egs_doublet") {
+      if (showEllipsoids && STATE.data.scenario_name === "utah_forge_egs_doublet") {
         const stages = [
           { xFrac: 0.52, zFrac: 0.64, label: "Stage 3 (10,130 ft)" },
           { xFrac: 0.63, zFrac: 0.72, label: "Stage 2 (10,570 ft)" },
@@ -1268,11 +1887,11 @@
           const pCenter = project(stg.zFrac * Z, 0.50 * Y, stg.xFrac * X);
           quads.push({
             ellipse: pCenter,
-            rx: 13.0 * STATE.camZoom,
-            ry: 24.0 * STATE.camZoom,
+            rx: 12.5 * STATE.camZoom,
+            ry: 23.0 * STATE.camZoom,
             rot: -0.35,
-            fill: "rgba(0, 245, 212, 0.22)",
-            stroke: "rgba(0, 245, 212, 0.72)",
+            fill: "rgba(0, 242, 212, 0.20)",
+            stroke: "rgba(0, 242, 212, 0.72)",
             depth: pCenter[2],
           });
         }
@@ -1307,26 +1926,43 @@
         }
       }
 
-      // Bounding Wireframe Box
-      const corners = [
-        [0, 0, 0], [0, 0, X], [0, Y, X], [0, Y, 0],
-        [Z, 0, 0], [Z, 0, X], [Z, Y, X], [Z, Y, 0],
-      ].map(([z, y, x]) => project(z, y, x));
-      const edges = [
-        [0, 1], [1, 2], [2, 3], [3, 0],
-        [4, 5], [5, 6], [6, 7], [7, 4],
-        [0, 4], [1, 5], [2, 6], [3, 7],
-      ];
-      ctx.strokeStyle = "rgba(139, 155, 180, 0.35)";
-      ctx.lineWidth = 1.0;
-      ctx.beginPath();
-      for (const [i, j] of edges) {
-        ctx.moveTo(corners[i][0], corners[i][1]);
-        ctx.lineTo(corners[j][0], corners[j][1]);
-      }
-      ctx.stroke();
+      // Bounding Wireframe Box & Axis Orientation Labels
+      if (showCrosshairs) {
+        const corners = [
+          [0, 0, 0], [0, 0, X], [0, Y, X], [0, Y, 0],
+          [Z, 0, 0], [Z, 0, X], [Z, Y, X], [Z, Y, 0],
+        ].map(([z, y, x]) => project(z, y, x));
+        const edges = [
+          [0, 1], [1, 2], [2, 3], [3, 0],
+          [4, 5], [5, 6], [6, 7], [7, 4],
+          [0, 4], [1, 5], [2, 6], [3, 7],
+        ];
+        ctx.strokeStyle = "rgba(132, 150, 176, 0.35)";
+        ctx.lineWidth = 1.0;
+        ctx.beginPath();
+        for (const [i, j] of edges) {
+          ctx.moveTo(corners[i][0], corners[i][1]);
+          ctx.lineTo(corners[j][0], corners[j][1]);
+        }
+        ctx.stroke();
 
-      // 6. Vertical & Deviated/Horizontal Boreholes + Beltrami Stringer Rings
+        // Active 3D cursor intersection point reticle
+        const pCur = project(sz, sy, sx);
+        ctx.strokeStyle = "rgba(0, 242, 212, 0.9)";
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.arc(pCur[0], pCur[1], 4.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Subtle axis compass tags at box corners
+        ctx.font = "600 9.5px 'JetBrains Mono', Consolas, monospace";
+        ctx.fillStyle = "rgba(132, 150, 176, 0.78)";
+        ctx.fillText("X:EAST (4.8km)", corners[1][0] + 4, corners[1][1]);
+        ctx.fillText("Y:NORTH", corners[3][0] - 42, corners[3][1] - 4);
+        ctx.fillText("Z:3.0km", corners[4][0] - 42, corners[4][1] + 10);
+      }
+
+      // 6. Vertical & Deviated/Horizontal Boreholes + Non-Overlapping Wellhead Leader Badges
       if (showBoreholes) {
         const isForge = STATE.data.scenario_name === "utah_forge_egs_doublet";
         STATE.data.wells.forEach((w, idx) => {
@@ -1336,12 +1972,12 @@
           const is16B = isForge && w.name && w.name.includes("16B");
           const pTop = project(0, w.y, w.x);
           const tubeColor = is16A
-            ? "#00f5d4"
+            ? "#00f2d4"
             : (is16B
-              ? "#ffb703"
+              ? "#ffbe0b"
               : (idx === STATE.selectedWell
-                ? "#00f5d4"
-                : (isHoriz ? "#00e5ff" : (isDev ? "#ff9f1c" : "rgba(255,255,255,0.78)"))));
+                ? "#00f2d4"
+                : (isHoriz ? "#3b9eff" : (isDev ? "#ff9f1c" : "rgba(230,237,246,0.78)"))));
 
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
@@ -1352,21 +1988,18 @@
               if (s === 0) ctx.moveTo(pt[0], pt[1]);
               else ctx.lineTo(pt[0], pt[1]);
             }
-            // Outer dark casing for 3D depth contrast
-            ctx.strokeStyle = "rgba(8, 12, 20, 0.88)";
-            ctx.lineWidth = (idx === STATE.selectedWell || is16A || is16B) ? 6.4 : 5.2;
+            ctx.strokeStyle = "rgba(6, 9, 15, 0.9)";
+            ctx.lineWidth = (idx === STATE.selectedWell || is16A || is16B) ? 6.2 : 5.0;
             ctx.stroke();
 
-            // Inner glowing directional tube
             ctx.strokeStyle = tubeColor;
-            ctx.lineWidth = (idx === STATE.selectedWell || is16A || is16B) ? 3.8 : 2.9;
+            ctx.lineWidth = (idx === STATE.selectedWell || is16A || is16B) ? 3.6 : 2.8;
             ctx.stroke();
 
-            // Bottom-hole TD marker for deviated/horizontal well
             const lastIdx = w.traj_z.length - 1;
             const pTD = project(w.traj_z[lastIdx], w.traj_y[lastIdx], w.traj_x[lastIdx]);
             ctx.beginPath();
-            ctx.arc(pTD[0], pTD[1], 4.2, 0, Math.PI * 2);
+            ctx.arc(pTD[0], pTD[1], 4.0, 0, Math.PI * 2);
             ctx.fillStyle = tubeColor;
             ctx.fill();
             ctx.strokeStyle = "#000";
@@ -1381,53 +2014,125 @@
             ctx.stroke();
           }
 
-          // Wellhead label badge
-          const shortTag = is16A
-            ? "16A(78)-32 Injector (65°)"
-            : (is16B
-              ? "16B(78)-32 Producer (+300ft)"
-              : (isHoriz
-                ? `W${idx + 1} (88° Horiz)`
-                : (isDev ? `W${idx + 1} (S-Curve)` : `W${idx + 1}`)));
-          if (isDev || idx === STATE.selectedWell || is16A || is16B) {
-            ctx.font = "bold 10.5px sans-serif";
-            const tw = ctx.measureText(shortTag).width;
-            const yOff = is16B ? -33 : -19;
-            ctx.fillStyle = "rgba(10, 15, 24, 0.88)";
-            ctx.fillRect(pTop[0] - tw * 0.5 - 4, pTop[1] + yOff, tw + 8, 14);
-            ctx.strokeStyle = tubeColor;
-            ctx.lineWidth = 1.0;
-            ctx.strokeRect(pTop[0] - tw * 0.5 - 4, pTop[1] + yOff, tw + 8, 14);
-            ctx.fillStyle = tubeColor;
-            ctx.fillText(shortTag, pTop[0] - tw * 0.5, pTop[1] + yOff + 11);
-          } else {
-            ctx.fillStyle = "#e6edf3";
-            ctx.font = "bold 10px sans-serif";
-            ctx.fillText(shortTag, pTop[0] - 8, pTop[1] - 6);
+          // Beltrami stringer spikes + Stage 1-3 EGS fracture callouts
+          if (showSpikeRings) {
+            w.stringer_depths.forEach((szIdx, sOrder) => {
+              const tz = (w.traj_z && w.traj_z[szIdx] !== undefined) ? w.traj_z[szIdx] : szIdx;
+              const ty = (w.traj_y && w.traj_y[szIdx] !== undefined) ? w.traj_y[szIdx] : w.y;
+              const tx = (w.traj_x && w.traj_x[szIdx] !== undefined) ? w.traj_x[szIdx] : w.x;
+              const ps = project(tz, ty, tx);
+              ctx.beginPath();
+              ctx.arc(ps[0], ps[1], isDev ? 4.8 : 3.8, 0, Math.PI * 2);
+              ctx.fillStyle = is16B ? "#ffbe0b" : (isDev ? "#00f2d4" : "#ffbe0b");
+              ctx.fill();
+              ctx.strokeStyle = "#000";
+              ctx.lineWidth = 1.1;
+              ctx.stroke();
+
+              if (is16A && sOrder < 3) {
+                const stgTag = `Stg ${3 - sOrder}`;
+                ctx.font = "700 9px 'JetBrains Mono', Consolas, monospace";
+                ctx.fillStyle = "#00f2d4";
+                ctx.fillText(stgTag, ps[0] + 7, ps[1] + 3);
+              }
+            });
           }
 
-          // Beltrami stringer spikes + Stage 1-3 EGS fracture callouts
-          w.stringer_depths.forEach((szIdx, sOrder) => {
-            const tz = (w.traj_z && w.traj_z[szIdx] !== undefined) ? w.traj_z[szIdx] : szIdx;
-            const ty = (w.traj_y && w.traj_y[szIdx] !== undefined) ? w.traj_y[szIdx] : w.y;
-            const tx = (w.traj_x && w.traj_x[szIdx] !== undefined) ? w.traj_x[szIdx] : w.x;
-            const ps = project(tz, ty, tx);
-            ctx.beginPath();
-            ctx.arc(ps[0], ps[1], isDev ? 5.0 : 4.0, 0, Math.PI * 2);
-            ctx.fillStyle = is16B ? "#ffb703" : (isDev ? "#00f5d4" : "#ffd43b");
-            ctx.fill();
-            ctx.strokeStyle = "#000";
-            ctx.lineWidth = 1.2;
-            ctx.stroke();
+          // Wellhead Callout Badges with Leader Lines (De-collided for 16A & 16B shared pad)
+          if (showWellBadges) {
+            const shortTag = is16A
+              ? "16A(78)-32 Injector (65\u00b0)"
+              : (is16B
+                ? "16B(78)-32 Producer (+300ft)"
+                : (isHoriz
+                  ? `W${idx + 1} (88\u00b0 Horiz)`
+                  : (isDev ? `W${idx + 1} (S-Curve)` : `W${idx + 1}`)));
 
-            if (is16A && sOrder < 3) {
-              const stgTag = `Stg ${3 - sOrder}`;
-              ctx.font = "bold 9px Consolas, monospace";
-              ctx.fillStyle = "#00f5d4";
-              ctx.fillText(stgTag, ps[0] + 6, ps[1] + 3);
+            if (isDev || idx === STATE.selectedWell || is16A || is16B) {
+              ctx.font = "700 10px 'JetBrains Mono', Consolas, sans-serif";
+              const tw = ctx.measureText(shortTag).width;
+              const xOff = is16A ? -tw - 14 : (is16B ? 14 : -tw * 0.5);
+              const yOff = is16A ? -24 : (is16B ? -42 : -22);
+              const bx = Math.max(8, Math.min(canvas.width - tw - 16, pTop[0] + xOff));
+              const by = Math.max(8, pTop[1] + yOff);
+
+              // Leader line from surface wellhead to badge
+              ctx.strokeStyle = tubeColor;
+              ctx.lineWidth = 1.0;
+              ctx.beginPath();
+              ctx.moveTo(pTop[0], pTop[1]);
+              ctx.lineTo(bx + tw * 0.5, by + 14);
+              ctx.stroke();
+
+              ctx.fillStyle = "rgba(7, 11, 19, 0.92)";
+              ctx.fillRect(bx - 4, by, tw + 8, 15);
+              ctx.strokeStyle = tubeColor;
+              ctx.lineWidth = 1.0;
+              ctx.strokeRect(bx - 4, by, tw + 8, 15);
+              ctx.fillStyle = tubeColor;
+              ctx.fillText(shortTag, bx, by + 11);
+            } else {
+              ctx.fillStyle = "rgba(230, 237, 246, 0.85)";
+              ctx.font = "600 9.5px 'JetBrains Mono', Consolas, sans-serif";
+              ctx.fillText(shortTag, pTop[0] - 8, pTop[1] - 6);
             }
-          });
+          }
         });
+      }
+
+      // 7. Docked Continuous Property Colorbar & Live Cursor Marker on Right Edge of 3D Viewport
+      if (showColorbar) {
+        const meta = FIELD_SCALE_META[STATE.activeField] || FIELD_SCALE_META.g3vm_vp;
+        const cbW = 11;
+        const cbH = Math.min(180, Math.max(110, canvas.height * 0.48));
+        const cbX = canvas.width - 54;
+        const cbY = Math.max(24, (canvas.height - cbH) * 0.46);
+
+        ctx.fillStyle = "rgba(7, 11, 19, 0.86)";
+        ctx.strokeStyle = "rgba(59, 158, 255, 0.28)";
+        ctx.lineWidth = 1;
+        ctx.fillRect(cbX - 8, cbY - 18, 56, cbH + 34);
+        ctx.strokeRect(cbX - 8, cbY - 18, 56, cbH + 34);
+
+        for (let py = 0; py < cbH; py++) {
+          const frac = 1.0 - py / Math.max(1, cbH - 1);
+          let rgb;
+          if (meta.mode === "litho") {
+            const lid = Math.min(7, Math.floor(frac * 8));
+            const cat = STATE.data.lithology_catalog[lid] || STATE.data.lithology_catalog[0];
+            rgb = hexToRgb(cat.color);
+          } else {
+            rgb = sampleColormap(frac, meta.mode);
+          }
+          ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+          ctx.fillRect(cbX, cbY + py, cbW, 1.5);
+        }
+        ctx.strokeStyle = "rgba(255,255,255,0.28)";
+        ctx.strokeRect(cbX, cbY, cbW, cbH);
+
+        ctx.font = "600 9px 'JetBrains Mono', Consolas, monospace";
+        ctx.fillStyle = "#00f2d4";
+        ctx.fillText(meta.unit, cbX - 2, cbY - 6);
+        ctx.fillStyle = "#c9d6e8";
+        ctx.fillText(meta.max.toFixed(meta.max >= 10 ? 1 : 2), cbX + cbW + 4, cbY + 7);
+        ctx.fillText(
+          ((meta.min + meta.max) * 0.5).toFixed(meta.max >= 10 ? 1 : 2),
+          cbX + cbW + 4,
+          cbY + cbH * 0.5 + 3
+        );
+        ctx.fillText(meta.min.toFixed(meta.max >= 10 ? 1 : 2), cbX + cbW + 4, cbY + cbH);
+
+        // Live cursor value tick on colorbar
+        const curVal = STATE.data.cubes[STATE.activeField][sz][sy][sx];
+        const curFrac = Math.max(0.0, Math.min(1.0, (curVal - meta.min) / Math.max(1e-6, meta.max - meta.min)));
+        const tickY = cbY + (1.0 - curFrac) * cbH;
+        ctx.fillStyle = "#00f2d4";
+        ctx.beginPath();
+        ctx.moveTo(cbX - 5, tickY - 3.5);
+        ctx.lineTo(cbX, tickY);
+        ctx.lineTo(cbX - 5, tickY + 3.5);
+        ctx.closePath();
+        ctx.fill();
       }
     }
 
@@ -1438,11 +2143,11 @@
       const canvas = document.getElementById("canvasWell");
       const rect = canvas.parentElement.getBoundingClientRect();
       canvas.width = Math.max(240, Math.floor(rect.width));
-      canvas.height = Math.max(180, Math.floor(rect.height));
+      canvas.height = Math.max(165, Math.floor(rect.height));
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const padL = 34, padR = 14, padT = 18, padB = 24;
+      const padL = 32, padR = 12, padT = 14, padB = 22;
       const plotW = canvas.width - padL - padR;
       const plotH = canvas.height - padT - padB;
       const Z = w.true_vp.length;
@@ -1464,13 +2169,13 @@
         ctx.moveTo(px, padT);
         ctx.lineTo(px, padT + plotH);
         ctx.stroke();
-        ctx.fillStyle = "#8b9bb4";
-        ctx.font = "10px Consolas, monospace";
+        ctx.fillStyle = "#8496b0";
+        ctx.font = "9.5px 'JetBrains Mono', Consolas, monospace";
         ctx.fillText(`${v}km/s`, px - 14, canvas.height - 6);
       }
 
       // Shaded Beltrami Curl Salience
-      ctx.fillStyle = "rgba(255, 183, 3, 0.16)";
+      ctx.fillStyle = "rgba(255, 190, 11, 0.16)";
       ctx.beginPath();
       ctx.moveTo(padL, yOfZ(0));
       for (let z = 0; z < Z; z++) {
@@ -1481,8 +2186,8 @@
       ctx.fill();
 
       // Naive Voxel-Pooled Vp (dashed red)
-      ctx.strokeStyle = "#ff5d73";
-      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = "#ff5470";
+      ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 3]);
       ctx.beginPath();
       for (let z = 0; z < Z; z++) {
@@ -1495,8 +2200,8 @@
       ctx.setLineDash([]);
 
       // True Sonic Vp (solid blue)
-      ctx.strokeStyle = "#4ea1ff";
-      ctx.lineWidth = 2.0;
+      ctx.strokeStyle = "#3b9eff";
+      ctx.lineWidth = 1.9;
       ctx.beginPath();
       for (let z = 0; z < Z; z++) {
         const px = xOfVp(w.true_vp[z]);
@@ -1507,7 +2212,7 @@
       ctx.stroke();
 
       // Beltrami Reconstructed Vp (dotted cyan)
-      ctx.strokeStyle = "#00f5d4";
+      ctx.strokeStyle = "#00f2d4";
       ctx.lineWidth = 1.8;
       ctx.setLineDash([2, 2]);
       ctx.beginPath();
@@ -1525,28 +2230,29 @@
         const z = w.tier1_indices[i];
         const v = w.tier1_values[i];
         ctx.beginPath();
-        ctx.arc(xOfVp(v), yOfZ(z), 3.6, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffb703";
+        ctx.arc(xOfVp(v), yOfZ(z), 3.4, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffbe0b";
         ctx.fill();
       }
 
       // Active Depth Z cursor line
       const curY = yOfZ(STATE.sliceZ);
-      ctx.strokeStyle = "rgba(0, 245, 212, 0.6)";
+      ctx.strokeStyle = "rgba(0, 242, 212, 0.65)";
       ctx.beginPath();
       ctx.moveTo(padL, curY);
       ctx.lineTo(padL + plotW, curY);
       ctx.stroke();
 
       document.getElementById("wellStats").innerHTML =
-        `<span>Beltrami Spike Recovery: <strong style="color:var(--accent-cyan)">${(w.beltrami_spike_recovery * 100).toFixed(1)}%</strong></span>` +
-        `<span>Naive Pool Recovery: <strong style="color:var(--accent-red)">${(w.naive_spike_recovery * 100).toFixed(1)}%</strong></span>`;
+        `<span>Beltrami Spike Rec: <strong style="color:var(--accent-cyan)">${(w.beltrami_spike_recovery * 100).toFixed(1)}%</strong></span>` +
+        `<span>Naive Pool Rec: <strong style="color:var(--accent-red)">${(w.naive_spike_recovery * 100).toFixed(1)}%</strong></span>`;
     }
 
     function renderAll() {
       render3DViewport();
       render2DSlices();
       renderWellLogPanel();
+      updateGranularTelemetryInspector();
     }
 
     function syncPresetButtons(scenarioVal) {
@@ -1593,8 +2299,103 @@
       });
     });
 
-    ["chkChairCut", "chkBoreholes", "chkCavity", "chkFaults"].forEach((id) => {
-      document.getElementById(id).addEventListener("change", render3DViewport);
+    // Display Layer Submenu Checkboxes
+    [
+      "chkChairCut",
+      "chkBoreholes",
+      "chkWellBadges",
+      "chkSpikeRings",
+      "chkFaults",
+      "chkEllipsoids",
+      "chkCavity",
+      "chkCrosshairs",
+      "chk2DWellProj",
+      "chkHudOverlay",
+      "chkColorbar",
+    ].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("change", renderAll);
+    });
+
+    document.getElementById("btnLayersAll").addEventListener("click", () => {
+      [
+        "chkChairCut",
+        "chkBoreholes",
+        "chkWellBadges",
+        "chkSpikeRings",
+        "chkFaults",
+        "chkEllipsoids",
+        "chkCavity",
+        "chkCrosshairs",
+        "chk2DWellProj",
+        "chkHudOverlay",
+        "chkColorbar",
+      ].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = true;
+      });
+      renderAll();
+    });
+
+    document.getElementById("btnLayersClean").addEventListener("click", () => {
+      document.getElementById("chkChairCut").checked = true;
+      document.getElementById("chkBoreholes").checked = true;
+      document.getElementById("chkWellBadges").checked = false;
+      document.getElementById("chkSpikeRings").checked = false;
+      document.getElementById("chkFaults").checked = false;
+      document.getElementById("chkEllipsoids").checked = false;
+      document.getElementById("chkCavity").checked = false;
+      renderAll();
+    });
+
+    // Viewport Quick Display Submenu Drawer
+    const drawerEl = document.getElementById("viewportSubmenuDrawer");
+    const openDrawerBtn = document.getElementById("btnOpenSubmenuDrawer");
+    openDrawerBtn.addEventListener("click", () => {
+      const isOpen = drawerEl.classList.toggle("open");
+      openDrawerBtn.classList.toggle("active-drawer", isOpen);
+    });
+    document.getElementById("btnCloseSubmenuDrawer").addEventListener("click", () => {
+      drawerEl.classList.remove("open");
+      openDrawerBtn.classList.remove("active-drawer");
+    });
+    function bindDrawerToggle(btnId, chkId) {
+      document.getElementById(btnId).addEventListener("click", () => {
+        const chk = document.getElementById(chkId);
+        if (chk) {
+          chk.checked = !chk.checked;
+          renderAll();
+        }
+      });
+    }
+    bindDrawerToggle("btnDrawerToggleBadges", "chkWellBadges");
+    bindDrawerToggle("btnDrawerToggleSpikes", "chkSpikeRings");
+    bindDrawerToggle("btnDrawerToggleFaults", "chkFaults");
+    bindDrawerToggle("btnDrawerToggleCavity", "chkCavity");
+
+    // Granular Telemetry Submenu Tabs & Expand All toggle
+    document.querySelectorAll(".telemetry-tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        STATE.activeTelemetryTab = btn.dataset.tab;
+        STATE.expandAllTelemetry = false;
+        document.getElementById("btnExpandAllTelemetry").textContent = "Expand All";
+        document.querySelectorAll(".telemetry-tab-btn").forEach((b) => {
+          b.classList.toggle("active", b === btn);
+        });
+        document.querySelectorAll(".telemetry-pane").forEach((pane) => {
+          pane.classList.toggle("active", pane.id === STATE.activeTelemetryTab);
+        });
+      });
+    });
+    document.getElementById("btnExpandAllTelemetry").addEventListener("click", (e) => {
+      STATE.expandAllTelemetry = !STATE.expandAllTelemetry;
+      e.target.textContent = STATE.expandAllTelemetry ? "Collapse Tabs" : "Expand All";
+      document.querySelectorAll(".telemetry-pane").forEach((pane) => {
+        pane.classList.toggle(
+          "active",
+          STATE.expandAllTelemetry || pane.id === STATE.activeTelemetryTab
+        );
+      });
     });
 
     document.getElementById("sliderTriadGain").addEventListener("input", (e) => {
@@ -1782,7 +2583,6 @@
           }
         }
         if (!vpSamples.length) return;
-        // Beltrami 1D spike-preserving projection onto Z bins
         const trueLog = new Array(Z);
         const beltramiLog = new Array(Z);
         const naiveLog = new Array(Z);
@@ -1806,9 +2606,9 @@
         const w = STATE.data.wells[STATE.selectedWell] || STATE.data.wells[0];
         if (w) {
           w.name = filename.replace(/\.[^.]+$/, "");
-          w.true_log = trueLog;
-          w.beltrami_log = beltramiLog;
-          w.naive_log = naiveLog;
+          w.true_vp = trueLog;
+          w.reconstructed_vp = beltramiLog;
+          w.naive_pooled_vp = naiveLog;
           w.stringer_depths = strDepths.slice(0, 6);
         }
         statusEl.textContent = `Loaded LAS: ${filename} (${vpSamples.length} samples -> Beltrami 100%)`;
@@ -1873,7 +2673,7 @@
             }
           }
         }
-        statusEl.textContent = `Loaded SEGY: ${filename} (${nTraces} traces x ${ns}z -> Beltrami ${Z}³)`;
+        statusEl.textContent = `Loaded SEGY: ${filename} (${nTraces} traces x ${ns}z -> Beltrami ${Z}\u00b3)`;
         renderAll();
       }
     })();

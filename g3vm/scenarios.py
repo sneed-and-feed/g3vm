@@ -49,6 +49,50 @@ LITHOLOGY_CATALOG: tuple[dict[str, Any], ...] = (
     {"id": 7, "name": "Crystalline Granitic Basement", "vp_kms": 6.40, "color": "#5b2c6f"},
 )
 
+SCENARIO_LITHOLOGY_CATALOGS: dict[str, list[dict[str, Any]]] = {
+    "subsalt_graben": [dict(item) for item in LITHOLOGY_CATALOG],
+    "thrust_anticline": [
+        {"id": 0, "name": "Syn-Orogenic Foreland Molasse", "vp_kms": 1.85, "color": "#2b5c8f"},
+        {"id": 1, "name": "Cretaceous Foredeep Marine Shale", "vp_kms": 2.30, "color": "#3d85c6"},
+        {"id": 2, "name": "Jurassic Siliciclastic Turbidite", "vp_kms": 2.75, "color": "#6aa84f"},
+        {"id": 3, "name": "Triassic Overthrust Duplex Sandstone", "vp_kms": 3.45, "color": "#f1c232"},
+        {"id": 4, "name": "Sole-Thrust Evaporite Detachment", "vp_kms": 4.48, "color": "#e06666"},
+        {"id": 5, "name": "Sub-Thrust Devonian Carbonate Reef", "vp_kms": 5.15, "color": "#cc4125"},
+        {"id": 6, "name": "Paleozoic Platform Dolomite", "vp_kms": 5.80, "color": "#8e7cc3"},
+        {"id": 7, "name": "Cratonic Crystalline Basement", "vp_kms": 6.35, "color": "#5b2c6f"},
+    ],
+    "unconformity_trap": [
+        {"id": 0, "name": "Quaternary Near-Surface Weathering Zone", "vp_kms": 1.85, "color": "#2b5c8f"},
+        {"id": 1, "name": "Regional Marine Shale Topseal", "vp_kms": 2.30, "color": "#3d85c6"},
+        {"id": 2, "name": "Sub-Unconformity Tilted Sandstone (CCS Target)", "vp_kms": 2.75, "color": "#6aa84f"},
+        {"id": 3, "name": "Fault-Bounded Rotated Siltstone", "vp_kms": 3.45, "color": "#f1c232"},
+        {"id": 4, "name": "Zechstein Salt Cavern (H2 Storage β1)", "vp_kms": 4.48, "color": "#e06666"},
+        {"id": 5, "name": "Sub-Unconformity Dolomite Stringer", "vp_kms": 5.15, "color": "#cc4125"},
+        {"id": 6, "name": "Lower Permian Anhydrite / Dolostone", "vp_kms": 5.80, "color": "#8e7cc3"},
+        {"id": 7, "name": "Pre-Permian Crystalline Basement", "vp_kms": 6.35, "color": "#5b2c6f"},
+    ],
+    "egs_tbm_hazard": [
+        {"id": 0, "name": "Weathered Alpine Moraine & Colluvium", "vp_kms": 1.85, "color": "#2b5c8f"},
+        {"id": 1, "name": "Fractured Phyllite & Schist Cover", "vp_kms": 2.30, "color": "#3d85c6"},
+        {"id": 2, "name": "Mylonitic Fault-Zone Gouge", "vp_kms": 2.75, "color": "#6aa84f"},
+        {"id": 3, "name": "Biotite Granodiorite Country Rock", "vp_kms": 3.45, "color": "#f1c232"},
+        {"id": 4, "name": "Flooded Hydrothermal / Karst Cavity (β1)", "vp_kms": 4.48, "color": "#e06666"},
+        {"id": 5, "name": "Mineralized Quartz-Sulfide Fracture Stringer", "vp_kms": 5.15, "color": "#cc4125"},
+        {"id": 6, "name": "Intact Superhot Crystalline Granite", "vp_kms": 5.80, "color": "#8e7cc3"},
+        {"id": 7, "name": "Ultramafic / High-Velocity Gneiss Basement", "vp_kms": 6.35, "color": "#5b2c6f"},
+    ],
+    "utah_forge_egs_doublet": [
+        {"id": 0, "name": "Quaternary Alluvium & Playa Fill", "vp_kms": 1.85, "color": "#2b5c8f"},
+        {"id": 1, "name": "Upper Milford Valley Basin Fill", "vp_kms": 2.30, "color": "#3d85c6"},
+        {"id": 2, "name": "Lower Milford Valley Volcaniclastic Fill", "vp_kms": 2.75, "color": "#6aa84f"},
+        {"id": 3, "name": "Opal Mound Fault Gouge & Altered Breccia", "vp_kms": 3.45, "color": "#f1c232"},
+        {"id": 4, "name": "Stimulated EGS Hydrothermal Fracture Cloud", "vp_kms": 4.48, "color": "#e06666"},
+        {"id": 5, "name": "Stimulated Hydraulic Fracture Corridor (Stg 1-3)", "vp_kms": 5.15, "color": "#cc4125"},
+        {"id": 6, "name": "Intact Tertiary Granitoid Basement (16A/16B)", "vp_kms": 5.82, "color": "#8e7cc3"},
+        {"id": 7, "name": "Deep Crystalline Monzogranite / Gneiss", "vp_kms": 6.35, "color": "#5b2c6f"},
+    ],
+}
+
 FAULT_MODE_NAMES: tuple[str, ...] = (
     "East-Dipping Normal Fault (Hanging-Wall Downthrow)",
     "West-Dipping Antithetic Graben Fault",
@@ -835,6 +879,7 @@ def build_geological_scenario(
     return {
         "scenario_name": scenario_name,
         "meta": SCENARIO_Descriptions[scenario_name],
+        "lithology_catalog": list(SCENARIO_LITHOLOGY_CATALOGS[scenario_name]),
         "grid_shape": (Z, Y, X),
         "true_vp_cube": true_vp_cube,
         "true_vs_cube": true_tti_bundle.vs0_kms.squeeze(0),

@@ -260,6 +260,10 @@ def test_utah_forge_16a_16b_doublet_spike_recovery():
 
     # Verify full 3D `utah_forge_egs_doublet` scenario benchmark & Opal Mound fault RMSE reduction (>85%)
     bundle = evaluate_scenario_comparison("utah_forge_egs_doublet", grid_shape=(32, 32, 32))
+    forge_cat_names = [u["name"] for u in bundle["scenario"]["lithology_catalog"]]
+    assert "Louann Salt Diapir (Halite)" not in forge_cat_names
+    assert "Stimulated EGS Hydrothermal Fracture Cloud" in forge_cat_names
+    assert "Intact Tertiary Granitoid Basement (16A/16B)" in forge_cat_names
     m = bundle["metrics"]
     assert m["beltrami_spike_recovery"] == pytest.approx(1.0, abs=1e-4)
     assert m["max_orthogonality_residual"] <= 1e-8
