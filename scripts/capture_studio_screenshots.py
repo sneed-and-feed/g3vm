@@ -18,7 +18,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from g3vm.viewer import render_leapfrog_showcase_figure, render_well_log_beltrami_figure
+from g3vm.viewer import (
+    export_portable_html_studio,
+    render_leapfrog_showcase_figure,
+    render_well_log_beltrami_figure,
+)
 
 
 def find_browser() -> str:
@@ -38,10 +42,12 @@ def main() -> int:
     out_dir = ROOT / "results"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Regenerate Matplotlib showcase figures (Mode B Blind Evaluation & Non-Circular Beltrami)
-    render_leapfrog_showcase_figure(out_dir / "g3vm_leapfrog_showcase.png", grid_shape=(32, 24, 24))
-    render_well_log_beltrami_figure(out_dir / "g3vm_well_log_beltrami.png", grid_shape=(48, 48, 48))
-    print("[+] Regenerated g3vm_leapfrog_showcase.png and g3vm_well_log_beltrami.png")
+    # 1. Export latest portable HTML5 Studio bundle & Matplotlib showcase figures
+    export_portable_html_studio(out_dir / "g3vm_portable_studio.html", grid_shape=(24, 24, 24))
+    if "--skip-matplotlib" not in sys.argv:
+        render_leapfrog_showcase_figure(out_dir / "g3vm_leapfrog_showcase.png", grid_shape=(32, 24, 24))
+        render_well_log_beltrami_figure(out_dir / "g3vm_well_log_beltrami.png", grid_shape=(48, 48, 48))
+        print("[+] Regenerated g3vm_leapfrog_showcase.png and g3vm_well_log_beltrami.png")
 
     # 2. Capture headless browser screenshots from local HTTP server
     browser = find_browser()
@@ -62,19 +68,19 @@ def main() -> int:
     base_url = f"http://127.0.0.1:{port}/results/g3vm_portable_studio.html"
     shots = [
         (
-            "g3vm_studio_v040_lunar_isru.png",
+            "g3vm_studio_v050_lunar_isru.png",
             f"{base_url}?scenario=lunar_lava_tube_isru&field=g3vm_eps_r&well=6&sliceZ=13&sliceY=12&sliceX=12&zoom=1.12",
         ),
         (
-            "g3vm_studio_v030_utah_forge.png",
+            "g3vm_studio_v050_utah_forge.png",
             f"{base_url}?preset=utah_forge_egs_doublet&field=g3vm_vp_tti&well=6&sliceZ=16&sliceY=16&sliceX=16&zoom=1.12",
         ),
         (
-            "g3vm_studio_v020_vp_tti.png",
+            "g3vm_studio_v050_vp_tti.png",
             f"{base_url}?scenario=thrust_anticline&field=g3vm_vp_tti&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12",
         ),
         (
-            "g3vm_studio_v020_zp.png",
+            "g3vm_studio_v050_zp.png",
             f"{base_url}?scenario=subsalt_graben&field=g3vm_zp&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12",
         ),
     ]

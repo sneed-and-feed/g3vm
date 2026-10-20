@@ -1329,18 +1329,21 @@
         ["Whole-Cube Vp RMSE (km/s)", m.naive_vp_rmse_kms.toFixed(4), m.g3vm_vp_rmse_kms.toFixed(4)],
         ["TTI Anisotropic Vp RMSE (km/s)", (m.naive_vp_tti_rmse_kms || m.naive_vp_rmse_kms).toFixed(4), (m.g3vm_vp_tti_rmse_kms || m.g3vm_vp_rmse_kms).toFixed(4)],
       ];
-      if (m.g3vm_eps_r_rmse !== undefined && m.naive_eps_r_rmse !== undefined) {
+      const isLunarScen = d.scenario_name === "lunar_lava_tube_isru";
+      if (isLunarScen && m.g3vm_eps_r_rmse !== undefined && m.naive_eps_r_rmse !== undefined) {
         rows.push(["Dielectric \u03b5r' RMSE (Radar)", m.naive_eps_r_rmse.toFixed(4), m.g3vm_eps_r_rmse.toFixed(4)]);
       }
+      const nEdgeFid = (m.naive_edge_gradient_fidelity !== undefined) ? m.naive_edge_gradient_fidelity : Math.min(1.0, m.naive_fault_sharpness_ratio);
+      const gEdgeFid = (m.g3vm_edge_gradient_fidelity !== undefined) ? m.g3vm_edge_gradient_fidelity : Math.min(1.0, m.g3vm_fault_sharpness_ratio);
       rows.push(
         ["Fault-Zone Vp RMSE (km/s)", m.naive_fault_zone_rmse_kms.toFixed(4), m.g3vm_fault_zone_rmse_kms.toFixed(4)],
-        ["Cross-Fault Sharpness", (m.naive_fault_sharpness_ratio * 100).toFixed(1) + "%", (m.g3vm_fault_sharpness_ratio * 100).toFixed(1) + "%"]
+        ["Cross-Fault Sharpness", (nEdgeFid * 100).toFixed(1) + "%", (gEdgeFid * 100).toFixed(1) + "%"]
       );
-      if (m.g3vm_arch_sharpness_ratio !== undefined && m.naive_arch_sharpness_ratio !== undefined) {
+      if (isLunarScen && m.g3vm_arch_sharpness_ratio !== undefined && m.naive_arch_sharpness_ratio !== undefined) {
         rows.push([
           "Lava Tube Arch Sharpness",
-          (m.naive_arch_sharpness_ratio * 100).toFixed(1) + "%",
-          (m.g3vm_arch_sharpness_ratio * 100).toFixed(1) + "%",
+          (Math.min(1.0, m.naive_arch_sharpness_ratio) * 100).toFixed(1) + "%",
+          (Math.min(1.0, m.g3vm_arch_sharpness_ratio) * 100).toFixed(1) + "%",
         ]);
       }
       rows.push(
