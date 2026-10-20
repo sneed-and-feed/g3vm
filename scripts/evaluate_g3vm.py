@@ -32,6 +32,7 @@ from g3vm import (
     SCENARIO_Descriptions,
     evaluate_scenario_comparison,
     export_portable_html_studio,
+    run_referee_audit_suite,
 )
 
 
@@ -115,14 +116,51 @@ def main() -> int:
 
     eval_json_path = out_dir / "g3vm_evaluation_summary.json"
     bench_json_path = out_dir / "g3vm_benchmark_summary.json"
+    audit_json_path = out_dir / "g3vm_referee_audit_summary.json"
     html_path = out_dir / "g3vm_portable_studio.html"
+
+    # Execute Mode B: Referee-Hardened Blind Holdout, Tuned Kriging & Stress-Test Suite
+    audit_res = run_referee_audit_suite(grid_shape=(32, 24, 24))
+    summary["referee_audit_mode_b"] = audit_res
+
+    print("\n" + "=" * 120)
+    print(
+        "MODE B — BLIND LEAVE-ONE-WELL-OUT (LOWO) & UNSEEN DEVIATED WELL BENCHMARK (@ SNR = 20 dB, ZERO TARGET LEAKAGE)"
+    )
+    print("=" * 120)
+    print(
+        f"{'Scenario':<24} | {'LOWO Box':>9} | {'LOWO Krig':>10} | {'LOWO FKrig':>11} | {'LOWO G3VM':>10} | "
+        f"{'Dev Krig':>9} | {'Dev G3VM':>9} | {'EdgeFid G3VM':>12}"
+    )
+    print("-" * 120)
+    for scen_name, b_row in audit_res["blind_scenarios_snr20db"].items():
+        lw = b_row["lowo_heldout_well_rmse_kms"]
+        dw = b_row["heldout_deviated_well_rmse_kms"]
+        ef = b_row["bounded_edge_gradient_fidelity"]
+        print(
+            f"{scen_name:<24} | "
+            f"{lw['naive_box_smooth']:>9.4f} | "
+            f"{lw['tuned_anisotropic_kriging']:>10.4f} | "
+            f"{lw['fault_partitioned_kriging']:>11.4f} | "
+            f"{lw['blind_darksnail_g3vm']:>10.4f} | "
+            f"{dw['tuned_anisotropic_kriging']:>9.4f} | "
+            f"{dw['blind_darksnail_g3vm']:>9.4f} | "
+            f"{ef['blind_darksnail_g3vm'] * 100:>11.1f}%"
+        )
+    print("-" * 120)
+    print(
+        f"[Mode B Peak Heap RAM] {audit_res['peak_heap_mb']:.2f} MB (< 35.0 MB limit)"
+    )
+    print("=" * 120)
 
     eval_json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     bench_json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    audit_json_path.write_text(json.dumps(audit_res, indent=2), encoding="utf-8")
     export_portable_html_studio(html_path, grid_shape=(24, 24, 24))
 
     print(f"[+] Saved evaluation summary : {eval_json_path}")
     print(f"[+] Saved benchmark summary  : {bench_json_path}")
+    print(f"[+] Saved referee audit JSON : {audit_json_path}")
     print(f"[+] Saved portable 3D studio : {html_path}")
     return 0
 

@@ -549,5 +549,69 @@ def test_lunar_lava_tube_isru_and_dielectric_engine():
     assert m["nope_support_recovery"] == pytest.approx(1.0, abs=1e-4)
     nope_3d = bundle["continuity_output"]["nope_plume_delta_3d"]
     assert float(nope_3d[:4].abs().max().item()) == 0.0
+    assert 0.0 <= m["g3vm_edge_gradient_fidelity"] <= 1.0
+
+
+def test_suite12_referee_audit_blind_inversion_and_baselines() -> None:
+    """
+    Suite 12: Verify Mode B (Zero Target Leakage) blind Leave-One-Well-Out cross-validation,
+    tuned anisotropic Matérn-3/2 kriging, fault-partitioned kriging, bounded Edge Gradient
+    Fidelity in [0, 1], fault-pick mispick jitter degradation, and pure non-circular
+    Beltrami exterior-curl spike recovery under noise and caliper washouts.
+    """
+    from g3vm.blind_benchmark import (
+        evaluate_beltrami_noise_and_washout_ablation,
+        evaluate_blind_holdout_and_baselines,
+    )
+
+    res_forge = evaluate_blind_holdout_and_baselines(
+        scenario_name="utah_forge_egs_doublet",
+        grid_shape=(24, 16, 16),
+        snr_db=20.0,
+        fault_jitter_voxels=0,
+    )
+    lw = res_forge["lowo_heldout_well_rmse_kms"]
+    cw = res_forge["whole_cube_blind_rmse_kms"]
+    ef = res_forge["bounded_edge_gradient_fidelity"]
+
+    # Blind G3VM beats tuned anisotropic kriging and fault-partitioned kriging on Utah FORGE
+    assert lw["blind_darksnail_g3vm"] < lw["tuned_anisotropic_kriging"]
+    assert cw["blind_darksnail_g3vm"] < cw["tuned_anisotropic_kriging"]
+    assert cw["blind_darksnail_g3vm"] < cw["fault_partitioned_kriging"]
+    assert 0.0 <= ef["blind_darksnail_g3vm"] <= 1.0
+    assert ef["blind_darksnail_g3vm"] > ef["tuned_anisotropic_kriging"]
+
+    # Fault-pick mispick jitter degrades G3VM monotonically (confirming geological pick sensitivity)
+    res_j0 = evaluate_blind_holdout_and_baselines(
+        scenario_name="thrust_anticline",
+        grid_shape=(24, 16, 16),
+        snr_db=20.0,
+        fault_jitter_voxels=0,
+    )
+    res_j3 = evaluate_blind_holdout_and_baselines(
+        scenario_name="thrust_anticline",
+        grid_shape=(24, 16, 16),
+        snr_db=20.0,
+        fault_jitter_voxels=3,
+    )
+    assert (
+        res_j0["whole_cube_blind_rmse_kms"]["blind_darksnail_g3vm"]
+        < res_j3["whole_cube_blind_rmse_kms"]["blind_darksnail_g3vm"]
+    )
+
+    # Pure non-circular Beltrami noise & caliper washout ablation vs equal-budget uniform pooling
+    beltrami_rows = evaluate_beltrami_noise_and_washout_ablation(
+        scenario_name="lunar_lava_tube_isru",
+        grid_shape=(32, 24, 24),
+    )
+    assert len(beltrami_rows) == 4
+    assert beltrami_rows[0]["beltrami_peak_recovery"] == pytest.approx(1.0, abs=1e-4)
+    assert beltrami_rows[0]["beltrami_all_stringers_recovery"] == pytest.approx(1.0, abs=1e-4)
+    assert (
+        beltrami_rows[0]["beltrami_peak_recovery"]
+        > beltrami_rows[0]["equal_budget_uniform_recovery"]
+    )
+    assert beltrami_rows[-1]["beltrami_peak_recovery"] > 0.80
+
 
 

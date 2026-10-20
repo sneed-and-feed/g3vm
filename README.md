@@ -74,6 +74,15 @@ All six benchmark scenarios (4 synthetic basins + 1 real US DOE Utah FORGE EGS d
 | **`utah_forge_egs_doublet`** (US DOE Utah FORGE 16A/16B) | `48x48x48` | `0.0617` | `0.6324` | `-90.24%` | `0.0950 km/s` (TTI) | `100.2%` vs. `7.4%` | `100.0%` vs. `<4.5%` (raw LAS) | `1.31e-11` |
 | **`lunar_lava_tube_isru`** (Apollo 17 LSPE / Kaguya LRS / VIPER) | `32x24x24` | `0.0208` | `0.9778` | `-97.88%` | `0.0000` vs `1.0773` ($\varepsilon_r'$ RMSE, `-100.0%`) | `100.0%` vs. `7.5%` (Arch) | `100.0%` vs. `10.6%` (`VIPER-TR2` / `LRS-IL3`) | `1.64e-31` |
 
+### Mode B: Blind Leave-One-Well-Out (LOWO) Cross-Validation, Tuned Kriging & Stress-Test Suite (`g3vm/blind_benchmark.py`)
+
+While the table above (**Mode A — Structural Operator Verification**) evaluates the $\mathfrak{so}(C)$ triad and Jordan $\beta_1$ cavity operator given an exact 50/50 symmetric tie field `ell_sym_3d` and exact fault indicator `u_fault_3d`, **[`g3vm/blind_benchmark.py`](g3vm/blind_benchmark.py)** implements **Mode B — Blind Sparse-Well & Noisy Seismic Inversion** (`SNR = 20 dB`, Zero Target Leakage):
+
+- **Zero Target Leakage**: Constructs `ell_sym_blind`, `u_fault_blind`, and travel-time residuals strictly from training boreholes (`W_train`) and band-limited noisy surface seismic migration attributes (never accessing `true_litho_cube` or held-out wells).
+- **Tuned Spatial Baselines**: Benchmarks against cross-validated 3D Anisotropic Matérn-3/2 Ordinary/Universal Kriging (`TunedAnisotropicKriging`, tuning $(\ell_z, \ell_{xy}, \lambda_{\mathrm{nugget}})$ via inner Leave-One-Well-Out CV on training wells) and industry-style Structural-Block Kriging (`FaultPartitionedKriging`) on **held-out vertical wells (LOWO CV)** and **unseen 3D deviated/horizontal trajectories**.
+- **Bounded Edge Gradient Fidelity & Non-Circular Beltrami Evaluation**: Replaces unbounded gradient ratios (`>100%`) with bounded `EdgeFidelity` in $[0\%, 100\%]$, removes `spike_anom` from `BeltramiWellLogShell.forward` selection so outlier pinning uses pure exterior curl + 3-point discrete Morse impulse, and compares against an equal-token-budget (`K = 16` tokens) uniform pooler under sonic noise ($\mathrm{SNR} \in \{\infty, 20, 15, 10\}\text{ dB}$) and `10%–20%` borehole caliper washout dropouts.
+- **Full Audit Report**: See **[`docs/REFEREE_AUDIT_RESPONSE.md`](docs/REFEREE_AUDIT_RESPONSE.md)** and **[`results/g3vm_referee_audit_summary.json`](results/g3vm_referee_audit_summary.json)** for the complete point-by-point referee audit, SNR sweeps, fault-pick mispick jitter crossover ($\Delta x_{\mathrm{jitter}} \in \{0, 1, 2, 3\}$ voxels), and formal verification scope analysis.
+
 ### Machine-Precision Theorem Verification (`formalization/OcclusionTriad.lean` & `g3vm/anisotropy.py`)
 
 | Theorem | Mathematical Statement | Empirical Audit Residual | Status |

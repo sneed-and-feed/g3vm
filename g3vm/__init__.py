@@ -75,6 +75,12 @@ from .scenarios import (
     evaluate_scenario_comparison,
     resolve_scenario_name,
 )
+from .blind_benchmark import (
+    evaluate_beltrami_noise_and_washout_ablation,
+    evaluate_blind_holdout_and_baselines,
+    fit_and_predict_anisotropic_matern_kriging,
+    run_referee_audit_suite,
+)
 from .viewer import (
     create_studio_app,
     export_portable_html_studio,
@@ -134,6 +140,10 @@ __all__ = [
     "build_geological_scenario",
     "build_lunar_lava_tube_isru_scenario",
     "evaluate_scenario_comparison",
+    "fit_and_predict_anisotropic_matern_kriging",
+    "evaluate_blind_holdout_and_baselines",
+    "evaluate_beltrami_noise_and_washout_ablation",
+    "run_referee_audit_suite",
     "resolve_static_dir",
     "create_studio_app",
     "export_portable_html_studio",

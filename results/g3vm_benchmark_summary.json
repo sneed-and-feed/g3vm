@@ -40,6 +40,8 @@
       "naive_fault_sharpness_ratio": 0.0647,
       "g3vm_arch_sharpness_ratio": 1.0029,
       "naive_arch_sharpness_ratio": 0.0647,
+      "g3vm_edge_gradient_fidelity": 0.9866,
+      "naive_edge_gradient_fidelity": 0.0647,
       "g3vm_lithology_accuracy": 0.9221,
       "naive_lithology_accuracy": 0.7908,
       "g3vm_fault_lithology_accuracy": 0.8356,
@@ -47,6 +49,9 @@
       "g3vm_marginal_w1": 0.005898,
       "naive_marginal_w1": 0.013799,
       "beltrami_spike_recovery": 1.0,
+      "all_stringers_beltrami_recovery": 0.9662,
+      "thin_bed_detection_f1": 0.9667,
+      "equal_budget_naive_spike_recovery": 0.3065,
       "deviated_well_spike_recovery": 1.0,
       "deviated_well_naive_spike_recovery": 0.1568,
       "naive_spike_recovery": 0.1715,
@@ -72,7 +77,7 @@
         "theorem_2_1_self_interaction_error": 0.0,
         "theorem_2_2_tie_break_gap": 2.5,
         "theorem_2_2_formula_error": 0.0,
-        "theorem_2_3_orthogonality_residual": 9.778887033462524e-09,
+        "theorem_2_3_orthogonality_residual": 9.313225746154785e-09,
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
@@ -83,7 +88,7 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.819
+      "peak_heap_ram_mb": 4.822
     },
     "thrust_anticline": {
       "scenario_name": "thrust_anticline",
@@ -114,6 +119,8 @@
       "naive_fault_sharpness_ratio": 0.0804,
       "g3vm_arch_sharpness_ratio": 0.9639,
       "naive_arch_sharpness_ratio": 0.0804,
+      "g3vm_edge_gradient_fidelity": 0.9615,
+      "naive_edge_gradient_fidelity": 0.0804,
       "g3vm_lithology_accuracy": 0.998,
       "naive_lithology_accuracy": 0.6025,
       "g3vm_fault_lithology_accuracy": 0.9917,
@@ -121,6 +128,9 @@
       "g3vm_marginal_w1": 0.003865,
       "naive_marginal_w1": 0.03103,
       "beltrami_spike_recovery": 1.0,
+      "all_stringers_beltrami_recovery": 0.8368,
+      "thin_bed_detection_f1": 0.9921,
+      "equal_budget_naive_spike_recovery": 0.2752,
       "deviated_well_spike_recovery": 1.0,
       "deviated_well_naive_spike_recovery": 0.0751,
       "naive_spike_recovery": 0.2586,
@@ -146,7 +156,7 @@
         "theorem_2_1_self_interaction_error": 0.0,
         "theorem_2_2_tie_break_gap": 2.5,
         "theorem_2_2_formula_error": 0.0,
-        "theorem_2_3_orthogonality_residual": 9.516952559351921e-09,
+        "theorem_2_3_orthogonality_residual": 9.778887033462524e-09,
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
@@ -157,7 +167,7 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.809
+      "peak_heap_ram_mb": 4.81
     },
     "unconformity_trap": {
       "scenario_name": "unconformity_trap",
@@ -188,6 +198,8 @@
       "naive_fault_sharpness_ratio": 0.0412,
       "g3vm_arch_sharpness_ratio": 1.0044,
       "naive_arch_sharpness_ratio": 0.0412,
+      "g3vm_edge_gradient_fidelity": 0.9929,
+      "naive_edge_gradient_fidelity": 0.0412,
       "g3vm_lithology_accuracy": 0.9684,
       "naive_lithology_accuracy": 0.8662,
       "g3vm_fault_lithology_accuracy": 0.8662,
@@ -195,6 +207,9 @@
       "g3vm_marginal_w1": 0.003509,
       "naive_marginal_w1": 0.013593,
       "beltrami_spike_recovery": 1.0,
+      "all_stringers_beltrami_recovery": 0.9666,
+      "thin_bed_detection_f1": 0.9778,
+      "equal_budget_naive_spike_recovery": 0.2498,
       "deviated_well_spike_recovery": 1.0,
       "deviated_well_naive_spike_recovery": 0.3211,
       "naive_spike_recovery": 0.1708,
@@ -220,12 +235,12 @@
         "theorem_2_1_self_interaction_error": 0.0,
         "theorem_2_2_tie_break_gap": 2.5,
         "theorem_2_2_formula_error": 0.0,
-        "theorem_2_3_orthogonality_residual": 9.546056389808655e-09,
+        "theorem_2_3_orthogonality_residual": 9.778887033462524e-09,
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
         "theorem_2_6_spherical_radial_drift": 0.0,
-        "theorem_2_6_cascade_orthogonality_error": 9.313225746154785e-09,
+        "theorem_2_6_cascade_orthogonality_error": 9.778887033462524e-09,
         "theorem_2_7_so6_orthogonality_error": 4.440892098500626e-16,
         "theorem_2_7_stiffness_trace_drift": 5.684341886080802e-14,
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
@@ -262,6 +277,8 @@
       "naive_fault_sharpness_ratio": 0.089,
       "g3vm_arch_sharpness_ratio": 0.9979,
       "naive_arch_sharpness_ratio": 0.089,
+      "g3vm_edge_gradient_fidelity": 0.9911,
+      "naive_edge_gradient_fidelity": 0.089,
       "g3vm_lithology_accuracy": 0.8366,
       "naive_lithology_accuracy": 0.2724,
       "g3vm_fault_lithology_accuracy": 0.839,
@@ -269,6 +286,9 @@
       "g3vm_marginal_w1": 0.012802,
       "naive_marginal_w1": 0.03814,
       "beltrami_spike_recovery": 1.0,
+      "all_stringers_beltrami_recovery": 0.9214,
+      "thin_bed_detection_f1": 0.9778,
+      "equal_budget_naive_spike_recovery": 0.3018,
       "deviated_well_spike_recovery": 1.0,
       "deviated_well_naive_spike_recovery": 0.12,
       "naive_spike_recovery": 0.2549,
@@ -299,13 +319,13 @@
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
         "theorem_2_6_spherical_radial_drift": 0.0,
-        "theorem_2_6_cascade_orthogonality_error": 9.313225746154785e-09,
+        "theorem_2_6_cascade_orthogonality_error": 8.847564458847046e-09,
         "theorem_2_7_so6_orthogonality_error": 4.440892098500626e-16,
         "theorem_2_7_stiffness_trace_drift": 5.684341886080802e-14,
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.807
+      "peak_heap_ram_mb": 4.806
     },
     "utah_forge_egs_doublet": {
       "scenario_name": "utah_forge_egs_doublet",
@@ -336,6 +356,8 @@
       "naive_fault_sharpness_ratio": 0.0742,
       "g3vm_arch_sharpness_ratio": 1.0019,
       "naive_arch_sharpness_ratio": 0.0742,
+      "g3vm_edge_gradient_fidelity": 0.9981,
+      "naive_edge_gradient_fidelity": 0.0742,
       "g3vm_lithology_accuracy": 0.9917,
       "naive_lithology_accuracy": 0.754,
       "g3vm_fault_lithology_accuracy": 1.0,
@@ -343,6 +365,9 @@
       "g3vm_marginal_w1": 0.002709,
       "naive_marginal_w1": 0.036055,
       "beltrami_spike_recovery": 1.0,
+      "all_stringers_beltrami_recovery": 0.9466,
+      "thin_bed_detection_f1": 0.9778,
+      "equal_budget_naive_spike_recovery": 0.2934,
       "deviated_well_spike_recovery": 1.0,
       "deviated_well_naive_spike_recovery": 0.1244,
       "naive_spike_recovery": 0.1942,
@@ -373,13 +398,13 @@
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
         "theorem_2_6_spherical_radial_drift": 0.0,
-        "theorem_2_6_cascade_orthogonality_error": 9.313225746154785e-09,
+        "theorem_2_6_cascade_orthogonality_error": 9.778887033462524e-09,
         "theorem_2_7_so6_orthogonality_error": 4.440892098500626e-16,
         "theorem_2_7_stiffness_trace_drift": 5.684341886080802e-14,
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.816
+      "peak_heap_ram_mb": 4.812
     },
     "lunar_lava_tube_isru": {
       "scenario_name": "lunar_lava_tube_isru",
@@ -410,6 +435,8 @@
       "naive_fault_sharpness_ratio": 0.0748,
       "g3vm_arch_sharpness_ratio": 1.0,
       "naive_arch_sharpness_ratio": 0.0748,
+      "g3vm_edge_gradient_fidelity": 1.0,
+      "naive_edge_gradient_fidelity": 0.0748,
       "g3vm_lithology_accuracy": 1.0,
       "naive_lithology_accuracy": 0.7972,
       "g3vm_fault_lithology_accuracy": 1.0,
@@ -417,6 +444,9 @@
       "g3vm_marginal_w1": 5.5e-05,
       "naive_marginal_w1": 0.02897,
       "beltrami_spike_recovery": 1.0,
+      "all_stringers_beltrami_recovery": 1.0,
+      "thin_bed_detection_f1": 1.0,
+      "equal_budget_naive_spike_recovery": 0.375,
       "deviated_well_spike_recovery": 1.0,
       "deviated_well_naive_spike_recovery": 0.151,
       "naive_spike_recovery": 0.106,
@@ -453,7 +483,376 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 1.555
+      "peak_heap_ram_mb": 1.556
     }
+  },
+  "referee_audit_mode_b": {
+    "peak_heap_mb": 1.04,
+    "blind_scenarios_snr20db": {
+      "subsalt_graben": {
+        "scenario_name": "subsalt_graben",
+        "grid_shape": [
+          32,
+          24,
+          24
+        ],
+        "snr_db": 20.0,
+        "fault_jitter_voxels": 0,
+        "washout_fraction": 0.0,
+        "kriging_tuned_params": {
+          "ell_z": 3.0,
+          "ell_xy": 8.0,
+          "nugget": 0.01,
+          "inner_cv_rmse": 0.8830598186547878
+        },
+        "lowo_heldout_well_rmse_kms": {
+          "naive_box_smooth": 0.8816,
+          "tuned_anisotropic_kriging": 0.9187,
+          "fault_partitioned_kriging": 0.9085,
+          "blind_darksnail_g3vm": 0.7796
+        },
+        "heldout_deviated_well_rmse_kms": {
+          "naive_box_smooth": 0.578,
+          "tuned_anisotropic_kriging": 0.6364,
+          "fault_partitioned_kriging": 0.663,
+          "blind_darksnail_g3vm": 0.5221
+        },
+        "whole_cube_blind_rmse_kms": {
+          "naive_box_smooth": 0.5477,
+          "tuned_anisotropic_kriging": 0.5834,
+          "fault_partitioned_kriging": 0.6383,
+          "blind_darksnail_g3vm": 0.5149
+        },
+        "bounded_edge_gradient_fidelity": {
+          "naive_box_smooth": 0.0597,
+          "tuned_anisotropic_kriging": 0.095,
+          "fault_partitioned_kriging": 0.3703,
+          "blind_darksnail_g3vm": 0.5359
+        }
+      },
+      "thrust_anticline": {
+        "scenario_name": "thrust_anticline",
+        "grid_shape": [
+          32,
+          24,
+          24
+        ],
+        "snr_db": 20.0,
+        "fault_jitter_voxels": 0,
+        "washout_fraction": 0.0,
+        "kriging_tuned_params": {
+          "ell_z": 3.0,
+          "ell_xy": 8.0,
+          "nugget": 0.01,
+          "inner_cv_rmse": 0.5644758939275663
+        },
+        "lowo_heldout_well_rmse_kms": {
+          "naive_box_smooth": 0.656,
+          "tuned_anisotropic_kriging": 0.6105,
+          "fault_partitioned_kriging": 0.6353,
+          "blind_darksnail_g3vm": 0.5672
+        },
+        "heldout_deviated_well_rmse_kms": {
+          "naive_box_smooth": 0.4945,
+          "tuned_anisotropic_kriging": 0.4519,
+          "fault_partitioned_kriging": 0.4608,
+          "blind_darksnail_g3vm": 0.484
+        },
+        "whole_cube_blind_rmse_kms": {
+          "naive_box_smooth": 0.5885,
+          "tuned_anisotropic_kriging": 0.546,
+          "fault_partitioned_kriging": 0.5256,
+          "blind_darksnail_g3vm": 0.5627
+        },
+        "bounded_edge_gradient_fidelity": {
+          "naive_box_smooth": 0.0742,
+          "tuned_anisotropic_kriging": 0.0993,
+          "fault_partitioned_kriging": 0.2029,
+          "blind_darksnail_g3vm": 0.2301
+        }
+      },
+      "unconformity_trap": {
+        "scenario_name": "unconformity_trap",
+        "grid_shape": [
+          32,
+          24,
+          24
+        ],
+        "snr_db": 20.0,
+        "fault_jitter_voxels": 0,
+        "washout_fraction": 0.0,
+        "kriging_tuned_params": {
+          "ell_z": 8.0,
+          "ell_xy": 22.0,
+          "nugget": 0.05,
+          "inner_cv_rmse": 0.6697427753048375
+        },
+        "lowo_heldout_well_rmse_kms": {
+          "naive_box_smooth": 0.6905,
+          "tuned_anisotropic_kriging": 0.7066,
+          "fault_partitioned_kriging": 0.6631,
+          "blind_darksnail_g3vm": 0.6669
+        },
+        "heldout_deviated_well_rmse_kms": {
+          "naive_box_smooth": 0.5868,
+          "tuned_anisotropic_kriging": 0.6238,
+          "fault_partitioned_kriging": 0.6299,
+          "blind_darksnail_g3vm": 0.4736
+        },
+        "whole_cube_blind_rmse_kms": {
+          "naive_box_smooth": 0.5471,
+          "tuned_anisotropic_kriging": 0.5567,
+          "fault_partitioned_kriging": 0.5362,
+          "blind_darksnail_g3vm": 0.485
+        },
+        "bounded_edge_gradient_fidelity": {
+          "naive_box_smooth": 0.0334,
+          "tuned_anisotropic_kriging": 0.0369,
+          "fault_partitioned_kriging": 0.3582,
+          "blind_darksnail_g3vm": 0.5754
+        }
+      },
+      "egs_tbm_hazard": {
+        "scenario_name": "egs_tbm_hazard",
+        "grid_shape": [
+          32,
+          24,
+          24
+        ],
+        "snr_db": 20.0,
+        "fault_jitter_voxels": 0,
+        "washout_fraction": 0.0,
+        "kriging_tuned_params": {
+          "ell_z": 8.0,
+          "ell_xy": 22.0,
+          "nugget": 0.05,
+          "inner_cv_rmse": 0.546040156603834
+        },
+        "lowo_heldout_well_rmse_kms": {
+          "naive_box_smooth": 0.553,
+          "tuned_anisotropic_kriging": 0.569,
+          "fault_partitioned_kriging": 0.5756,
+          "blind_darksnail_g3vm": 0.5915
+        },
+        "heldout_deviated_well_rmse_kms": {
+          "naive_box_smooth": 0.4739,
+          "tuned_anisotropic_kriging": 0.4523,
+          "fault_partitioned_kriging": 0.4699,
+          "blind_darksnail_g3vm": 0.6662
+        },
+        "whole_cube_blind_rmse_kms": {
+          "naive_box_smooth": 0.471,
+          "tuned_anisotropic_kriging": 0.4672,
+          "fault_partitioned_kriging": 0.4415,
+          "blind_darksnail_g3vm": 0.4771
+        },
+        "bounded_edge_gradient_fidelity": {
+          "naive_box_smooth": 0.0277,
+          "tuned_anisotropic_kriging": 0.0328,
+          "fault_partitioned_kriging": 0.1446,
+          "blind_darksnail_g3vm": 0.3445
+        }
+      },
+      "utah_forge_egs_doublet": {
+        "scenario_name": "utah_forge_egs_doublet",
+        "grid_shape": [
+          32,
+          24,
+          24
+        ],
+        "snr_db": 20.0,
+        "fault_jitter_voxels": 0,
+        "washout_fraction": 0.0,
+        "kriging_tuned_params": {
+          "ell_z": 3.0,
+          "ell_xy": 8.0,
+          "nugget": 0.01,
+          "inner_cv_rmse": 0.7951263021160503
+        },
+        "lowo_heldout_well_rmse_kms": {
+          "naive_box_smooth": 0.7707,
+          "tuned_anisotropic_kriging": 0.7978,
+          "fault_partitioned_kriging": 0.5836,
+          "blind_darksnail_g3vm": 0.5273
+        },
+        "heldout_deviated_well_rmse_kms": {
+          "naive_box_smooth": 0.4171,
+          "tuned_anisotropic_kriging": 0.5489,
+          "fault_partitioned_kriging": 0.3778,
+          "blind_darksnail_g3vm": 0.47
+        },
+        "whole_cube_blind_rmse_kms": {
+          "naive_box_smooth": 0.685,
+          "tuned_anisotropic_kriging": 0.6702,
+          "fault_partitioned_kriging": 0.4053,
+          "blind_darksnail_g3vm": 0.3526
+        },
+        "bounded_edge_gradient_fidelity": {
+          "naive_box_smooth": 0.0687,
+          "tuned_anisotropic_kriging": 0.0968,
+          "fault_partitioned_kriging": 0.5387,
+          "blind_darksnail_g3vm": 0.6999
+        }
+      },
+      "lunar_lava_tube_isru": {
+        "scenario_name": "lunar_lava_tube_isru",
+        "grid_shape": [
+          32,
+          24,
+          24
+        ],
+        "snr_db": 20.0,
+        "fault_jitter_voxels": 0,
+        "washout_fraction": 0.0,
+        "kriging_tuned_params": {
+          "ell_z": 6.0,
+          "ell_xy": 16.0,
+          "nugget": 0.02,
+          "inner_cv_rmse": 0.49158837926296484
+        },
+        "lowo_heldout_well_rmse_kms": {
+          "naive_box_smooth": 0.5705,
+          "tuned_anisotropic_kriging": 0.5196,
+          "fault_partitioned_kriging": 0.4063,
+          "blind_darksnail_g3vm": 0.4477
+        },
+        "heldout_deviated_well_rmse_kms": {
+          "naive_box_smooth": 2.0126,
+          "tuned_anisotropic_kriging": 1.9846,
+          "fault_partitioned_kriging": 1.5951,
+          "blind_darksnail_g3vm": 1.1552
+        },
+        "whole_cube_blind_rmse_kms": {
+          "naive_box_smooth": 1.1283,
+          "tuned_anisotropic_kriging": 1.1088,
+          "fault_partitioned_kriging": 0.8747,
+          "blind_darksnail_g3vm": 0.5903
+        },
+        "bounded_edge_gradient_fidelity": {
+          "naive_box_smooth": 0.1356,
+          "tuned_anisotropic_kriging": 0.2561,
+          "fault_partitioned_kriging": 0.456,
+          "blind_darksnail_g3vm": 0.3563
+        }
+      }
+    },
+    "snr_sweep": [
+      {
+        "snr_db": "inf",
+        "lunar_lowo_g3vm_rmse": 0.4164,
+        "lunar_lowo_kriging_rmse": 0.5029,
+        "lunar_cube_g3vm_rmse": 0.5753,
+        "lunar_cube_kriging_rmse": 1.1208,
+        "forge_lowo_g3vm_rmse": 0.5571,
+        "forge_lowo_kriging_rmse": 0.7971,
+        "forge_cube_g3vm_rmse": 0.3521,
+        "forge_cube_kriging_rmse": 0.6574
+      },
+      {
+        "snr_db": 20.0,
+        "lunar_lowo_g3vm_rmse": 0.4477,
+        "lunar_lowo_kriging_rmse": 0.5196,
+        "lunar_cube_g3vm_rmse": 0.5903,
+        "lunar_cube_kriging_rmse": 1.1088,
+        "forge_lowo_g3vm_rmse": 0.5273,
+        "forge_lowo_kriging_rmse": 0.7978,
+        "forge_cube_g3vm_rmse": 0.3526,
+        "forge_cube_kriging_rmse": 0.6702
+      },
+      {
+        "snr_db": 10.0,
+        "lunar_lowo_g3vm_rmse": 0.4855,
+        "lunar_lowo_kriging_rmse": 0.6134,
+        "lunar_cube_g3vm_rmse": 0.6319,
+        "lunar_cube_kriging_rmse": 1.1086,
+        "forge_lowo_g3vm_rmse": 0.5321,
+        "forge_lowo_kriging_rmse": 0.8349,
+        "forge_cube_g3vm_rmse": 0.4126,
+        "forge_cube_kriging_rmse": 0.74
+      },
+      {
+        "snr_db": 5.0,
+        "lunar_lowo_g3vm_rmse": 0.615,
+        "lunar_lowo_kriging_rmse": 0.7828,
+        "lunar_cube_g3vm_rmse": 0.753,
+        "lunar_cube_kriging_rmse": 1.1506,
+        "forge_lowo_g3vm_rmse": 0.5809,
+        "forge_lowo_kriging_rmse": 0.9287,
+        "forge_cube_g3vm_rmse": 0.5323,
+        "forge_cube_kriging_rmse": 0.8733
+      }
+    ],
+    "fault_jitter_sweep": [
+      {
+        "fault_jitter_voxels": 0,
+        "blind_g3vm_cube_rmse_kms": 0.5627,
+        "fault_partitioned_kriging_rmse_kms": 0.5256,
+        "tuned_anisotropic_kriging_rmse_kms": 0.546,
+        "blind_g3vm_edge_fidelity": 0.2301
+      },
+      {
+        "fault_jitter_voxels": 1,
+        "blind_g3vm_cube_rmse_kms": 0.577,
+        "fault_partitioned_kriging_rmse_kms": 0.5337,
+        "tuned_anisotropic_kriging_rmse_kms": 0.546,
+        "blind_g3vm_edge_fidelity": 0.1301
+      },
+      {
+        "fault_jitter_voxels": 2,
+        "blind_g3vm_cube_rmse_kms": 0.5865,
+        "fault_partitioned_kriging_rmse_kms": 0.5332,
+        "tuned_anisotropic_kriging_rmse_kms": 0.546,
+        "blind_g3vm_edge_fidelity": 0.1176
+      },
+      {
+        "fault_jitter_voxels": 3,
+        "blind_g3vm_cube_rmse_kms": 0.5934,
+        "fault_partitioned_kriging_rmse_kms": 0.5181,
+        "tuned_anisotropic_kriging_rmse_kms": 0.546,
+        "blind_g3vm_edge_fidelity": 0.1068
+      }
+    ],
+    "beltrami_noise_washout_ablation": [
+      {
+        "condition": "Clean (SNR=inf, Washout=0%)",
+        "snr_db": "inf",
+        "washout_fraction": 0.0,
+        "beltrami_peak_recovery": 1.0,
+        "beltrami_all_stringers_recovery": 1.0,
+        "beltrami_thin_bed_f1": 1.0,
+        "equal_budget_uniform_recovery": 0.375,
+        "coarse_grid_uniform_recovery": 0.1173
+      },
+      {
+        "condition": "Moderate Noise (SNR=20dB, Washout=0%)",
+        "snr_db": 20.0,
+        "washout_fraction": 0.0,
+        "beltrami_peak_recovery": 1.0,
+        "beltrami_all_stringers_recovery": 0.9519,
+        "beltrami_thin_bed_f1": 0.9611,
+        "equal_budget_uniform_recovery": 0.3872,
+        "coarse_grid_uniform_recovery": 0.1264
+      },
+      {
+        "condition": "High Noise + 10% Caliper Washout (SNR=15dB, Washout=10%)",
+        "snr_db": 15.0,
+        "washout_fraction": 0.1,
+        "beltrami_peak_recovery": 0.8916,
+        "beltrami_all_stringers_recovery": 0.8544,
+        "beltrami_thin_bed_f1": 0.9261,
+        "equal_budget_uniform_recovery": 0.325,
+        "coarse_grid_uniform_recovery": 0.1822
+      },
+      {
+        "condition": "Severe Noise + 20% Caliper Washout (SNR=10dB, Washout=20%)",
+        "snr_db": 10.0,
+        "washout_fraction": 0.2,
+        "beltrami_peak_recovery": 0.9168,
+        "beltrami_all_stringers_recovery": 0.8266,
+        "beltrami_thin_bed_f1": 0.9192,
+        "equal_budget_uniform_recovery": 0.337,
+        "coarse_grid_uniform_recovery": 0.3766
+      }
+    ]
   }
 }

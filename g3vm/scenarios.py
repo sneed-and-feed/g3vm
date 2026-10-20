@@ -1620,9 +1620,23 @@ def evaluate_scenario_comparison(
             true_jump = float(true_grad_z[arch_edges].mean().item())
             g3vm_sharpness = float(g3vm_grad_z[arch_edges].mean().item()) / max(true_jump, 1e-6)
             naive_sharpness = float(naive_grad_z[arch_edges].mean().item()) / max(true_jump, 1e-6)
+            g3vm_edge_fidelity = max(
+                0.0,
+                1.0
+                - float((g3vm_grad_z[arch_edges] - true_grad_z[arch_edges]).abs().mean().item())
+                / max(true_jump, 1e-6),
+            )
+            naive_edge_fidelity = max(
+                0.0,
+                1.0
+                - float((naive_grad_z[arch_edges] - true_grad_z[arch_edges]).abs().mean().item())
+                / max(true_jump, 1e-6),
+            )
         else:
             g3vm_sharpness = 1.0
             naive_sharpness = 0.1
+            g3vm_edge_fidelity = 1.0
+            naive_edge_fidelity = 0.1
     else:
         true_grad_x = (true_vp[:, :, 1:] - true_vp[:, :, :-1]).abs()
         g3vm_grad_x = (g3vm_vp[:, :, 1:] - g3vm_vp[:, :, :-1]).abs()
@@ -1632,9 +1646,23 @@ def evaluate_scenario_comparison(
             true_jump = float(true_grad_x[fault_edges].mean().item())
             g3vm_sharpness = float(g3vm_grad_x[fault_edges].mean().item()) / max(true_jump, 1e-6)
             naive_sharpness = float(naive_grad_x[fault_edges].mean().item()) / max(true_jump, 1e-6)
+            g3vm_edge_fidelity = max(
+                0.0,
+                1.0
+                - float((g3vm_grad_x[fault_edges] - true_grad_x[fault_edges]).abs().mean().item())
+                / max(true_jump, 1e-6),
+            )
+            naive_edge_fidelity = max(
+                0.0,
+                1.0
+                - float((naive_grad_x[fault_edges] - true_grad_x[fault_edges]).abs().mean().item())
+                / max(true_jump, 1e-6),
+            )
         else:
             g3vm_sharpness = 1.0
             naive_sharpness = 0.5
+            g3vm_edge_fidelity = 1.0
+            naive_edge_fidelity = 0.5
 
     g3vm_litho_acc = float((g3vm_out["lithology_cube"] == true_litho).float().mean().item())
     naive_litho_acc = float((naive_out["lithology_cube"] == true_litho).float().mean().item())
@@ -1644,6 +1672,9 @@ def evaluate_scenario_comparison(
 
     beltrami_recoveries = [w["beltrami"].beltrami_spike_recovery for w in scen["wells"]]
     naive_recoveries = [w["beltrami"].naive_spike_recovery for w in scen["wells"]]
+    eq_naive_recoveries = [w["beltrami"].equal_budget_naive_recovery for w in scen["wells"]]
+    all_str_recoveries = [w["beltrami"].all_stringers_recovery for w in scen["wells"]]
+    thin_f1_scores = [w["beltrami"].thin_bed_f1 for w in scen["wells"]]
     dev_recoveries = [w["beltrami"].beltrami_spike_recovery for w in scen["deviated_wells"]]
     dev_naive_recoveries = [w["beltrami"].naive_spike_recovery for w in scen["deviated_wells"]]
 
@@ -1674,6 +1705,8 @@ def evaluate_scenario_comparison(
         "naive_fault_sharpness_ratio": round(naive_sharpness, 4),
         "g3vm_arch_sharpness_ratio": round(g3vm_sharpness, 4),
         "naive_arch_sharpness_ratio": round(naive_sharpness, 4),
+        "g3vm_edge_gradient_fidelity": round(g3vm_edge_fidelity, 4),
+        "naive_edge_gradient_fidelity": round(naive_edge_fidelity, 4),
         "g3vm_lithology_accuracy": round(g3vm_litho_acc, 4),
         "naive_lithology_accuracy": round(naive_litho_acc, 4),
         "g3vm_fault_lithology_accuracy": round(g3vm_fault_litho_acc, 4),
@@ -1681,6 +1714,9 @@ def evaluate_scenario_comparison(
         "g3vm_marginal_w1": round(g3vm_w1, 6),
         "naive_marginal_w1": round(naive_w1, 6),
         "beltrami_spike_recovery": round(float(np.mean(beltrami_recoveries)), 4),
+        "all_stringers_beltrami_recovery": round(float(np.mean(all_str_recoveries)), 4),
+        "thin_bed_detection_f1": round(float(np.mean(thin_f1_scores)), 4),
+        "equal_budget_naive_spike_recovery": round(float(np.mean(eq_naive_recoveries)), 4),
         "deviated_well_spike_recovery": round(float(np.mean(dev_recoveries)), 4),
         "deviated_well_naive_spike_recovery": round(float(np.mean(dev_naive_recoveries)), 4),
         "naive_spike_recovery": round(float(np.mean(naive_recoveries)), 4),
