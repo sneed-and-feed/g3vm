@@ -1474,7 +1474,7 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
 
 
 # ============================================================================
-# 7. Naive RBF / Kriging Smear Baseline (`cc` / `sol` Failure Mode Reference)
+# 7. Naive RBF / Kriging Baseline (Isotropic Cross-Fault Smoothing Reference)
 # ============================================================================
 
 

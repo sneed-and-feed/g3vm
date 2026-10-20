@@ -290,7 +290,7 @@ def render_leapfrog_showcase_figure(
 ) -> dict[str, Any]:
     """
     Generate the high-DPI multi-panel showcase figure comparing Ground Truth,
-    Naive RBF/Kriging Smear Baseline (`cc`/`sol`), and DarkSnail G3VM across
+    Naive RBF/Kriging Baseline (Isotropic Cross-Fault Smoothing), and DarkSnail G3VM across
     all five industry benchmark scenarios (including the US DOE Utah FORGE EGS Doublet).
     """
     out_file = Path(output_path)
@@ -330,7 +330,7 @@ def render_leapfrog_showcase_figure(
             ),
             (
                 naive_vp[:, y_mid, :],
-                f"Naive RBF/Kriging Baseline (cc/sol Smear)\nRMSE: {m['naive_vp_rmse_kms']:.3f} km/s | Fault Sharpness: {m['naive_fault_sharpness_ratio']*100:.1f}%",
+                f"Naive RBF/Kriging Baseline (Isotropic Smoothing)\nRMSE: {m['naive_vp_rmse_kms']:.3f} km/s | Fault Sharpness: {m['naive_fault_sharpness_ratio']*100:.1f}%",
                 "turbo",
                 1.7,
                 6.4,
