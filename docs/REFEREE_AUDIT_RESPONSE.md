@@ -140,7 +140,7 @@ To prevent over-interpreting what the Lean 4 theorems guarantee, we state the ex
    - **Theorem 2.4 (`darksnail_step0_system1_homotopy`)**: At zero perturbation ($\delta z = 0$ or $\beta_{\mathrm{triad}} = 0$), the readout reduces identically to the baseline prior.
    - **Theorem 2.5 (`rope2d_medoid_relative_invariance`)**: Planar $\mathrm{SO}(2)$ RoPE rotation matrices satisfy $R(\Delta p)^\top = R(-\Delta p)$ and preserve Euclidean norms.
    - **Theorem 2.6 (`darksnail_multistep_spherical_invariance`)**: Any $K$-step rollout ending in radial retraction preserves squared radial norm $\lVert r(x)\rVert^2 = R_0^2$ when $\lVert x\rVert \neq 0$.
-   - **Theorem 2.7** (Kelvin-Mandel $\mathrm{SO}(6)$ Stiffness Rotor): The Bond-Mandel transformation $M(R) \in \mathrm{SO}(6)$ preserves both trace and Frobenius norm $\lVert C_{\mathrm{Mandel}}\rVert_F$.
+   - **Theorem 2.7 (Kelvin-Mandel** $\mathrm{SO}(6)$ **Stiffness Rotor)**: The Bond-Mandel transformation $M(R) \in \mathrm{SO}(6)$ preserves both trace and Frobenius norm $\lVert C_{\mathrm{Mandel}}\rVert_F$.
 
 2. **What [`formalization/OcclusionTriad.lean`](../formalization/OcclusionTriad.lean) Does NOT Prove**:
    - **IEEE-754 Floating-Point Arithmetic**: Lean proofs over $\mathbb R$ do not bound IEEE-754 `float32` rounding; instead, `float32` residuals ($\langle v, d_\ell\rangle \le 1.31 \times 10^{-11}$, $\mathrm{SO}(6)$ trace drift $\le 1.14 \times 10^{-13}$, radial drift `0.000e+00`) are checked empirically at runtime via `model.verify_formal_theorems()`.
