@@ -728,7 +728,7 @@ window.G3VM_OFFLINE_SCENARIOS = /*G3VM_JSON_START*/{"subsalt_graben":{"scenario_
     const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
     if (Boolean(window.G3VM_PORTABLE_MODE) && url.includes('/api/')) {
       if (url.includes('/api/health')) {
-        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.4.0'}), {
+        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.5.0'}), {
           status: 200, headers: {'Content-Type': 'application/json'}
         });
       }
@@ -757,7 +757,7 @@ window.G3VM_OFFLINE_SCENARIOS = /*G3VM_JSON_START*/{"subsalt_graben":{"scenario_
     <div class="brand">
       <div class="brand-logo">G3</div>
       <div class="brand-title-wrap">
-        <span class="brand-title">G3VM Studio // Workstation v0.4.0</span>
+        <span class="brand-title">G3VM Studio // Workstation v0.5.0</span>
         <span class="brand-sub">DarkSnail-Geo3D Beltrami-Triad Subsurface Velocity, TTI Elastic &amp; Coupled Seismic-Radar Dielectric Engine</span>
       </div>
     </div>

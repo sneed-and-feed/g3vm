@@ -1,18 +1,19 @@
-# G3VM (`DarkSnail-Geo3D`) — 3D Geological Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Modeler (`v0.4.0`)
+# G3VM (`DarkSnail-Geo3D`) — 3D Geological Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Modeler (`v0.5.0`)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23488781.svg)](https://doi.org/10.5281/zenodo.23488781)
 [![License: CC0-1.0](https://img.shields.io/badge/License-CC0_1.0-lightgrey.svg)](LICENSE)
 
 > **Live 3D WebGL Studio (Zero-Install Browser Demo):**
-> - **[Launch Interactive 3D Studio (`v0.4.0` CDN)](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.4.0/results/g3vm_portable_studio.html)** | **[`main` Dev Build](https://raw.githack.com/sneed-and-feed/g3vm/main/results/g3vm_portable_studio.html)**
+> - **[Launch Interactive 3D Studio (`v0.5.0` CDN)](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.5.0/results/g3vm_portable_studio.html)** | **[`main` Dev Build](https://raw.githack.com/sneed-and-feed/g3vm/main/results/g3vm_portable_studio.html)**
 > - **One-Click Deep-Link Presets:**
->   - [**Planetary ISRU: Lunar Lava Tube, Regolith Megascattering & Polar Ice (`Apollo 17 LSPE / Kaguya LRS / VIPER-TRIDENT`)**](https://raw.githack.com/sneed-and-feed/g3vm/main/results/g3vm_portable_studio.html?scenario=lunar_lava_tube_isru&field=g3vm_eps_r&well=6&sliceZ=13&sliceY=12&sliceX=12&zoom=1.12)
->   - [**Real Field: US DOE Utah FORGE EGS Doublet (`Well 16A(78)-32` & `Well 16B(78)-32`)**](https://raw.githack.com/sneed-and-feed/g3vm/main/results/g3vm_portable_studio.html?preset=utah_forge_egs_doublet&field=g3vm_vp_tti&well=6&sliceZ=16&sliceY=16&sliceX=16&zoom=1.12)
->   - [**SEG/EAGE Overthrust TTI Vp(ψ) + `Well-G7` S-Curve**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.4.0/results/g3vm_portable_studio.html?scenario=thrust_anticline&field=g3vm_vp_tti&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12) · [**Marmousi2 Subsalt Acoustic Impedance Zp + `Well-H8` 88° Lateral**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.4.0/results/g3vm_portable_studio.html?scenario=subsalt_graben&field=g3vm_zp&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12)
+>   - [**Planetary ISRU: Lunar Lava Tube, Regolith Megascattering & Polar Ice (`Apollo 17 LSPE / Kaguya LRS / VIPER-TRIDENT`)**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.5.0/results/g3vm_portable_studio.html?scenario=lunar_lava_tube_isru&field=g3vm_eps_r&well=6&sliceZ=13&sliceY=12&sliceX=12&zoom=1.12)
+>   - [**Real Field: US DOE Utah FORGE EGS Doublet (`Well 16A(78)-32` & `Well 16B(78)-32`)**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.5.0/results/g3vm_portable_studio.html?preset=utah_forge_egs_doublet&field=g3vm_vp_tti&well=6&sliceZ=16&sliceY=16&sliceX=16&zoom=1.12)
+>   - [**SEG/EAGE Overthrust TTI Vp(ψ) + `Well-G7` S-Curve**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.5.0/results/g3vm_portable_studio.html?scenario=thrust_anticline&field=g3vm_vp_tti&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12) · [**Marmousi2 Subsalt Acoustic Impedance Zp + `Well-H8` 88° Lateral**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.5.0/results/g3vm_portable_studio.html?scenario=subsalt_graben&field=g3vm_zp&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12)
 
 **G3VM** (`DarkSnail-Geo3D`) is a 3D geological velocity, anisotropic elastic, and coupled seismic-radar dielectric modeler (Seequent Leapfrog / Petex style) powered by the formally verified mathematical primitives of **Project DarkSnail**:
 
-- **Lunar Lava Tube, Regolith Megascattering & Coupled Seismic-Radar ISRU (`lunar_lava_tube_isru` & `OlhoeftStrangwayDielectricEngine`, New in `v0.4.0`)**: Operationalizes Row 6 of the Real-World Deployment Matrix into a 6th canonical scenario anchored to NASA PDS Apollo 17 LSPE (`urn:nasa:pds:a17lspe`), SELENE/Kaguya Lunar Radar Sounder (`5 MHz`) & LRO Mini-RF Mare Tranquillitatis skylight conduits, and VIPER-TRIDENT cryogenic ice targets. Computes coupled 3D real relative dielectric permittivity $\varepsilon_r'(z,y,x) \in [1.00, 10.00]$, radar phase velocity (`0.095–0.300 m/ns`), and two-way vertical radar travel time `TWT_radar(z,y,x)` ($\mu\text{s}$) via $Z$-slab chunking (`chunk_z = 16`, `1.31 MB` peak heap RAM).
+- **Referee-Hardened Blind Inversion, Tuned Matérn-3/2 Kriging & Stress-Test Suite (`g3vm/blind_benchmark.py`, New in `v0.5.0`)**: Separates **Mode A (Structural Operator Verification)** from **Mode B (Zero-Leakage Blind Inversion)** using Leave-One-Well-Out (LOWO) borehole cross-validation, unseen 3D deviated/horizontal well holdouts, cross-validated 3D Anisotropic Matérn-3/2 & Fault-Partitioned Kriging baselines, bounded Edge Gradient Fidelity in $[0\%, 100\%]$, non-circular Beltrami equal-budget (`K = 16` tokens) spike evaluation, observation SNR sweeps ($\infty, 20, 10, 5\text{ dB}$), fault-pick mispick jitter sweeps ($\Delta x_{\mathrm{jitter}} \in \{0, 1, 2, 3\}$ voxels), and borehole caliper washout dropouts (see [`docs/REFEREE_AUDIT_RESPONSE.md`](docs/REFEREE_AUDIT_RESPONSE.md)).
+- **Lunar Lava Tube, Regolith Megascattering & Coupled Seismic-Radar ISRU (`lunar_lava_tube_isru` & `OlhoeftStrangwayDielectricEngine`, `v0.4.0`)**: Operationalizes Row 6 of the Real-World Deployment Matrix into a 6th canonical scenario anchored to NASA PDS Apollo 17 LSPE (`urn:nasa:pds:a17lspe`), SELENE/Kaguya Lunar Radar Sounder (`5 MHz`) & LRO Mini-RF Mare Tranquillitatis skylight conduits, and VIPER-TRIDENT cryogenic ice targets. Computes coupled 3D real relative dielectric permittivity $\varepsilon_r'(z,y,x) \in [1.00, 10.00]$, radar phase velocity (`0.095–0.300 m/ns`), and two-way vertical radar travel time `TWT_radar(z,y,x)` ($\mu\text{s}$) via $Z$-slab chunking (`chunk_z = 16`, `1.31 MB` peak heap RAM).
 - **Real US DOE Utah FORGE EGS Doublet Field Dataset (`utah_forge_egs_doublet`, `v0.3.0`)**: Bundles directional surveys and wireline dipole sonic/anisotropy logs from the US Department of Energy Utah FORGE Enhanced Geothermal System doublet (`Well 16A(78)-32` injector and `Well 16B(78)-32` producer, $300\text{ ft}$ parallel separation along a $65^\circ$ tangent at $105^\circ$ azimuth across the $4,700\text{ ft}$ Opal Mound fault unconformity and Stage 1–3 stimulated hydraulic fracture corridors; GDR DOIs `10.15121/1632156`, `10.15121/1776602`, `10.15121/1777912`, `10.15121/1998591`, `10.15121/2001059`).
 - **Out-of-Core `np.memmap` SEG-Y Rev 1 Streaming & Beltrami Downsampling (`stream_segy_volume`, `v0.3.0`)**: Streams multi-hundred-MB to multi-GB `.segy` volumes straight from disk via zero-copy header/trace indexing, `--roi` bounding-box windowing, and two-tier 3D Beltrami exterior-curl downsampling (`--max-grid`) with `< 35 MB` peak Python heap usage (`tracemalloc`).
 - **Z-Slab Chunked 3D Spectral & Triad Evaluation (`chunk_z = 16`, `v0.3.0`)**: Evaluates 201-channel 3D spectral bases, $\mathfrak{so}(C)$ fault triads, and $\mathrm{SO}(6)$ Kelvin-Mandel stiffness rotations along $Z$-slabs with bit-identical accuracy (`max_abs_diff < 1e-6`), `0.000e+00` radial drift, and `<= 1.14e-13` $\mathrm{SO}(6)$ orthogonality error.
@@ -24,13 +25,13 @@
 - **Precision-Weighted Ridge & Abelian OMP Travel-Time Tomography** (`solve_ridge_tomography_update`, `solve_abelian_omp_tomography`, and $O(ZYX)$ marginal Wasserstein-1 $W_1^{\mathrm{marg}}$)
 - **4D Time-Lapse Continuity Splitting & Zeno Surgical Hazard Gate** (`TemporalSurveyContinuitySplitter` in $\mathcal H_{\mathrm{clock}} \oplus \mathcal H_{\mathrm{nope}}$ with Lunar Diurnal Thermal-Drift mode and `ZenoSurgicalAnomalyGate`)
 
-![G3VM v0.4.0 3D Workstation — Lunar Lava Tube, Regolith Megascattering & Polar Ice ISRU (Apollo 17 LSPE / Kaguya LRS / VIPER-TR2)](results/g3vm_studio_v040_lunar_isru.png)
+![G3VM v0.5.0 3D Workstation — Lunar Lava Tube, Regolith Megascattering & Polar Ice ISRU (Apollo 17 LSPE / Kaguya LRS / VIPER-TR2)](results/g3vm_studio_v040_lunar_isru.png)
 
-![G3VM v0.4.0 3D Workstation — Real US DOE Utah FORGE EGS Doublet (Wells 16A(78)-32 & 16B(78)-32)](results/g3vm_studio_v030_utah_forge.png)
+![G3VM v0.5.0 3D Workstation — Real US DOE Utah FORGE EGS Doublet (Wells 16A(78)-32 & 16B(78)-32)](results/g3vm_studio_v030_utah_forge.png)
 
-![G3VM v0.4.0 3D Workstation — SEG/EAGE Overthrust TTI Anisotropic Vp(psi) & Deviated Well-G7 S-Curve](results/g3vm_studio_v020_vp_tti.png)
+![G3VM v0.5.0 3D Workstation — SEG/EAGE Overthrust TTI Anisotropic Vp(psi) & Deviated Well-G7 S-Curve](results/g3vm_studio_v020_vp_tti.png)
 
-![G3VM v0.4.0 3D Workstation — Marmousi2 Subsalt Acoustic Impedance Zp & Horizontal Well-H8 Lateral](results/g3vm_studio_v020_zp.png)
+![G3VM v0.5.0 3D Workstation — Marmousi2 Subsalt Acoustic Impedance Zp & Horizontal Well-H8 Lateral](results/g3vm_studio_v020_zp.png)
 
 ![G3VM 6-Scenario 3D Subsurface Velocity Showcase](results/g3vm_leapfrog_showcase.png)
 
@@ -154,7 +155,7 @@ If you use **G3VM** (`DarkSnail-Geo3D`) in your research or engineering workflow
   author       = {Skates, Cthulhu},
   title        = {G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity, TTI Elastic and Coupled Seismic-Radar Dielectric Modeler},
   year         = {2026},
-  version      = {0.4.0},
+  version      = {0.5.0},
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.23488781},
   url          = {https://doi.org/10.5281/zenodo.23488781}

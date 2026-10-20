@@ -41,7 +41,7 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     summary = {
-        "engine": "G3VM (DarkSnail-Geo3D) v0.4.0",
+        "engine": "G3VM (DarkSnail-Geo3D) v0.5.0",
         "grid_shape": [48, 48, 48],
         "lunar_grid_shape": [32, 24, 24],
         "scenarios": {},
@@ -49,7 +49,7 @@ def main() -> int:
 
     print("=" * 120)
     print(
-        "G3VM (DarkSnail-Geo3D) v0.4.0 — 6-Scenario 3D Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Evaluation"
+        "G3VM (DarkSnail-Geo3D) v0.5.0 — 6-Scenario 3D Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Evaluation"
     )
     print("=" * 120)
     header = (

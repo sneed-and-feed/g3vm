@@ -1,4 +1,4 @@
-# Peer Audit Response & Blind Inversion Benchmark Report (`G3VM` `v0.4.0+`)
+# Peer Audit Response & Blind Inversion Benchmark Report (`G3VM` `v0.5.0`)
 
 This document provides a point-by-point methodological audit and empirical response to the five referee critiques raised regarding **G3VM (`DarkSnail-Geo3D`)**, backed by the blind inversion and ablation suite implemented in [`g3vm/blind_benchmark.py`](../g3vm/blind_benchmark.py) and serialized in [`results/g3vm_referee_audit_summary.json`](../results/g3vm_referee_audit_summary.json).
 
