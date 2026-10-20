@@ -26,6 +26,11 @@ dev = [
 [project.scripts]
 g3vm = "g3vm.cli:main"
 
+[project.urls]
+Homepage = "https://github.com/sneed-and-feed/g3vm"
+Repository = "https://github.com/sneed-and-feed/g3vm"
+DOI = "https://doi.org/10.5281/zenodo.23488781"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["g3vm*"]

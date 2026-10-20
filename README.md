@@ -1,5 +1,8 @@
 # G3VM (`DarkSnail-Geo3D`) — 3D Geological Velocity & TTI Elastic Modeler (`v0.3.0`)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23488781.svg)](https://doi.org/10.5281/zenodo.23488781)
+[![License: CC0-1.0](https://img.shields.io/badge/License-CC0_1.0-lightgrey.svg)](LICENSE)
+
 > **Live 3D WebGL Studio (Zero-Install Browser Demo):**
 > - **[Launch Interactive 3D Studio (`v0.3.0` CDN)](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.3.0/results/g3vm_portable_studio.html)** | **[`main` Dev Build](https://raw.githack.com/sneed-and-feed/g3vm/main/results/g3vm_portable_studio.html)**
 > - **One-Click Deep-Link Presets:**
@@ -125,3 +128,21 @@ python scripts/audit_gfm_math.py README.md docs/ARCHITECTURE.md
 ## Architecture Documentation
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the complete mathematical derivation, exact equations, and module-by-module mapping between `projectdarksnail` and `g3vm`.
+
+---
+
+## Citation
+
+If you use **G3VM** (`DarkSnail-Geo3D`) in your research or engineering workflows, please cite:
+
+```bibtex
+@software{g3vm_2026,
+  author       = {Skates, Cthulhu},
+  title        = {G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity and TTI Elastic Modeler},
+  year         = {2026},
+  version      = {0.3.0},
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.23488781},
+  url          = {https://doi.org/10.5281/zenodo.23488781}
+}
+```
