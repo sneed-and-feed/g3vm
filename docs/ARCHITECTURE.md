@@ -235,6 +235,8 @@ Because both Kahan/Parlett tangent projection and row-independent 1-ULP orthogon
 
 ```
 g3vm/
+├── formalization/
+│   └── OcclusionTriad.lean      # Lean 4 formalization of skew-symmetric triad, spherical cascade & RoPE medoids (0 sorry)
 ├── data/utah_forge/         # Public-domain US DOE Utah FORGE EGS Doublet field files (< 235 KB)
 │   ├── well_16A_78_32.dev       # Injector 16A(78)-32 directional survey (GDR 1216 / 1283)
 │   ├── well_16B_78_32.dev       # Producer 16B(78)-32 doublet survey (+300 ft parallel, GDR 1516 / 1531)
