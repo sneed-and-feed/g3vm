@@ -135,6 +135,11 @@ def serialize_evaluation_payload(
             "g3vm_vs": _tensor_to_nested_list(g3vm_out["vs_cube_kms"], 3),
             "g3vm_rho": _tensor_to_nested_list(g3vm_out["rho_cube_gcc"], 3),
             "g3vm_zp": _tensor_to_nested_list(g3vm_out["acoustic_impedance_zp"], 3),
+            "g3vm_eps_r": _tensor_to_nested_list(g3vm_out["eps_r_cube"], 3),
+            "g3vm_v_em": _tensor_to_nested_list(g3vm_out["v_em_cube_m_ns"], 4),
+            "naive_eps_r": _tensor_to_nested_list(naive_out["eps_r_cube"], 3),
+            "true_eps_r": _tensor_to_nested_list(scen["true_eps_r_cube"], 3),
+            "twt_radar_us": _tensor_to_nested_list(g3vm_out["twt_radar_us_cube"], 3),
             "g3vm_epsilon": _tensor_to_nested_list(g3vm_out["epsilon_cube"], 3),
             "g3vm_delta": _tensor_to_nested_list(g3vm_out["delta_cube"], 3),
             "g3vm_gamma": _tensor_to_nested_list(g3vm_out["gamma_cube"], 3),
@@ -164,7 +169,7 @@ def export_portable_html_studio(
 ) -> Path:
     """
     Generate a 100% standalone, zero-install single-file HTML5 3D Studio
-    (`g3vm_portable_studio.html`) with pre-evaluated 3D cubes for all 5 scenarios
+    (`g3vm_portable_studio.html`) with pre-evaluated 3D cubes for all 6 scenarios
     embedded directly inside the HTML so users on Windows, macOS, Linux, or mobile
     can open it in any browser without Python or a backend server.
     """
@@ -196,7 +201,7 @@ def export_portable_html_studio(
         "    const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');\n"
         "    if (Boolean(window.G3VM_PORTABLE_MODE) && url.includes('/api/')) {\n"
         "      if (url.includes('/api/health')) {\n"
-        "        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.3.0'}), {\n"
+        "        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.4.0'}), {\n"
         "          status: 200, headers: {'Content-Type': 'application/json'}\n"
         "        });\n"
         "      }\n"
@@ -209,6 +214,7 @@ def export_portable_html_studio(
         "      if (bodyObj.triad_gain === 0) {\n"
         "        payload.cubes.g3vm_vp = payload.cubes.naive_vp;\n"
         "        payload.cubes.err_g3vm = payload.cubes.err_naive;\n"
+        "        if (payload.cubes.naive_eps_r) { payload.cubes.g3vm_eps_r = payload.cubes.naive_eps_r; }\n"
         "      }\n"
         "      return new Response(JSON.stringify(payload), {\n"
         "        status: 200, headers: {'Content-Type': 'application/json'}\n"
@@ -242,7 +248,7 @@ def create_studio_app(default_grid_shape: tuple[int, int, int] = (32, 32, 32)) -
 
     @app.route("/api/health")
     def health() -> Any:
-        return jsonify({"status": "ok", "service": "g3vm-studio", "version": "0.3.0"})
+        return jsonify({"status": "ok", "service": "g3vm-studio", "version": "0.4.0"})
 
     @app.route("/api/evaluate", methods=["GET", "POST"])
     def evaluate_endpoint() -> Any:
@@ -291,7 +297,7 @@ def render_leapfrog_showcase_figure(
     """
     Generate the high-DPI multi-panel showcase figure comparing Ground Truth,
     Naive RBF/Kriging Baseline (Isotropic Cross-Fault Smoothing), and DarkSnail G3VM across
-    all five industry benchmark scenarios (including the US DOE Utah FORGE EGS Doublet).
+    all six benchmark scenarios (including US DOE Utah FORGE and Lunar Lava Tube ISRU).
     """
     out_file = Path(output_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
@@ -302,15 +308,13 @@ def render_leapfrog_showcase_figure(
         "unconformity_trap",
         "egs_tbm_hazard",
         "utah_forge_egs_doublet",
+        "lunar_lava_tube_isru",
     ]
     bundles = {name: evaluate_scenario_comparison(name, grid_shape=grid_shape) for name in scenarios}
 
     plt.style.use("dark_background")
-    fig, axes = plt.subplots(len(scenarios), 4, figsize=(20, 21.5), dpi=160)
+    fig, axes = plt.subplots(len(scenarios), 4, figsize=(20, 25.5), dpi=160)
     fig.patch.set_facecolor("#0b0f17")
-
-    Z, Y, X = grid_shape
-    y_mid = Y // 2
 
     for row_idx, name in enumerate(scenarios):
         b = bundles[name]
@@ -318,29 +322,33 @@ def render_leapfrog_showcase_figure(
         g3vm_vp = b["g3vm_output"]["vp_cube_kms"].cpu().numpy()
         naive_vp = b["naive_output"]["vp_cube_kms"].cpu().numpy()
         true_vp = scen["true_vp_cube"].cpu().numpy()
+        y_mid = true_vp.shape[1] // 2
         m = b["metrics"]
+        vp_vmin = 0.05 if name == "lunar_lava_tube_isru" else 1.7
+        vp_vmax = 5.55 if name == "lunar_lava_tube_isru" else 6.4
+        err_vmax = 1.8 if name == "lunar_lava_tube_isru" else 1.3
 
         panels = [
             (
                 true_vp[:, y_mid, :],
                 f"{scen['meta']['title']}\n[Ground Truth Vp (km/s) @ Inline Y={y_mid}]",
                 "turbo",
-                1.7,
-                6.4,
+                vp_vmin,
+                vp_vmax,
             ),
             (
                 naive_vp[:, y_mid, :],
                 f"Naive RBF/Kriging Baseline (Isotropic Smoothing)\nRMSE: {m['naive_vp_rmse_kms']:.3f} km/s | Fault Sharpness: {m['naive_fault_sharpness_ratio']*100:.1f}%",
                 "turbo",
-                1.7,
-                6.4,
+                vp_vmin,
+                vp_vmax,
             ),
             (
                 g3vm_vp[:, y_mid, :],
                 f"DarkSnail G3VM (so(C) Triad + Ridge Tomo)\nRMSE: {m['g3vm_vp_rmse_kms']:.3f} km/s (-{m['rmse_reduction_pct']:.1f}%) | Sharpness: {m['g3vm_fault_sharpness_ratio']*100:.1f}%",
                 "turbo",
-                1.7,
-                6.4,
+                vp_vmin,
+                vp_vmax,
             ),
             (
                 np.abs(naive_vp[:, y_mid, :] - true_vp[:, y_mid, :])
@@ -348,7 +356,7 @@ def render_leapfrog_showcase_figure(
                 f"Fault-Smear Error Eliminated (|Err_Naive| - |Err_G3VM|)\n<v, d_ell> = {m['max_orthogonality_residual']:.1e} | W1: {m['g3vm_marginal_w1']:.4f}",
                 "magma",
                 0.0,
-                1.3,
+                err_vmax,
             ),
         ]
 
@@ -377,13 +385,13 @@ def render_leapfrog_showcase_figure(
                         )
 
     fig.suptitle(
-        "G3VM (DarkSnail-Geo3D) v0.3.0: Marmousi2, SEG/EAGE Overthrust, 4D CCS/H2, EGS/TBM & US DOE Utah FORGE Doublet",
-        fontsize=13.5,
+        "G3VM (DarkSnail-Geo3D) v0.4.0: Marmousi2, SEG/EAGE Overthrust, 4D CCS/H2, EGS/TBM, Utah FORGE & Lunar Lava Tube ISRU",
+        fontsize=13.0,
         fontweight="bold",
         color="#58a6ff",
-        y=0.99,
+        y=0.992,
     )
-    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.975])
+    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.98])
     fig.savefig(out_file, facecolor=fig.get_facecolor())
     plt.close(fig)
     return {name: bundles[name]["metrics"] for name in scenarios}

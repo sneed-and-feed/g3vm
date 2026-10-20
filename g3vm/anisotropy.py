@@ -7,7 +7,7 @@ and Lie-algebraic so(6) Kelvin-Mandel Voigt stiffness tensor rotors across folde
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Any, Dict, Sequence, Tuple
 
 import torch
 import torch.nn as nn
@@ -26,6 +26,86 @@ ELASTIC_TTI_CATALOG: Tuple[Tuple[str, float, float, float, float, float, float],
     ("anhydrite_evaporite", 5.85, 3.28, 2.94, 0.02, 0.01, 0.02),
     ("halite_salt_diapir", 4.50, 2.60, 2.16, 0.00, 0.00, 0.00),
 )
+
+# 8-unit Lunar Lava Tube, Regolith Megascattering & Polar/Sub-Pit Cryogenic ISRU Catalog
+# (Apollo 17 LSPE NASA PDS urn:nasa:pds:a17lspe, Kaku et al. 2017 SELENE LRS,
+#  Carrer et al. 2024 LRO Mini-RF, Horvath et al. 2022 / VIPER-TRIDENT):
+# (name, vp0_kms, vs0_kms, rho_gcc, epsilon, delta, gamma)
+LUNAR_ELASTIC_TTI_CATALOG: Tuple[Tuple[str, float, float, float, float, float, float], ...] = (
+    ("surficial_regolith_lspe_l1_2", 0.28, 0.15, 1.58, 0.04, 0.02, 0.05),
+    ("brecciated_megaregolith_lspe_l3", 0.96, 0.52, 2.15, 0.09, 0.04, 0.10),
+    ("competent_mare_basalt_lspe_l5", 4.70, 2.65, 3.10, 0.06, 0.03, 0.07),
+    ("lava_tube_vacuum_conduit_lrs", 0.05, 0.00, 0.00, 0.00, 0.00, 0.00),
+    ("cryogenic_water_ice_lens_viper", 3.85, 1.98, 2.05, 0.15, 0.07, 0.17),
+    ("high_ti_ilmenite_cumulate_pod", 5.48, 3.08, 3.48, 0.05, 0.02, 0.06),
+    ("lee_lincoln_thrust_melt_breccia", 2.85, 1.55, 2.62, 0.11, 0.05, 0.12),
+    ("sub_mare_olivine_gabbro_basement", 5.15, 2.90, 3.22, 0.04, 0.02, 0.05),
+)
+
+# Coupled Olhoeft-Strangway (1975) Lunar Petrophysical Dielectric Catalog:
+# (name, rho_matrix_gcc, phi_ice, w_ilm, chi_vac, eps_r_target, v_em_m_ns_target)
+LUNAR_DIELECTRIC_CATALOG: Tuple[Tuple[str, float, float, float, float, float, float], ...] = (
+    ("surficial_regolith_lspe_l1_2", 1.538511, 0.00, 0.0000, 0.0, 2.75, 0.1809),
+    ("brecciated_megaregolith_lspe_l3", 2.15000, 0.00, 0.0000, 0.0, 4.11, 0.1480),
+    ("competent_mare_basalt_lspe_l5", 3.10000, 0.00, 0.0000, 0.0, 7.68, 0.1082),
+    ("lava_tube_vacuum_conduit_lrs", 0.00000, 0.00, 0.0000, 1.0, 1.00, 0.2998),
+    ("cryogenic_water_ice_lens_viper", 2.05000, 1.00, 0.0000, 0.0, 3.15, 0.1689),
+    ("high_ti_ilmenite_cumulate_pod", 3.10000, 0.00, 1.0091, 0.0, 9.85, 0.0955),
+    ("lee_lincoln_thrust_melt_breccia", 2.62000, 0.00, 0.0000, 0.0, 5.60, 0.1267),
+    ("sub_mare_olivine_gabbro_basement", 3.22000, 0.00, 0.0000, 0.0, 8.32, 0.1039),
+)
+
+
+@dataclass
+class DielectricCubeBundle:
+    """Coupled 3D dielectric permittivity and electromagnetic radar velocity volume bundle."""
+
+    eps_r: torch.Tensor
+    v_em_m_ns: torch.Tensor
+    twt_radar_us: torch.Tensor
+    rho_gcc: torch.Tensor
+    phi_ice: torch.Tensor
+    w_ilm: torch.Tensor
+    chi_vac: torch.Tensor
+
+    @property
+    def eps_r_3d(self) -> torch.Tensor:
+        return self.eps_r
+
+    @property
+    def v_em_m_ns_3d(self) -> torch.Tensor:
+        return self.v_em_m_ns
+
+    @property
+    def twt_radar_us_3d(self) -> torch.Tensor:
+        return self.twt_radar_us
+
+    def __getitem__(self, key: str) -> Any:
+        alias_map = {
+            "g3vm_eps_r": "eps_r",
+            "eps_r_cube": "eps_r",
+            "eps_r_3d": "eps_r",
+            "g3vm_v_em": "v_em_m_ns",
+            "v_em": "v_em_m_ns",
+            "v_em_cube_m_ns": "v_em_m_ns",
+            "v_em_m_ns_3d": "v_em_m_ns",
+            "twt_radar_us_cube": "twt_radar_us",
+            "twt_radar_us_3d": "twt_radar_us",
+        }
+        return getattr(self, alias_map.get(key, key))
+
+    def to_dict(self) -> Dict[str, torch.Tensor]:
+        return {
+            "eps_r": self.eps_r,
+            "g3vm_eps_r": self.eps_r,
+            "v_em_m_ns": self.v_em_m_ns,
+            "g3vm_v_em": self.v_em_m_ns,
+            "twt_radar_us": self.twt_radar_us,
+            "rho_gcc": self.rho_gcc,
+            "phi_ice": self.phi_ice,
+            "w_ilm": self.w_ilm,
+            "chi_vac": self.chi_vac,
+        }
 
 
 @dataclass
@@ -234,17 +314,19 @@ class ThomsenTTIElasticModulusEngine(nn.Module):
     with Lie-algebraic so(6) Kelvin-Mandel stiffness tensor rotation across folded/faulted strata.
     """
 
-    def __init__(self, num_lithologies: int = 8) -> None:
+    def __init__(self, num_lithologies: int = 8, lunar_mode: bool = False) -> None:
         super().__init__()
         self.num_lithologies = num_lithologies
-        c = min(num_lithologies, len(ELASTIC_TTI_CATALOG))
+        self.lunar_mode = bool(lunar_mode)
+        catalog = LUNAR_ELASTIC_TTI_CATALOG if self.lunar_mode else ELASTIC_TTI_CATALOG
+        c = min(num_lithologies, len(catalog))
 
-        vp0 = [ELASTIC_TTI_CATALOG[i][1] for i in range(c)]
-        vs0 = [ELASTIC_TTI_CATALOG[i][2] for i in range(c)]
-        rho = [ELASTIC_TTI_CATALOG[i][3] for i in range(c)]
-        eps = [ELASTIC_TTI_CATALOG[i][4] for i in range(c)]
-        dlt = [ELASTIC_TTI_CATALOG[i][5] for i in range(c)]
-        gam = [ELASTIC_TTI_CATALOG[i][6] for i in range(c)]
+        vp0 = [catalog[i][1] for i in range(c)]
+        vs0 = [catalog[i][2] for i in range(c)]
+        rho = [catalog[i][3] for i in range(c)]
+        eps = [catalog[i][4] for i in range(c)]
+        dlt = [catalog[i][5] for i in range(c)]
+        gam = [catalog[i][6] for i in range(c)]
 
         self.register_buffer("litho_vp0", torch.tensor(vp0, dtype=torch.float32))
         self.register_buffer("litho_vs0", torch.tensor(vs0, dtype=torch.float32))
@@ -335,10 +417,23 @@ class ThomsenTTIElasticModulusEngine(nn.Module):
             dlt_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_delta[:c])
             gam_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_gamma[:c])
 
-            scale_vp = vp_slab / torch.clamp(vp0_prior, min=1.2)
-            vs0_s = torch.clamp(vs0_prior * (0.85 * scale_vp + 0.15), min=0.80, max=4.20)
-            rho_gardner = 1.741 * (torch.clamp(vp_slab, min=1.5) ** 0.25)
-            rho_s = torch.clamp(0.75 * rho_s + 0.25 * rho_gardner, min=1.85, max=3.10)
+            if self.lunar_mode:
+                vac_mask = (self.litho_vp0[:c] < 0.10).to(p_slab.dtype)
+                chi_vac_s = torch.einsum("bczyx,c->bzyx", p_slab, vac_mask).clamp(0.0, 1.0)
+                scale_vp = vp_slab / torch.clamp(vp0_prior, min=0.20)
+                vs0_s = (
+                    torch.clamp(vs0_prior * (0.90 * scale_vp + 0.10), min=0.00, max=3.80)
+                    * (1.0 - chi_vac_s)
+                )
+                rho_s = torch.clamp(rho_s, min=0.00, max=3.80) * (1.0 - chi_vac_s)
+                eps_s = eps_s * (1.0 - chi_vac_s)
+                dlt_s = dlt_s * (1.0 - chi_vac_s)
+                gam_s = gam_s * (1.0 - chi_vac_s)
+            else:
+                scale_vp = vp_slab / torch.clamp(vp0_prior, min=1.2)
+                vs0_s = torch.clamp(vs0_prior * (0.85 * scale_vp + 0.15), min=0.80, max=4.20)
+                rho_gardner = 1.741 * (torch.clamp(vp_slab, min=1.5) ** 0.25)
+                rho_s = torch.clamp(0.75 * rho_s + 0.25 * rho_gardner, min=1.85, max=3.10)
 
             if cavity_core is not None:
                 cav_s = (cavity_core[:, 0, z0:z1] > 0.35).to(vp_slab.dtype)
@@ -357,7 +452,7 @@ class ThomsenTTIElasticModulusEngine(nn.Module):
                 ray_direction_zyx=ray_direction_zyx,
             )
 
-            vp_vs_s = vp_slab / torch.clamp(vs0_s, min=0.8)
+            vp_vs_s = vp_slab / torch.clamp(vs0_s, min=0.10 if self.lunar_mode else 0.8)
             r2_s = vp_vs_s * vp_vs_s
             pois_s = torch.clamp(
                 (r2_s - 2.0) / (2.0 * torch.clamp(r2_s - 1.0, min=0.25)), min=0.05, max=0.45
@@ -422,3 +517,242 @@ class ThomsenTTIElasticModulusEngine(nn.Module):
             stiffness_frobenius_drift=frob_drift,
             so6_orthogonality_error=so6_ortho_err,
         )
+
+
+class OlhoeftStrangwayDielectricEngine(nn.Module):
+    """
+    Coupled Seismic-Dielectric Petrophysical Engine (`OlhoeftStrangwayDielectricEngine`,
+    Olhoeft & Strangway 1975; Carrier et al. 1991; Kaku et al. 2017; Horvath et al. 2022).
+
+    Maps 3D bulk density `rho(x)` (g/cm^3), cryogenic water-ice volume fraction `phi_ice(x)`,
+    high-Ti ilmenite fraction `w_Ilm(x)`, and hard-vacuum cavity indicator `chi_vac(x)` to:
+      1. Relative dielectric permittivity `eps_r(x)`:
+         `eps_r(x) = chi_vac(x) * 1.000 + (1 - chi_vac(x)) * [(1.93 ** rho(x)) * (1 - phi_ice(x)) + 3.15 * phi_ice(x) + 2.15 * w_Ilm(x)]`
+      2. Electromagnetic radar phase velocity `v_EM(x)` (m/ns):
+         `v_EM(x) = 0.299792458 / sqrt(max(eps_r(x), 1.000))`
+      3. Two-way vertical radar travel time `TWT_radar(z, y, x)` (microseconds, us).
+
+    All 3D volume evaluations execute strictly via Z-slab chunking (`chunk_z = 16`)
+    to maintain peak heap memory strictly below `< 35 MB`.
+    """
+
+    C0_M_NS: float = 0.299792458
+
+    def __init__(self, num_lithologies: int = 8, lunar_mode: bool = True) -> None:
+        super().__init__()
+        self.num_lithologies = int(num_lithologies)
+        self.lunar_mode = bool(lunar_mode)
+
+        c = min(self.num_lithologies, len(LUNAR_DIELECTRIC_CATALOG))
+        if self.lunar_mode:
+            rho_mat = [LUNAR_DIELECTRIC_CATALOG[i][1] for i in range(c)]
+            phi_ice = [LUNAR_DIELECTRIC_CATALOG[i][2] for i in range(c)]
+            w_ilm = [LUNAR_DIELECTRIC_CATALOG[i][3] for i in range(c)]
+            chi_vac = [LUNAR_DIELECTRIC_CATALOG[i][4] for i in range(c)]
+        else:
+            rho_mat = [ELASTIC_TTI_CATALOG[i][3] for i in range(c)]
+            phi_ice = [0.0 for _ in range(c)]
+            w_ilm = [0.0 for _ in range(c)]
+            chi_vac = [0.0 for _ in range(c)]
+
+        self.register_buffer("litho_rho_matrix", torch.tensor(rho_mat, dtype=torch.float32))
+        self.register_buffer("litho_phi_ice", torch.tensor(phi_ice, dtype=torch.float32))
+        self.register_buffer("litho_w_ilm", torch.tensor(w_ilm, dtype=torch.float32))
+        self.register_buffer("litho_chi_vac", torch.tensor(chi_vac, dtype=torch.float32))
+
+    @staticmethod
+    def compute_olhoeft_strangway_dielectric(
+        rho_gcc: torch.Tensor,
+        phi_ice: torch.Tensor | None = None,
+        w_ilm: torch.Tensor | None = None,
+        chi_vac: torch.Tensor | None = None,
+        dz_m: float = 10.0,
+        chunk_z: int | None = 16,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Evaluate the exact Olhoeft-Strangway coupled dielectric equation in `chunk_z` Z-slabs:
+            `eps_r(x) = chi_vac * 1.000 + (1 - chi_vac) * [(1.93 ** rho) * (1 - phi_ice) + 3.15 * phi_ice + 2.15 * w_Ilm]`
+            `v_EM(x) = 0.299792458 / sqrt(max(eps_r(x), 1.000))`
+            `TWT_radar(z, y, x) = cumsum_z(2 * dz_m / (1000 * v_EM))` (us)
+        """
+        rho_f = rho_gcc.float()
+        phi_f = torch.zeros_like(rho_f) if phi_ice is None else phi_ice.float()
+        ilm_f = torch.zeros_like(rho_f) if w_ilm is None else w_ilm.float()
+        vac_f = torch.zeros_like(rho_f) if chi_vac is None else chi_vac.float()
+
+        has_batch = rho_f.ndim == 4
+        if not has_batch:
+            rho_f = rho_f.unsqueeze(0)
+            phi_f = phi_f.unsqueeze(0)
+            ilm_f = ilm_f.unsqueeze(0)
+            vac_f = vac_f.unsqueeze(0)
+
+        B, Z, Y, X = rho_f.shape
+        step_z = Z if (chunk_z is None or int(chunk_z) <= 0) else max(1, min(Z, int(chunk_z)))
+
+        eps_r_cube = torch.empty_like(rho_f)
+        v_em_cube = torch.empty_like(rho_f)
+        twt_cube = torch.empty_like(rho_f)
+        running_twt = torch.zeros((B, 1, Y, X), dtype=rho_f.dtype, device=rho_f.device)
+
+        for z0 in range(0, Z, step_z):
+            z1 = min(Z, z0 + step_z)
+            r_s = rho_f[:, z0:z1].clamp(0.0, 4.5)
+            p_s = phi_f[:, z0:z1].clamp(0.0, 1.0)
+            w_s = ilm_f[:, z0:z1].clamp(0.0, 1.5)
+            v_s = vac_f[:, z0:z1].clamp(0.0, 1.0)
+
+            eps_s = v_s * 1.000 + (1.0 - v_s) * (
+                (1.93 ** r_s) * (1.0 - p_s) + 3.15 * p_s + 2.15 * w_s
+            )
+            eps_s = torch.clamp(eps_s, min=1.000, max=10.000)
+            v_em_s = OlhoeftStrangwayDielectricEngine.C0_M_NS / torch.sqrt(
+                torch.clamp(eps_s, min=1.000)
+            )
+            dt_us_s = (2.0 * float(dz_m)) / (1000.0 * torch.clamp(v_em_s, min=1e-4))
+            twt_s = running_twt + torch.cumsum(dt_us_s, dim=1)
+            running_twt = twt_s[:, -1:, :, :]
+
+            eps_r_cube[:, z0:z1] = eps_s
+            v_em_cube[:, z0:z1] = v_em_s
+            twt_cube[:, z0:z1] = twt_s
+
+        if not has_batch:
+            return eps_r_cube.squeeze(0), v_em_cube.squeeze(0), twt_cube.squeeze(0)
+        return eps_r_cube, v_em_cube, twt_cube
+
+    def forward(
+        self,
+        probs_post: torch.Tensor | None = None,
+        rho_gcc: torch.Tensor | None = None,
+        phi_ice: torch.Tensor | None = None,
+        w_ilm: torch.Tensor | None = None,
+        chi_vac: torch.Tensor | None = None,
+        cavity_core: torch.Tensor | None = None,
+        dz_m: float = 10.0,
+        chunk_z: int | None = 16,
+        *,
+        rho_gcc_3d: torch.Tensor | None = None,
+        phi_ice_3d: torch.Tensor | None = None,
+        w_ilm_3d: torch.Tensor | None = None,
+        chi_vac_3d: torch.Tensor | None = None,
+    ) -> DielectricCubeBundle:
+        """
+        Compute coupled 3D dielectric permittivity `eps_r`, radar phase velocity `v_em_m_ns`,
+        and two-way radar travel time `twt_radar_us` (us) in `chunk_z = 16` Z-slabs.
+        """
+        if rho_gcc is None and rho_gcc_3d is not None:
+            rho_gcc = rho_gcc_3d
+        if phi_ice is None and phi_ice_3d is not None:
+            phi_ice = phi_ice_3d
+        if w_ilm is None and w_ilm_3d is not None:
+            w_ilm = w_ilm_3d
+        if chi_vac is None and chi_vac_3d is not None:
+            chi_vac = chi_vac_3d
+        if probs_post is not None:
+            if probs_post.ndim == 4:
+                # Accept either (Z, Y, X, C) or (C, Z, Y, X)
+                if probs_post.shape[-1] == self.litho_rho_matrix.numel():
+                    probs_bcz = probs_post.permute(3, 0, 1, 2).unsqueeze(0)
+                else:
+                    probs_bcz = probs_post.unsqueeze(0)
+                squeeze_out = True
+            else:
+                probs_bcz = probs_post
+                squeeze_out = False
+
+            c = min(probs_bcz.shape[1], self.litho_rho_matrix.numel())
+            B, _, Z, Y, X = probs_bcz.shape
+            step_z = Z if (chunk_z is None or int(chunk_z) <= 0) else max(1, min(Z, int(chunk_z)))
+
+            rho_eff = torch.empty((B, Z, Y, X), dtype=probs_bcz.dtype, device=probs_bcz.device)
+            phi_eff = torch.empty_like(rho_eff)
+            ilm_eff = torch.empty_like(rho_eff)
+            vac_eff = torch.empty_like(rho_eff)
+
+            for z0 in range(0, Z, step_z):
+                z1 = min(Z, z0 + step_z)
+                p_slab = probs_bcz[:, :c, z0:z1]
+                r_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_rho_matrix[:c])
+                pi_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_phi_ice[:c])
+                wi_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_w_ilm[:c])
+                cv_s = torch.einsum("bczyx,c->bzyx", p_slab, self.litho_chi_vac[:c])
+
+                if cavity_core is not None:
+                    cav_slab = (
+                        cavity_core[:, 0, z0:z1]
+                        if cavity_core.ndim == 5
+                        else (
+                            cavity_core[:, z0:z1]
+                            if cavity_core.ndim == 4
+                            else cavity_core[z0:z1].unsqueeze(0)
+                        )
+                    )
+                    cv_s = torch.maximum(cv_s, (cav_slab > 0.5).to(cv_s.dtype) * cv_s)
+
+                rho_eff[:, z0:z1] = r_s
+                phi_eff[:, z0:z1] = pi_s
+                ilm_eff[:, z0:z1] = wi_s
+                vac_eff[:, z0:z1] = cv_s
+
+            if rho_gcc is not None and not self.lunar_mode:
+                rho_eff = rho_gcc.unsqueeze(0) if rho_gcc.ndim == 3 else rho_gcc
+            if phi_ice is not None:
+                phi_eff = phi_ice.unsqueeze(0) if phi_ice.ndim == 3 else phi_ice
+            if w_ilm is not None:
+                ilm_eff = w_ilm.unsqueeze(0) if w_ilm.ndim == 3 else w_ilm
+            if chi_vac is not None:
+                vac_eff = chi_vac.unsqueeze(0) if chi_vac.ndim == 3 else chi_vac
+
+            eps_r, v_em, twt_us = self.compute_olhoeft_strangway_dielectric(
+                rho_gcc=rho_eff,
+                phi_ice=phi_eff,
+                w_ilm=ilm_eff,
+                chi_vac=vac_eff,
+                dz_m=dz_m,
+                chunk_z=step_z,
+            )
+            if squeeze_out:
+                return DielectricCubeBundle(
+                    eps_r=eps_r.squeeze(0),
+                    v_em_m_ns=v_em.squeeze(0),
+                    twt_radar_us=twt_us.squeeze(0),
+                    rho_gcc=rho_eff.squeeze(0),
+                    phi_ice=phi_eff.squeeze(0),
+                    w_ilm=ilm_eff.squeeze(0),
+                    chi_vac=vac_eff.squeeze(0),
+                )
+            return DielectricCubeBundle(
+                eps_r=eps_r,
+                v_em_m_ns=v_em,
+                twt_radar_us=twt_us,
+                rho_gcc=rho_eff,
+                phi_ice=phi_eff,
+                w_ilm=ilm_eff,
+                chi_vac=vac_eff,
+            )
+
+        if rho_gcc is None:
+            raise ValueError("Either `probs_post` or `rho_gcc` must be provided to OlhoeftStrangwayDielectricEngine.")
+
+        eps_r, v_em, twt_us = self.compute_olhoeft_strangway_dielectric(
+            rho_gcc=rho_gcc,
+            phi_ice=phi_ice,
+            w_ilm=w_ilm,
+            chi_vac=chi_vac,
+            dz_m=dz_m,
+            chunk_z=chunk_z,
+        )
+        phi_out = torch.zeros_like(rho_gcc) if phi_ice is None else phi_ice
+        ilm_out = torch.zeros_like(rho_gcc) if w_ilm is None else w_ilm
+        vac_out = torch.zeros_like(rho_gcc) if chi_vac is None else chi_vac
+        return DielectricCubeBundle(
+            eps_r=eps_r,
+            v_em_m_ns=v_em,
+            twt_radar_us=twt_us,
+            rho_gcc=rho_gcc,
+            phi_ice=phi_out,
+            w_ilm=ilm_out,
+            chi_vac=vac_out,
+        )
+

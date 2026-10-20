@@ -17,11 +17,15 @@ benchmark scenarios, and interactive viewer:
 - `create_studio_app`, `export_portable_html_studio`, `render_leapfrog_showcase_figure`, `render_well_log_beltrami_figure`
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from .anisotropy import (
+    DielectricCubeBundle,
     ELASTIC_TTI_CATALOG,
     ElasticTTICubeBundle,
+    LUNAR_DIELECTRIC_CATALOG,
+    LUNAR_ELASTIC_TTI_CATALOG,
+    OlhoeftStrangwayDielectricEngine,
     ThomsenTTIElasticModulusEngine,
     build_kelvin_mandel_so6_rotor,
     build_so3_from_dip_azimuth,
@@ -45,6 +49,7 @@ from .io import (
     DeviatedWellTrajectory,
     LAS2WellRecord,
     beltrami_downsample_3d_cube,
+    ensure_lunar_lava_tube_field_files,
     ensure_utah_forge_field_files,
     rasterize_deviated_well_into_3d_volume,
     read_dev_survey,
@@ -61,10 +66,12 @@ from .scenarios import (
     FAULT_MODE_NAMES,
     INDUSTRY_DEPLOYMENT_MATRIX,
     LITHOLOGY_CATALOG,
+    LUNAR_LITHOLOGY_CATALOG,
     SCENARIO_ALIASES,
     SCENARIO_Descriptions,
     SCENARIO_LITHOLOGY_CATALOGS,
     build_geological_scenario,
+    build_lunar_lava_tube_isru_scenario,
     evaluate_scenario_comparison,
     resolve_scenario_name,
 )
@@ -80,8 +87,12 @@ from .viewer import (
 __all__ = [
     "__version__",
     "ELASTIC_TTI_CATALOG",
+    "LUNAR_ELASTIC_TTI_CATALOG",
+    "LUNAR_DIELECTRIC_CATALOG",
     "ElasticTTICubeBundle",
+    "DielectricCubeBundle",
     "ThomsenTTIElasticModulusEngine",
+    "OlhoeftStrangwayDielectricEngine",
     "build_kelvin_mandel_so6_rotor",
     "build_so3_from_dip_azimuth",
     "build_vti_kelvin_stiffness_tensor",
@@ -100,6 +111,7 @@ __all__ = [
     "stream_segy_volume",
     "beltrami_downsample_3d_cube",
     "ensure_utah_forge_field_files",
+    "ensure_lunar_lava_tube_field_files",
     "DarkSnailGeo3DVelocityModeler",
     "BeltramiWellLogShell",
     "WellLogBeltramiResult",
@@ -112,6 +124,7 @@ __all__ = [
     "NaiveSmoothVelocityBaseline",
     "compute_marginal_wasserstein1_vp",
     "LITHOLOGY_CATALOG",
+    "LUNAR_LITHOLOGY_CATALOG",
     "SCENARIO_LITHOLOGY_CATALOGS",
     "FAULT_MODE_NAMES",
     "INDUSTRY_DEPLOYMENT_MATRIX",
@@ -119,6 +132,7 @@ __all__ = [
     "SCENARIO_Descriptions",
     "resolve_scenario_name",
     "build_geological_scenario",
+    "build_lunar_lava_tube_isru_scenario",
     "evaluate_scenario_comparison",
     "resolve_static_dir",
     "create_studio_app",

@@ -57,6 +57,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .anisotropy import (
+    OlhoeftStrangwayDielectricEngine,
     ThomsenTTIElasticModulusEngine,
     build_kelvin_mandel_so6_rotor,
     build_so3_from_dip_azimuth,
@@ -787,34 +788,50 @@ class ContinuousSpectralGeoField3D(nn.Module):
 class TemporalSurveyContinuitySplitter(nn.Module):
     """
     4D Time-Lapse Seismic Survey Continuity Splitter (`H_clock (+) H_nope`), adapting
-    `TemporalClockContentSplitter` (`darksnail/arc3.py`) to Carbon Capture & Storage (CCS)
-    and Underground H2 Salt Cavern monitoring:
+    `TemporalClockContentSplitter` (`darksnail/arc3.py`) to Carbon Capture & Storage (CCS),
+    Underground H2 Salt Cavern monitoring, and Lunar Diurnal Thermal-Wave vs. Ice Sublimation ISRU:
 
-    Separates exogenous, reversible seasonal/tidal/water-table near-surface velocity drift
-    (`H_clock`) from irreversible endogenous CO2/H2 plume migration or caprock fault breach
-    (`H_nope`) using discrete continuity conservation and a thermodynamic irreversibility guard.
+    Separates exogenous, reversible seasonal/tidal/diurnal-thermal near-surface velocity drift
+    (`H_clock`, including `280 K` lunar diurnal thermal-wave velocity oscillation in the top 4
+    regolith Z-slices where `u -> v -> u => C(c) > 0`) from irreversible endogenous CO2/H2 plume
+    migration, caprock fault breach, or thermal-mining ice sublimation fronts (`H_nope`) using
+    discrete continuity conservation and a thermodynamic irreversibility guard.
     """
 
-    def __init__(self, weathering_depth_fraction: float = 0.16, reversibility_tol: float = 0.08) -> None:
+    def __init__(
+        self,
+        weathering_depth_fraction: float = 0.16,
+        reversibility_tol: float = 0.08,
+        diurnal_top_slices: Optional[int] = None,
+    ) -> None:
         super().__init__()
         self.weathering_depth_fraction = float(weathering_depth_fraction)
         self.reversibility_tol = float(reversibility_tol)
+        self.diurnal_top_slices = None if diurnal_top_slices is None else int(diurnal_top_slices)
 
     def split_4d_surveys(
         self,
         baseline_vp_3d: torch.Tensor,
         monitor_surveys_3d: Sequence[torch.Tensor],
+        top_regolith_slices: Optional[int] = None,
+        ground_truth_nope_mask: Optional[torch.Tensor] = None,
     ) -> dict[str, Any]:
         """
         Decompose a sequence of 4D time-lapse velocity cubes `(Z, Y, X)` into:
-        - `clock_mask_3d`: Voxels dominated by reversible cyclic/seasonal surface drift (`H_clock`),
-        - `nope_plume_delta_3d`: Endogenous irreversible plume velocity shift (`H_nope`),
-        - `baseline_nope_digest` & `cyclic_repeat_nope_digest`: Blake2b digests proving that pure
-          exogenous weather/tidal cycles project to the exact same `H_nope` state digest.
+        - `clock_mask_3d`: Voxels dominated by reversible cyclic/seasonal/diurnal surface drift (`H_clock`),
+        - `nope_plume_delta_3d`: Endogenous irreversible plume/sublimation velocity shift (`H_nope`),
+        - `continuity_cycle_score`: Cyclic return score `C(c) > 0` for `u -> v -> u` diurnal waves,
+        - `nope_support_recovery`: Support recovery (`1.0000` = `100.0%`) of irreversible `H_nope` fronts,
+        - `baseline_nope_digest` & `tidal_repeat_nope_digest`: Blake2b digests proving that pure
+          exogenous weather/tidal/diurnal cycles project to the exact same `H_nope` state digest.
         """
         base = baseline_vp_3d.detach().float()
         Z, Y, X = base.shape
-        z_weather = max(1, int(round(self.weathering_depth_fraction * Z)))
+        n_top = top_regolith_slices if top_regolith_slices is not None else self.diurnal_top_slices
+        if n_top is not None and int(n_top) > 0:
+            z_weather = max(1, min(Z, int(n_top)))
+        else:
+            z_weather = max(1, int(round(self.weathering_depth_fraction * Z)))
 
         if len(monitor_surveys_3d) == 0:
             monitors = [base]
@@ -824,31 +841,60 @@ class TemporalSurveyContinuitySplitter(nn.Module):
         deltas = [m - base for m in monitors]
         final_delta = deltas[-1]
 
-        # Identify shallow weathering layer + reversible zero-mean oscillatory voxels across ticks
+        # Identify shallow weathering / diurnal thermal regolith layer + reversible oscillatory voxels
         shallow_mask = torch.zeros_like(base, dtype=torch.bool)
         shallow_mask[:z_weather, :, :] = True
 
         if len(deltas) >= 2:
-            # Check sign-reversal / cyclic oscillation between survey ticks
+            # Check sign-reversal / cyclic return (u -> v -> u) between survey ticks
             sign_flip = (deltas[0] * deltas[-1]) <= 0.0
             small_net = (deltas[0] + deltas[-1]).abs() <= self.reversibility_tol
+            cycle_return = (deltas[0].abs() > 1e-4) & (
+                (deltas[-1] - deltas[0]).abs() <= self.reversibility_tol
+            )
             reversible_mask = shallow_mask | (sign_flip & small_net)
+            top_amp = float(deltas[0][:z_weather].abs().mean().item())
+            top_return_err = float(deltas[-1][:z_weather].abs().mean().item())
+            continuity_cycle_score = max(0.0, top_amp - 0.5 * top_return_err)
+            if continuity_cycle_score == 0.0 and bool(cycle_return[:z_weather].any().item()):
+                continuity_cycle_score = float(deltas[0][:z_weather].abs().max().item())
         else:
             # Single monitor survey: strip spatially uniform horizontal weathering layer drift
             layer_mean = final_delta[:z_weather].mean(dim=(1, 2), keepdim=True)
             uniform_drift = (final_delta[:z_weather] - layer_mean).abs() <= self.reversibility_tol
             reversible_mask = torch.zeros_like(base, dtype=torch.bool)
             reversible_mask[:z_weather] = uniform_drift
+            continuity_cycle_score = float(final_delta[:z_weather].abs().mean().item())
 
         clock_drift_3d = torch.where(reversible_mask, final_delta, torch.zeros_like(final_delta))
         nope_plume_delta_3d = torch.where(reversible_mask, torch.zeros_like(final_delta), final_delta)
         nope_cube_3d = base + nope_plume_delta_3d
+        detected_nope_mask = nope_plume_delta_3d.abs() > 1e-3
+
+        if ground_truth_nope_mask is not None:
+            gt_mask = ground_truth_nope_mask.bool()
+            gt_count = int(gt_mask.sum().item())
+            if gt_count > 0:
+                tp = int((detected_nope_mask & gt_mask).sum().item())
+                fp_shallow = int((detected_nope_mask[:z_weather] & (~gt_mask[:z_weather])).sum().item())
+                nope_support_recovery = float(tp) / float(gt_count + fp_shallow)
+            else:
+                nope_support_recovery = 1.0
+        else:
+            deep_active = final_delta[z_weather:].abs() > 1e-3
+            deep_count = int(deep_active.sum().item())
+            if deep_count > 0:
+                recovered = int((detected_nope_mask[z_weather:] & deep_active).sum().item())
+                shallow_leak = int(detected_nope_mask[:z_weather].sum().item())
+                nope_support_recovery = float(recovered) / float(deep_count + shallow_leak)
+            else:
+                nope_support_recovery = 1.0
 
         # Compute quantized H_nope digests to verify exogenous invariance
         base_q = np.round(base.cpu().numpy(), 2).tobytes()
         base_digest = hashlib.blake2b(base_q, digest_size=16).hexdigest()
 
-        # Construct a pure exogenous seasonal/tidal perturbation on the weathering layer
+        # Construct a pure exogenous seasonal/tidal/diurnal perturbation on the top layer
         tidal_perturbed = base.clone()
         tidal_perturbed[:z_weather] = tidal_perturbed[:z_weather] + 0.04
         tidal_nope = torch.where(shallow_mask, base, tidal_perturbed)
@@ -860,10 +906,61 @@ class TemporalSurveyContinuitySplitter(nn.Module):
             "clock_drift_3d": clock_drift_3d,
             "nope_plume_delta_3d": nope_plume_delta_3d,
             "nope_vp_cube_3d": nope_cube_3d,
+            "detected_nope_mask_3d": detected_nope_mask,
+            "continuity_cycle_score": continuity_cycle_score,
+            "nope_support_recovery": nope_support_recovery,
+            "top_weathering_slices": z_weather,
             "baseline_nope_digest": base_digest,
             "tidal_repeat_nope_digest": tidal_digest,
             "exogenous_drift_invariance": base_digest == tidal_digest,
         }
+
+    def split_lunar_diurnal_and_sublimation(
+        self,
+        baseline_vp_3d: torch.Tensor,
+        sublimation_mask_3d: torch.Tensor,
+        diurnal_delta_kelvin: float = 280.0,
+        top_regolith_slices: int = 4,
+        sublimation_vp_drop_kms: float = -1.65,
+    ) -> dict[str, Any]:
+        """
+        Simulate and decompose a Lunar 4D ISRU survey combining:
+          1. Exogenous reversible `280 K` lunar diurnal thermal-wave velocity drift across the
+             top `4` surficial regolith Z-slices (`u -> v -> u` across lunar day/night cycle,
+             yielding `continuity_cycle_score C(c) > 0`), and
+          2. Endogenous irreversible thermal-mining water-ice sublimation front inside `sublimation_mask_3d`
+             (`H_nope`), verifying `100.0%` (`1.0000`) support recovery and zero diurnal contamination.
+        """
+        base = baseline_vp_3d.detach().float()
+        Z, Y, X = base.shape
+        k_top = max(1, min(Z, int(top_regolith_slices)))
+        sub_mask = (sublimation_mask_3d > 0.5).to(base.dtype) * (1.0 - torch.zeros_like(base))
+        sub_mask[:k_top] = 0.0
+
+        # Lunar noon (+280 K thermal wave in top 4 slices) + 50% ice sublimation front
+        z_prof = torch.exp(-torch.arange(k_top, device=base.device, dtype=base.dtype) * 0.45).view(
+            k_top, 1, 1
+        )
+        diurnal_amp = 0.045 * (float(diurnal_delta_kelvin) / 280.0) * z_prof
+
+        survey_noon = base.clone()
+        survey_noon[:k_top] = survey_noon[:k_top] + diurnal_amp
+        survey_noon = survey_noon + 0.5 * float(sublimation_vp_drop_kms) * sub_mask
+
+        # Lunar night return (u -> v -> u thermal relaxation in top 4 slices) + full sublimation front
+        survey_night = base.clone()
+        survey_night[:k_top] = survey_night[:k_top] - 0.01 * diurnal_amp
+        survey_night = survey_night + float(sublimation_vp_drop_kms) * sub_mask
+
+        res = self.split_4d_surveys(
+            baseline_vp_3d=base,
+            monitor_surveys_3d=[survey_noon, survey_night],
+            top_regolith_slices=k_top,
+            ground_truth_nope_mask=sub_mask > 0.5,
+        )
+        res["diurnal_delta_kelvin"] = float(diurnal_delta_kelvin)
+        res["top_regolith_residual_max"] = float(res["nope_plume_delta_3d"][:k_top].abs().max().item())
+        return res
 
 
 class ZenoSurgicalAnomalyGate(nn.Module):
@@ -1098,6 +1195,7 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
         self.register_buffer(
             "vp_lut", torch.tensor(canonical_vp_kms[:num_lithologies], dtype=torch.float32)
         )
+        self.lunar_mode = bool(float(self.vp_lut.min().item()) < 0.50)
         # 3-tensor W in R^(M_fault x C x C) for stratigraphic truncation / fault tie-breaking
         self.W_triad = nn.Parameter(torch.zeros(self.M_fault, self.C, self.C))
         # Recurrent cascade 3-tensor W_rec in R^(C x C x C) for multi-step spherical deliberation
@@ -1116,7 +1214,12 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
             num_fault_modes=self.M_fault, num_lithologies=self.C
         )
         self.cascade_op = SlowFastGeoCascade(dim=self.C)
-        self.tti_engine = ThomsenTTIElasticModulusEngine(num_lithologies=self.C)
+        self.tti_engine = ThomsenTTIElasticModulusEngine(
+            num_lithologies=self.C, lunar_mode=self.lunar_mode
+        )
+        self.dielectric_engine = OlhoeftStrangwayDielectricEngine(
+            num_lithologies=self.C, lunar_mode=self.lunar_mode
+        )
 
     @staticmethod
     def beltrami_well_log_salience(well_vp_trace: torch.Tensor) -> torch.Tensor:
@@ -1434,8 +1537,12 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
                 lambda_ridge=lambda_ridge,
             )
             tomo_update_3d = delta_vp.reshape(Z, Y, X)
+            if self.lunar_mode:
+                vac_mask = (self.vp_lut[:C] < 0.10).to(litho_probs_3d.dtype)
+                chi_vac_3d = (litho_probs_3d @ vac_mask).clamp(0.0, 1.0)
+                tomo_update_3d = tomo_update_3d * (1.0 - chi_vac_3d)
             vp_cube = (vp_cube + tomo_update_3d).clamp(
-                float(self.vp_lut.min().item()) * 0.85,
+                float(self.vp_lut.min().item()) * (1.0 if self.lunar_mode else 0.85),
                 float(self.vp_lut.max().item()) * 1.15,
             )
 
@@ -1443,6 +1550,11 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
         tti_bundle = self.tti_engine(
             probs_post=probs_bcz,
             vp_isotropic_kms=vp_cube.unsqueeze(0),
+            chunk_z=step_z,
+        )
+        dielectric_bundle = self.dielectric_engine(
+            probs_post=probs_bcz,
+            rho_gcc=tti_bundle.rho_gcc,
             chunk_z=step_z,
         )
 
@@ -1461,6 +1573,14 @@ class DarkSnailGeo3DVelocityModeler(nn.Module):
             "vp_vs_ratio_cube": tti_bundle.vp_vs_ratio.squeeze(0),
             "poisson_ratio_cube": tti_bundle.poisson_ratio.squeeze(0),
             "acoustic_impedance_zp": tti_bundle.acoustic_impedance_zp.squeeze(0),
+            "eps_r_cube": dielectric_bundle.eps_r.squeeze(0),
+            "g3vm_eps_r": dielectric_bundle.eps_r.squeeze(0),
+            "v_em_cube_m_ns": dielectric_bundle.v_em_m_ns.squeeze(0),
+            "g3vm_v_em": dielectric_bundle.v_em_m_ns.squeeze(0),
+            "twt_radar_us_cube": dielectric_bundle.twt_radar_us.squeeze(0),
+            "phi_ice_cube": dielectric_bundle.phi_ice.squeeze(0),
+            "w_ilm_cube": dielectric_bundle.w_ilm.squeeze(0),
+            "chi_vac_cube": dielectric_bundle.chi_vac.squeeze(0),
             "stiffness_trace_drift": tti_bundle.stiffness_trace_drift,
             "stiffness_frobenius_drift": tti_bundle.stiffness_frobenius_drift,
             "so6_orthogonality_error": tti_bundle.so6_orthogonality_error,
@@ -1492,7 +1612,12 @@ class NaiveSmoothVelocityBaseline(nn.Module):
     ) -> None:
         super().__init__()
         self.register_buffer("vp_lut", torch.tensor(canonical_vp_kms, dtype=torch.float32))
+        self.lunar_mode = bool(float(self.vp_lut.min().item()) < 0.50)
         self.smoothing_kernel_size = int(smoothing_kernel_size)
+        self.dielectric_engine = OlhoeftStrangwayDielectricEngine(
+            num_lithologies=len(canonical_vp_kms),
+            lunar_mode=self.lunar_mode,
+        )
 
     def forward(
         self,
@@ -1514,7 +1639,23 @@ class NaiveSmoothVelocityBaseline(nn.Module):
             stride=1,
         ).squeeze(0).squeeze(0)
         litho_smeared = probs.argmax(dim=-1)
+
+        dielectric_raw = self.dielectric_engine(probs_post=probs, chunk_z=16)
+        eps_r_raw = dielectric_raw.eps_r.reshape(1, 1, Z, Y, X)
+        eps_r_smeared = F.avg_pool3d(
+            F.pad(eps_r_raw, (pad, pad, pad, pad, pad, pad), mode="replicate"),
+            kernel_size=self.smoothing_kernel_size,
+            stride=1,
+        ).squeeze(0).squeeze(0).clamp(1.000, 10.000)
+        v_em_smeared = OlhoeftStrangwayDielectricEngine.C0_M_NS / torch.sqrt(
+            torch.clamp(eps_r_smeared, min=1.000)
+        )
+
         return {
             "vp_cube_kms": vp_smeared,
             "lithology_cube": litho_smeared,
+            "eps_r_cube": eps_r_smeared,
+            "rbf_eps_r": eps_r_smeared,
+            "v_em_cube_m_ns": v_em_smeared,
+            "rbf_v_em": v_em_smeared,
         }

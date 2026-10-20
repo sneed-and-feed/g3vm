@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""
+scripts/evaluate_g3vm.py — Full 6-Scenario Benchmark & Verification Suite for G3VM v0.4.0.
+
+Evaluates Scenarios 01-06:
+  01: subsalt_graben          (Marmousi2 / Gulf of Mexico Subsalt Graben & Louann Diapir)
+  02: thrust_anticline        (SEG/EAGE 3D Overthrust Duplex & Sub-Thrust Reef)
+  03: unconformity_trap       (4D CCS / H2 Sub-Unconformity Fault Trap & Salt Cavern)
+  04: egs_tbm_hazard          (Superhot EGS Granite & TBM Karst Look-Ahead)
+  05: utah_forge_egs_doublet  (US DOE Utah FORGE 16A(78)-32 & 16B(78)-32 EGS Doublet)
+  06: lunar_lava_tube_isru    (Lunar Lava Tube, Regolith Megascattering & Polar Ice ISRU)
+
+Generates:
+  - results/g3vm_evaluation_summary.json
+  - results/g3vm_benchmark_summary.json
+  - results/g3vm_portable_studio.html
+"""
+
+from __future__ import annotations
+
+import gc
+import json
+from pathlib import Path
+import sys
+import tracemalloc
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from g3vm import (
+    SCENARIO_Descriptions,
+    evaluate_scenario_comparison,
+    export_portable_html_studio,
+)
+
+
+def main() -> int:
+    out_dir = ROOT / "results"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    summary = {
+        "engine": "G3VM (DarkSnail-Geo3D) v0.4.0",
+        "grid_shape": [48, 48, 48],
+        "lunar_grid_shape": [32, 24, 24],
+        "scenarios": {},
+    }
+
+    print("=" * 120)
+    print(
+        "G3VM (DarkSnail-Geo3D) v0.4.0 — 6-Scenario 3D Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Evaluation"
+    )
+    print("=" * 120)
+    header = (
+        f"{'Scenario':<24} | {'Grid':<10} | {'G3VM Vp':>9} | {'RBF Vp':>9} | {'Vp Red%':>8} | "
+        f"{'Sharpness':>10} | {'SpikeRec':>9} | {'<v,d_ell>':>10}"
+    )
+    print(header)
+    print("-" * 120)
+
+    peak_ram_lunar_mb = 0.0
+
+    for scen_name in SCENARIO_Descriptions:
+        is_lunar = scen_name == "lunar_lava_tube_isru"
+        grid_shape = (32, 24, 24) if is_lunar else (48, 48, 48)
+
+        gc.collect()
+        tracemalloc.start()
+        res = evaluate_scenario_comparison(scen_name, grid_shape=grid_shape)
+        _, peak_bytes = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        peak_mb = float(peak_bytes) / (1024.0 * 1024.0)
+        if is_lunar:
+            peak_ram_lunar_mb = peak_mb
+
+        m = dict(res["metrics"])
+        m["peak_heap_ram_mb"] = round(peak_mb, 3)
+        summary["scenarios"][scen_name] = m
+
+        grid_str = f"{grid_shape[0]}x{grid_shape[1]}x{grid_shape[2]}"
+        print(
+            f"{scen_name:<24} | {grid_str:<10} | "
+            f"{m['g3vm_vp_rmse_kms']:>9.4f} | "
+            f"{m['naive_vp_rmse_kms']:>9.4f} | "
+            f"-{m['rmse_reduction_pct']:>6.2f}% | "
+            f"{m['g3vm_fault_sharpness_ratio'] * 100:>8.1f}% | "
+            f"{m['deviated_well_spike_recovery'] * 100:>7.1f}% | "
+            f"{m['max_orthogonality_residual']:>10.2e}"
+        )
+
+    print("-" * 120)
+    lm = summary["scenarios"]["lunar_lava_tube_isru"]
+    print(
+        f"[Lunar ISRU Telemetry] Dielectric eps_r RMSE: G3VM={lm['g3vm_eps_r_rmse']:.5f} vs Naive RBF={lm['naive_eps_r_rmse']:.5f} "
+        f"(-{lm['eps_r_rmse_reduction_pct']:.2f}%) | Radar v_EM RMSE: G3VM={lm['g3vm_v_em_rmse_m_ns']:.5f} vs RBF={lm['naive_v_em_rmse_m_ns']:.5f} m/ns"
+    )
+    print(
+        f"[Lunar ISRU Telemetry] Cross-Arch Sharpness: G3VM={lm['g3vm_arch_sharpness_ratio']*100:.1f}% vs RBF={lm['naive_arch_sharpness_ratio']*100:.1f}% | "
+        f"Beltrami Spike Rec: {lm['beltrami_spike_recovery']*100:.1f}% (Naive: {lm['naive_spike_recovery']*100:.1f}%) | "
+        f"Peak Heap RAM: {peak_ram_lunar_mb:.2f} MB (< 35.0 MB limit)"
+    )
+    print("=" * 120)
+
+    # Strict v0.4.0 verification gates
+    assert lm["rmse_reduction_pct"] >= 90.0, f"Expected >=90% Vp RMSE reduction, got {lm['rmse_reduction_pct']}%"
+    assert lm["eps_r_rmse_reduction_pct"] >= 90.0, f"Expected >=90% eps_r RMSE reduction, got {lm['eps_r_rmse_reduction_pct']}%"
+    assert lm["g3vm_arch_sharpness_ratio"] >= 0.98, f"Expected >=98% arch sharpness, got {lm['g3vm_arch_sharpness_ratio']}"
+    assert lm["naive_arch_sharpness_ratio"] < 0.20, f"Expected <20% naive arch sharpness, got {lm['naive_arch_sharpness_ratio']}"
+    assert lm["beltrami_spike_recovery"] == 1.0, f"Expected 100% Beltrami spike recovery, got {lm['beltrami_spike_recovery']}"
+    assert lm["deviated_well_spike_recovery"] == 1.0, f"Expected 100% deviated spike recovery, got {lm['deviated_well_spike_recovery']}"
+    assert lm["naive_spike_recovery"] < 0.20, f"Expected <20% naive spike recovery, got {lm['naive_spike_recovery']}"
+    assert lm["continuity_cycle_score"] > 0.0, "Expected positive diurnal cycle score C(c) > 0"
+    assert lm["nope_support_recovery"] == 1.0, f"Expected 100% H_nope support recovery, got {lm['nope_support_recovery']}"
+    assert peak_ram_lunar_mb < 35.0, f"Expected peak heap RAM < 35 MB, got {peak_ram_lunar_mb:.2f} MB"
+
+    eval_json_path = out_dir / "g3vm_evaluation_summary.json"
+    bench_json_path = out_dir / "g3vm_benchmark_summary.json"
+    html_path = out_dir / "g3vm_portable_studio.html"
+
+    eval_json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    bench_json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    export_portable_html_studio(html_path, grid_shape=(24, 24, 24))
+
+    print(f"[+] Saved evaluation summary : {eval_json_path}")
+    print(f"[+] Saved benchmark summary  : {bench_json_path}")
+    print(f"[+] Saved portable 3D studio : {html_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

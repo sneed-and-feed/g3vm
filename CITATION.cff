@@ -5,9 +5,9 @@ type: software
 authors:
   - family-names: Skates
     given-names: Cthulhu
-version: 0.3.0
+version: 0.4.0
 doi: 10.5281/zenodo.23488781
-date-released: 2026-10-19
+date-released: 2026-10-20
 license: CC0-1.0
 repository-code: "https://github.com/sneed-and-feed/g3vm"
 url: "https://doi.org/10.5281/zenodo.23488781"

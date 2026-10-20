@@ -409,3 +409,145 @@ def test_suite10_thomsen_tti_anisotropy_and_so6_kelvin_stiffness_rotor():
     assert float(vp_90.item()) == pytest.approx(3.0 * 1.20, abs=1e-5)
     assert float(vsh_90.item()) == pytest.approx(1.5 * 1.16, abs=1e-5)
 
+
+def test_lunar_lava_tube_isru_and_dielectric_engine():
+    """
+    Verify Scenario 06 (`lunar_lava_tube_isru`) and `OlhoeftStrangwayDielectricEngine`:
+      1. Theorem 2.1-2.6 invariants across the hard-vacuum lava tube cavity and Lee-Lincoln thrust fault.
+      2. >= 90.0% Vp & Dielectric eps_r' RMSE reduction over Naive Gaussian RBF.
+      3. Cross-Arch Sharpness >= 98.0% vs. < 20.0% for Naive RBF.
+      4. 1.0000 (100.0%) Beltrami spike recovery on LSPE-GT1, VIPER-TR2 (58 deg ice lenses),
+         and LRS-IL3 (62 deg ilmenite pod) vs. < 20.0% for naive voxel pooling.
+      5. 4D Lunar Diurnal Thermal-Drift mode (C(c) > 0, 100.0% H_nope sublimation support recovery).
+      6. CWLS LAS 2.0 & .dev round-trip for EPS_R and V_EM curves (< 250 KB asset footprint).
+      7. Peak Python heap memory strictly < 35 MB via Z-slab chunking (`chunk_z = 16`).
+    """
+    import gc
+    import tracemalloc
+    from g3vm.geophysics import OlhoeftStrangwayDielectricEngine
+    from g3vm.io import ensure_lunar_lava_tube_field_files
+
+    # 1. Verify embedded repo asset footprint < 250 KB and LAS 2.0 / .dev round-trip for EPS_R & V_EM
+    lunar_files = ensure_lunar_lava_tube_field_files()
+    all_lunar_paths = [
+        lunar_files["dev_lspe_gt1_path"],
+        lunar_files["las_lspe_gt1_path"],
+        lunar_files["dev_viper_tr2_path"],
+        lunar_files["las_viper_tr2_path"],
+        lunar_files["dev_lrs_il3_path"],
+        lunar_files["las_lrs_il3_path"],
+    ]
+    total_lunar_bytes = sum(p.stat().st_size for p in all_lunar_paths)
+    assert total_lunar_bytes < 250 * 1024, (
+        f"Lunar ISRU asset footprint {total_lunar_bytes} B exceeds 250 KB limit!"
+    )
+
+    rec_viper = read_las2_file(lunar_files["las_viper_tr2_path"], grid_shape=(32, 24, 24))
+    rec_lrs = read_las2_file(lunar_files["las_lrs_il3_path"], grid_shape=(32, 24, 24))
+    assert "EPS_R" in rec_viper.curves
+    assert "V_EM" in rec_viper.curves
+    assert float(rec_viper.trajectory.inc_deg.max()) == pytest.approx(58.0, abs=0.5)
+    assert float(rec_lrs.trajectory.inc_deg.max()) == pytest.approx(62.0, abs=0.5)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        rt_las = Path(tmpdir) / "lunar_roundtrip.las"
+        write_las2_file(
+            rt_las,
+            trajectory=rec_viper.trajectory,
+            vp_kms=rec_viper.curves["VP"],
+            vs_kms=rec_viper.curves["VS"],
+            rho_gcc=rec_viper.curves["RHOB"],
+            epsilon=rec_viper.curves["EPSILON"],
+            delta=rec_viper.curves["DELTA"],
+            eps_r=rec_viper.curves["EPS_R"],
+            v_em_m_ns=rec_viper.curves["V_EM"],
+        )
+        rt_rec = read_las2_file(rt_las, grid_shape=(32, 24, 24))
+        assert np.allclose(rt_rec.curves["EPS_R"], rec_viper.curves["EPS_R"], atol=1e-3)
+        assert np.allclose(rt_rec.curves["V_EM"], rec_viper.curves["V_EM"], atol=1e-3)
+
+    # Verify BeltramiWellLogShell on raw VIPER-TR2 and LRS-IL3 LAS logs
+    shell = BeltramiWellLogShell(outlier_budget=16, condensed_budget=16)
+    viper_shell = shell(torch.from_numpy(rec_viper.curves["VP"]).float())
+    lrs_shell = shell(torch.from_numpy(rec_lrs.curves["VP"]).float())
+    assert float(viper_shell.beltrami_spike_recovery) == pytest.approx(1.0, abs=1e-5)
+    assert float(viper_shell.naive_spike_recovery) < 0.20
+    assert float(lrs_shell.beltrami_spike_recovery) == pytest.approx(1.0, abs=1e-5)
+    assert float(lrs_shell.naive_spike_recovery) < 0.20
+
+    # 2. Verify OlhoeftStrangwayDielectricEngine exact law & Z-slab chunked bit-identity
+    diel_engine = OlhoeftStrangwayDielectricEngine()
+    rho_test = torch.tensor([[[1.538511, 2.15, 3.10, 0.00, 2.05, 3.10]]], dtype=torch.float32)
+    vac_test = torch.tensor([[[0.0, 0.0, 0.0, 1.0, 0.0, 0.0]]], dtype=torch.float32)
+    ice_test = torch.tensor([[[0.0, 0.0, 0.0, 0.0, 1.0, 0.0]]], dtype=torch.float32)
+    ilm_test = torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0, 1.0091]]], dtype=torch.float32)
+    diel_bundle = diel_engine(
+        rho_gcc_3d=rho_test,
+        chi_vac_3d=vac_test,
+        phi_ice_3d=ice_test,
+        w_ilm_3d=ilm_test,
+        chunk_z=16,
+    )
+    eps_vals = diel_bundle.eps_r_3d[0, 0].tolist()
+    v_em_vals = diel_bundle.v_em_m_ns_3d[0, 0].tolist()
+    assert eps_vals[0] == pytest.approx(2.75, abs=1e-3)             # surficial regolith (Apollo 17 LSPE L1-2)
+    assert eps_vals[1] == pytest.approx(4.11, abs=1e-2)             # megaregolith (Apollo 17 LSPE L3)
+    assert eps_vals[2] == pytest.approx(7.68, abs=1e-2)             # mare basalt (Apollo 17 LSPE L5)
+    assert eps_vals[3] == pytest.approx(1.000, abs=1e-6)            # exact vacuum cavity (Kaguya LRS)
+    assert eps_vals[4] == pytest.approx(3.15, abs=1e-4)             # cryogenic water-ice lens (VIPER)
+    assert eps_vals[5] == pytest.approx(9.85, abs=1e-2)             # high-Ti ilmenite pod
+    assert v_em_vals[3] == pytest.approx(0.299792458, abs=1e-6)     # speed of light in vacuum
+
+    # 3. Full 3D Scenario 06 (`lunar_lava_tube_isru`) evaluation under tracemalloc (< 35 MB ceiling)
+    gc.collect()
+    tracemalloc.start()
+    bundle = evaluate_scenario_comparison("lunar_lava_tube_isru", grid_shape=(32, 24, 24))
+    _, peak_bytes = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    peak_ram_mb = float(peak_bytes) / (1024.0 * 1024.0)
+    assert peak_ram_mb < 35.0, f"Peak heap memory {peak_ram_mb:.2f} MB exceeded 35 MB ceiling!"
+
+    m = bundle["metrics"]
+    t = m["theorem_audit"]
+
+    # Theorem 2.1-2.6 verification
+    assert t["theorem_2_1_antisymmetry_error"] == 0.0
+    assert t["theorem_2_1_self_interaction_error"] == 0.0
+    assert t["theorem_2_2_tie_break_gap"] > 0.0
+    assert m["max_orthogonality_residual"] <= 1e-8
+    assert m["step0_homotopy_error"] == 0.0
+    assert m["cascade_radial_drift"] == 0.0
+    assert t["theorem_2_6_spherical_radial_drift"] == 0.0
+
+    # Verify multistep spherical radial drift across K in {1, 4, 8, 16} inside the vacuum cavity
+    cascade = SlowFastGeoCascade(dim=8)
+    vac_mask = bundle["scenario"]["vacuum_tube_mask"]
+    v_vac = bundle["g3vm_output"]["litho_probs_3d"][vac_mask]
+    u_vac = torch.zeros_like(v_vac)
+    u_vac[:, :6] = bundle["scenario"]["u_fault_3d"][vac_mask]
+    W_rec = torch.randn(8, 8, 8, dtype=torch.float32) * 0.25
+    for k_steps in (1, 4, 8, 16):
+        _, casc_info = cascade(u_vac, v_vac, W_rec, unroll_steps=k_steps)
+        assert float(casc_info["max_spherical_radial_drift"]) == 0.0
+        assert float(casc_info["max_tangent_orthogonality_error"]) <= 1e-8
+
+    # Velocity & Dielectric accuracy + Cross-Arch Sharpness
+    assert m["rmse_reduction_pct"] >= 90.0
+    assert m["eps_r_rmse_reduction_pct"] >= 90.0
+    assert m["g3vm_arch_sharpness_ratio"] >= 0.98
+    assert m["naive_arch_sharpness_ratio"] < 0.20
+
+    # Beltrami spike recovery across all 3 lunar wells (LSPE-GT1, VIPER-TR2, LRS-IL3)
+    assert m["beltrami_spike_recovery"] == pytest.approx(1.0, abs=1e-4)
+    assert m["deviated_well_spike_recovery"] == pytest.approx(1.0, abs=1e-4)
+    assert m["naive_spike_recovery"] < 0.20
+    assert m["deviated_well_naive_spike_recovery"] < 0.20
+
+    # 4D Lunar Diurnal Thermal-Drift mode (H_clock (+) H_nope)
+    assert m["timelapse_exogenous_invariance"] is True
+    assert m["continuity_cycle_score"] > 0.0
+    assert m["nope_support_recovery"] == pytest.approx(1.0, abs=1e-4)
+    nope_3d = bundle["continuity_output"]["nope_plume_delta_3d"]
+    assert float(nope_3d[:4].abs().max().item()) == 0.0
+
+

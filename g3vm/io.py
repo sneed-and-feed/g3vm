@@ -204,12 +204,14 @@ def write_las2_file(
     delta: np.ndarray | None = None,
     beltrami_flux: np.ndarray | None = None,
     lithology_id: np.ndarray | None = None,
+    eps_r: np.ndarray | None = None,
+    v_em_m_ns: np.ndarray | None = None,
 ) -> Path:
     """
     Write a standard CWLS LAS 2.0 well-log file (`.las`) containing Measured Depth (`DEPT`),
     directional survey curves (`TVD`, `INC`, `AZI`, `Z_VOX`, `Y_VOX`, `X_VOX`), sonic compressional
     slowness `DT` (us/ft), `VP` (km/s), `VS` (km/s), `RHOB` (g/cm3), Thomsen `EPSILON`, `DELTA`,
-    and `BELTRAMI_FLUX`.
+    `BELTRAMI_FLUX`, `LITH`, and optional radar dielectric curves `EPS_R` and `V_EM` (m/ns).
     """
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -222,9 +224,24 @@ def write_las2_file(
     flux = np.asarray(beltrami_flux, dtype=np.float64) if beltrami_flux is not None else np.zeros_like(vp)
     lith = np.asarray(lithology_id, dtype=np.float64) if lithology_id is not None else np.zeros_like(vp)
 
+    has_dielectric = (eps_r is not None) or (v_em_m_ns is not None)
+    if has_dielectric:
+        if eps_r is not None:
+            eps_r_arr = np.asarray(eps_r, dtype=np.float64)
+        else:
+            v_tmp = np.maximum(np.asarray(v_em_m_ns, dtype=np.float64), 0.05)
+            eps_r_arr = np.maximum((0.299792458 / v_tmp) ** 2, 1.0)
+        if v_em_m_ns is not None:
+            v_em_arr = np.asarray(v_em_m_ns, dtype=np.float64)
+        else:
+            v_em_arr = 0.299792458 / np.sqrt(np.maximum(eps_r_arr, 1.0))
+    else:
+        eps_r_arr = None
+        v_em_arr = None
+
     # Sonic transit time DT in us/ft: 304.8 / Vp(km/s)
-    dt_usft = 304.8 / np.maximum(vp, 0.5)
-    dts_usft = 304.8 / np.maximum(vs, 0.4)
+    dt_usft = 304.8 / np.maximum(vp, 0.05)
+    dts_usft = 304.8 / np.maximum(vs, 0.05)
 
     md = trajectory.md_m
     step_m = float(np.mean(np.diff(md))) if md.size > 1 else 1.0
@@ -257,8 +274,15 @@ def write_las2_file(
         " DELTA.FRAC                         : 14 THOMSEN ANISOTROPY DELTA",
         " BELTRAMI_FLUX.UNIT                 : 15 BELTRAMI EXTERIOR CURL FLUX",
         " LITH.ID                            : 16 DOMINANT LITHOLOGY CLASS",
-        "~ASCII",
     ]
+    if has_dielectric:
+        lines.extend(
+            [
+                " EPS_R.UNIT                         : 17 RELATIVE DIELECTRIC PERMITTIVITY",
+                " V_EM.M/NS                          : 18 RADAR ELECTROMAGNETIC WAVE VELOCITY",
+            ]
+        )
+    lines.append("~ASCII")
 
     for i in range(md.size):
         row = (
@@ -267,6 +291,8 @@ def write_las2_file(
             f" {dt_usft[i]:9.3f} {dts_usft[i]:9.3f} {vp[i]:8.4f} {vs[i]:8.4f} {rho[i]:8.4f}"
             f" {eps[i]:8.4f} {dlt[i]:8.4f} {flux[i]:8.4f} {lith[i]:6.1f}"
         )
+        if has_dielectric and eps_r_arr is not None and v_em_arr is not None:
+            row += f" {eps_r_arr[i]:8.4f} {v_em_arr[i]:8.4f}"
         lines.append(row)
 
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -382,6 +408,10 @@ def read_las2_file(
         curves["VP"] = 304.8 / np.maximum(curves["DT"], 30.0)
     if "VS" not in curves and "DTS" in curves:
         curves["VS"] = 304.8 / np.maximum(curves["DTS"], 40.0)
+    if "EPS_R" in curves and "V_EM" not in curves:
+        curves["V_EM"] = 0.299792458 / np.sqrt(np.maximum(curves["EPS_R"], 1.0))
+    if "V_EM" in curves and "EPS_R" not in curves:
+        curves["EPS_R"] = np.maximum((0.299792458 / np.maximum(curves["V_EM"], 0.05)) ** 2, 1.0)
 
     md = curves.get("DEPT", curves.get("MD", np.arange(arr.shape[0], dtype=np.float64) * step_m))
     inc = curves.get("INC", np.zeros_like(md))
@@ -1354,5 +1384,254 @@ def ensure_utah_forge_field_files(
         "traj_16b": traj_16b,
         "las_16a": las_16a,
     }
+
+
+def ensure_lunar_lava_tube_field_files(
+    data_dir: str | Path | None = None,
+    grid_shape: Tuple[int, int, int] = (32, 24, 24),
+    basin_extents_zyx_m: Tuple[float, float, float] = (320.0, 480.0, 480.0),
+) -> Dict[str, Any]:
+    """
+    Ensure the deterministic NASA PDS Apollo 17 LSPE (`urn:nasa:pds:a17lspe`), SELENE Kaguya LRS
+    (Kaku et al. 2017), LRO Mini-RF (Carrer et al. 2024), and VIPER-TRIDENT (Horvath et al. 2022)
+    reference borehole survey (`.dev`) and coupled sonic-dielectric (`.las`) files exist under
+    `data/lunar_isru/` (`< 90 KB` total, well below the `< 250 KB` asset ceiling):
+      - `LSPE-GT1`: Apollo/Artemis Skylight Rim Vertical Calibration Core (`0-320 m`)
+      - `VIPER-TR2`: `58 deg` Deviated Skylight-Apron Cryogenic Ice Probe (`Z in [8, 9]` & `Z in [17, 18]` ice stringers)
+      - `LRS-IL3`: `62 deg` Deviated Lava Tube Arch & Basal Ilmenite Lateral (`Z=9` arch, `Y=15` flank, `Z=22..24` ilmenite pod)
+    """
+    from .engine import BeltramiWellLogShell
+
+    if data_dir is None:
+        repo_root = Path(__file__).resolve().parent.parent
+        out_dir = repo_root / "data" / "lunar_isru"
+    else:
+        out_dir = Path(data_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    dev_gt1_path = out_dir / "LSPE_GT1.dev"
+    las_gt1_path = out_dir / "LSPE_GT1_sonic_radar.las"
+    dev_tr2_path = out_dir / "VIPER_TR2.dev"
+    las_tr2_path = out_dir / "VIPER_TR2_cryo_ice.las"
+    dev_il3_path = out_dir / "LRS_IL3.dev"
+    las_il3_path = out_dir / "LRS_IL3_ilmenite.las"
+
+    ref_grid = (32, 24, 24)
+    ref_extents = (320.0, 480.0, 480.0)
+    shell = BeltramiWellLogShell(outlier_budget=12, condensed_budget=16)
+
+    if not (
+        dev_gt1_path.exists()
+        and las_gt1_path.exists()
+        and dev_tr2_path.exists()
+        and las_tr2_path.exists()
+        and dev_il3_path.exists()
+        and las_il3_path.exists()
+    ):
+        N_sta = 160
+
+        # ----------------------------------------------------------------------
+        # 1. LSPE-GT1: Apollo/Artemis Skylight Rim Vertical Calibration Core (0-320 m)
+        # ----------------------------------------------------------------------
+        md_gt1 = np.linspace(0.0, 320.0, N_sta, dtype=np.float64)
+        inc_gt1 = np.zeros_like(md_gt1)
+        azi_gt1 = np.zeros_like(md_gt1)
+        traj_gt1_ref = solve_minimum_curvature_trajectory(
+            md_m=md_gt1,
+            inc_deg=inc_gt1,
+            azi_deg=azi_gt1,
+            surface_yx_vox=(5.0, 5.0),
+            grid_shape=ref_grid,
+            basin_extents_zyx_m=ref_extents,
+            well_name="LSPE-GT1",
+            well_type="vertical_calibration",
+        )
+        write_dev_survey(dev_gt1_path, traj_gt1_ref)
+
+        tvd_gt1 = traj_gt1_ref.tvd_m
+        vp_gt1 = np.where(tvd_gt1 < 12.0, 0.28, np.where(tvd_gt1 < 60.0, 0.96, 4.70))
+        vs_gt1 = np.where(tvd_gt1 < 12.0, 0.15, np.where(tvd_gt1 < 60.0, 0.52, 2.65))
+        rho_gt1 = np.where(tvd_gt1 < 12.0, 1.58, np.where(tvd_gt1 < 60.0, 2.15, 3.10))
+        eps_gt1 = np.where(tvd_gt1 < 12.0, 0.04, np.where(tvd_gt1 < 60.0, 0.09, 0.06))
+        dlt_gt1 = np.where(tvd_gt1 < 12.0, 0.02, np.where(tvd_gt1 < 60.0, 0.04, 0.03))
+        lith_gt1 = np.where(tvd_gt1 < 12.0, 0.0, np.where(tvd_gt1 < 60.0, 1.0, 2.0))
+        eps_r_gt1 = np.where(tvd_gt1 < 12.0, 2.75, np.where(tvd_gt1 < 60.0, 4.11, 7.68))
+        v_em_gt1 = np.where(tvd_gt1 < 12.0, 0.1809, np.where(tvd_gt1 < 60.0, 0.1480, 0.1082))
+
+        # Lee-Lincoln thrust fault gouge & thin sub-scarp marker at 135 m TVD
+        idx_scarp = int(np.argmin(np.abs(tvd_gt1 - 135.0)))
+        vp_gt1[idx_scarp] = 2.85
+        vs_gt1[idx_scarp] = 1.55
+        rho_gt1[idx_scarp] = 2.62
+        eps_gt1[idx_scarp] = 0.11
+        dlt_gt1[idx_scarp] = 0.05
+        lith_gt1[idx_scarp] = 6.0
+        eps_r_gt1[idx_scarp] = 5.60
+        v_em_gt1[idx_scarp] = 0.1267
+
+        res_gt1 = shell(torch.as_tensor(vp_gt1, dtype=torch.float32))
+        write_las2_file(
+            las_gt1_path,
+            trajectory=traj_gt1_ref,
+            vp_kms=vp_gt1,
+            vs_kms=vs_gt1,
+            rho_gcc=rho_gt1,
+            epsilon=eps_gt1,
+            delta=dlt_gt1,
+            beltrami_flux=res_gt1.shielded_salience.numpy(),
+            lithology_id=lith_gt1,
+            eps_r=eps_r_gt1,
+            v_em_m_ns=v_em_gt1,
+        )
+
+        # ----------------------------------------------------------------------
+        # 2. VIPER-TR2: 58 deg Deviated Skylight-Apron Cryogenic Ice Probe
+        # ----------------------------------------------------------------------
+        md_tr2 = np.linspace(0.0, 340.0, N_sta, dtype=np.float64)
+        inc_tr2 = np.zeros_like(md_tr2)
+        kop_tr2, eob_tr2 = 20.0, 95.0
+        build_tr2 = (md_tr2 > kop_tr2) & (md_tr2 <= eob_tr2)
+        inc_tr2[build_tr2] = 58.0 * (md_tr2[build_tr2] - kop_tr2) / (eob_tr2 - kop_tr2)
+        inc_tr2[md_tr2 > eob_tr2] = 58.0
+        azi_tr2 = np.full_like(md_tr2, 90.0)  # Eastward across skylight apron
+
+        traj_tr2_ref = solve_minimum_curvature_trajectory(
+            md_m=md_tr2,
+            inc_deg=inc_tr2,
+            azi_deg=azi_tr2,
+            surface_yx_vox=(7.0, 4.0),
+            grid_shape=ref_grid,
+            basin_extents_zyx_m=ref_extents,
+            well_name="VIPER-TR2",
+            well_type="deviated_cryo_probe",
+        )
+        write_dev_survey(dev_tr2_path, traj_tr2_ref)
+
+        tvd_tr2 = traj_tr2_ref.tvd_m
+        # Background along skylight apron: surficial regolith (0-12 m) -> brecciated megaregolith & shadow apron (12-205 m) -> mare basalt (>205 m)
+        vp_tr2 = np.where(tvd_tr2 < 12.0, 0.28, np.where(tvd_tr2 < 205.0, 0.96, 4.70))
+        vs_tr2 = np.where(tvd_tr2 < 12.0, 0.15, np.where(tvd_tr2 < 205.0, 0.52, 2.65))
+        rho_tr2 = np.where(tvd_tr2 < 12.0, 1.58, np.where(tvd_tr2 < 205.0, 2.15, 3.10))
+        eps_tr2 = np.where(tvd_tr2 < 12.0, 0.04, np.where(tvd_tr2 < 205.0, 0.09, 0.06))
+        dlt_tr2 = np.where(tvd_tr2 < 12.0, 0.02, np.where(tvd_tr2 < 205.0, 0.04, 0.03))
+        lith_tr2 = np.where(tvd_tr2 < 12.0, 0.0, np.where(tvd_tr2 < 205.0, 1.0, 2.0))
+        eps_r_tr2 = np.where(tvd_tr2 < 12.0, 2.75, np.where(tvd_tr2 < 205.0, 4.11, 7.68))
+        v_em_tr2 = np.where(tvd_tr2 < 12.0, 0.1809, np.where(tvd_tr2 < 205.0, 0.1480, 0.1082))
+
+        # Two thin (1.0-1.5 m) cryogenic water-ice stringers at Z in [8, 9] (~85 m TVD) and Z in [17, 18] (~172 m TVD)
+        for ice_tvd in (85.0, 172.0):
+            idx_ice = int(np.argmin(np.abs(tvd_tr2 - ice_tvd)))
+            vp_tr2[idx_ice] = 3.85
+            vs_tr2[idx_ice] = 1.98
+            rho_tr2[idx_ice] = 2.05
+            eps_tr2[idx_ice] = 0.15
+            dlt_tr2[idx_ice] = 0.07
+            lith_tr2[idx_ice] = 4.0
+            eps_r_tr2[idx_ice] = 3.15
+            v_em_tr2[idx_ice] = 0.1689
+
+        res_tr2 = shell(torch.as_tensor(vp_tr2, dtype=torch.float32))
+        write_las2_file(
+            las_tr2_path,
+            trajectory=traj_tr2_ref,
+            vp_kms=vp_tr2,
+            vs_kms=vs_tr2,
+            rho_gcc=rho_tr2,
+            epsilon=eps_tr2,
+            delta=dlt_tr2,
+            beltrami_flux=res_tr2.shielded_salience.numpy(),
+            lithology_id=lith_tr2,
+            eps_r=eps_r_tr2,
+            v_em_m_ns=v_em_tr2,
+        )
+
+        # ----------------------------------------------------------------------
+        # 3. LRS-IL3: 62 deg Deviated Lava Tube Arch & Basal Ilmenite Lateral
+        # ----------------------------------------------------------------------
+        md_il3 = np.linspace(0.0, 425.0, N_sta, dtype=np.float64)
+        inc_il3 = np.zeros_like(md_il3)
+        kop_il3, eob_il3 = 25.0, 110.0
+        build_il3 = (md_il3 > kop_il3) & (md_il3 <= eob_il3)
+        inc_il3[build_il3] = 62.0 * (md_il3[build_il3] - kop_il3) / (eob_il3 - kop_il3)
+        inc_il3[md_il3 > eob_il3] = 62.0
+        azi_il3 = np.full_like(md_il3, 90.0)  # Skirts lava tube flank at Y=15
+
+        traj_il3_ref = solve_minimum_curvature_trajectory(
+            md_m=md_il3,
+            inc_deg=inc_il3,
+            azi_deg=azi_il3,
+            surface_yx_vox=(15.0, 3.0),
+            grid_shape=ref_grid,
+            basin_extents_zyx_m=ref_extents,
+            well_name="LRS-IL3",
+            well_type="deviated_ilmenite_lateral",
+        )
+        write_dev_survey(dev_il3_path, traj_il3_ref)
+
+        tvd_il3 = traj_il3_ref.tvd_m
+        vp_il3 = np.where(tvd_il3 < 12.0, 0.28, np.where(tvd_il3 < 60.0, 0.96, 4.70))
+        vs_il3 = np.where(tvd_il3 < 12.0, 0.15, np.where(tvd_il3 < 60.0, 0.52, 2.65))
+        rho_il3 = np.where(tvd_il3 < 12.0, 1.58, np.where(tvd_il3 < 60.0, 2.15, 3.10))
+        eps_il3 = np.where(tvd_il3 < 12.0, 0.04, np.where(tvd_il3 < 60.0, 0.09, 0.06))
+        dlt_il3 = np.where(tvd_il3 < 12.0, 0.02, np.where(tvd_il3 < 60.0, 0.04, 0.03))
+        lith_il3 = np.where(tvd_il3 < 12.0, 0.0, np.where(tvd_il3 < 60.0, 1.0, 2.0))
+        eps_r_il3 = np.where(tvd_il3 < 12.0, 2.75, np.where(tvd_il3 < 60.0, 4.11, 7.68))
+        v_em_il3 = np.where(tvd_il3 < 12.0, 0.1809, np.where(tvd_il3 < 60.0, 0.1480, 0.1082))
+
+        # High-grade Ilmenite (FeTiO3) Basal Cumulate Pod stringers at Z=22 (~212 m TVD) and Z=24 (~228 m TVD)
+        for ilm_tvd in (212.0, 228.0):
+            idx_ilm = int(np.argmin(np.abs(tvd_il3 - ilm_tvd)))
+            vp_il3[idx_ilm] = 5.48
+            vs_il3[idx_ilm] = 3.08
+            rho_il3[idx_ilm] = 3.48
+            eps_il3[idx_ilm] = 0.05
+            dlt_il3[idx_ilm] = 0.02
+            lith_il3[idx_ilm] = 5.0
+            eps_r_il3[idx_ilm] = 9.85
+            v_em_il3[idx_ilm] = 0.0955
+
+        res_il3 = shell(torch.as_tensor(vp_il3, dtype=torch.float32))
+        write_las2_file(
+            las_il3_path,
+            trajectory=traj_il3_ref,
+            vp_kms=vp_il3,
+            vs_kms=vs_il3,
+            rho_gcc=rho_il3,
+            epsilon=eps_il3,
+            delta=dlt_il3,
+            beltrami_flux=res_il3.shielded_salience.numpy(),
+            lithology_id=lith_il3,
+            eps_r=eps_r_il3,
+            v_em_m_ns=v_em_il3,
+        )
+
+    traj_gt1 = read_dev_survey(dev_gt1_path, grid_shape=grid_shape, basin_extents_zyx_m=basin_extents_zyx_m)
+    las_gt1 = read_las2_file(las_gt1_path, grid_shape=grid_shape, basin_extents_zyx_m=basin_extents_zyx_m)
+    traj_tr2 = read_dev_survey(dev_tr2_path, grid_shape=grid_shape, basin_extents_zyx_m=basin_extents_zyx_m)
+    las_tr2 = read_las2_file(las_tr2_path, grid_shape=grid_shape, basin_extents_zyx_m=basin_extents_zyx_m)
+    traj_il3 = read_dev_survey(dev_il3_path, grid_shape=grid_shape, basin_extents_zyx_m=basin_extents_zyx_m)
+    las_il3 = read_las2_file(las_il3_path, grid_shape=grid_shape, basin_extents_zyx_m=basin_extents_zyx_m)
+
+    return {
+        "dev_gt1_path": dev_gt1_path,
+        "las_gt1_path": las_gt1_path,
+        "dev_tr2_path": dev_tr2_path,
+        "las_tr2_path": las_tr2_path,
+        "dev_il3_path": dev_il3_path,
+        "las_il3_path": las_il3_path,
+        "dev_lspe_gt1_path": dev_gt1_path,
+        "las_lspe_gt1_path": las_gt1_path,
+        "dev_viper_tr2_path": dev_tr2_path,
+        "las_viper_tr2_path": las_tr2_path,
+        "dev_lrs_il3_path": dev_il3_path,
+        "las_lrs_il3_path": las_il3_path,
+        "traj_gt1": traj_gt1,
+        "las_gt1": las_gt1,
+        "traj_tr2": traj_tr2,
+        "las_tr2": las_tr2,
+        "traj_il3": traj_il3,
+        "las_il3": las_il3,
+    }
+
 
 

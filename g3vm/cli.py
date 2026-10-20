@@ -47,13 +47,13 @@ def run_benchmark_suite(
     shape = (grid_size, grid_size, grid_size)
 
     summary = {
-        "engine": "G3VM (DarkSnail-Geo3D) v0.3.0",
+        "engine": "G3VM (DarkSnail-Geo3D) v0.4.0",
         "grid_shape": list(shape),
         "scenarios": {},
     }
 
     print("=" * 112)
-    print(f"G3VM (DarkSnail-Geo3D) v0.3.0 3D Velocity & TTI Elastic Benchmark | Grid: {grid_size}x{grid_size}x{grid_size}")
+    print(f"G3VM (DarkSnail-Geo3D) v0.4.0 3D Velocity, TTI Elastic & Lunar Radar Benchmark | Grid: {grid_size}x{grid_size}x{grid_size}")
     print("=" * 112)
     header = (
         f"{'Scenario':<24} | {'G3VM RMSE':>10} | {'RBF RMSE':>10} | {'Delta%':>8} | "
@@ -63,7 +63,8 @@ def run_benchmark_suite(
     print("-" * 112)
 
     for scen_name in SCENARIO_Descriptions:
-        res = evaluate_scenario_comparison(scen_name, grid_shape=shape)
+        scen_shape = (32, 24, 24) if scen_name == "lunar_lava_tube_isru" and grid_size <= 48 else shape
+        res = evaluate_scenario_comparison(scen_name, grid_shape=scen_shape)
         m = res["metrics"]
         summary["scenarios"][scen_name] = m
         print(
@@ -229,8 +230,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             g3vm_rho_gcc=g3vm_out["rho_cube_gcc"].cpu().numpy(),
             g3vm_epsilon=g3vm_out["epsilon_cube"].cpu().numpy(),
             g3vm_delta=g3vm_out["delta_cube"].cpu().numpy(),
+            g3vm_eps_r=g3vm_out["eps_r_cube"].cpu().numpy(),
+            g3vm_v_em_m_ns=g3vm_out["v_em_cube_m_ns"].cpu().numpy(),
+            twt_radar_us=g3vm_out["twt_radar_us_cube"].cpu().numpy(),
             naive_vp_kms=bundle["naive_output"]["vp_cube_kms"].cpu().numpy(),
+            naive_eps_r=bundle["naive_output"]["eps_r_cube"].cpu().numpy(),
             true_vp_kms=scen["true_vp_cube"].cpu().numpy(),
+            true_eps_r=scen["true_eps_r_cube"].cpu().numpy(),
             g3vm_lithology=g3vm_out["lithology_cube"].cpu().numpy(),
             true_lithology=scen["true_litho_cube"].cpu().numpy(),
             precision_pi=scen["precision_3d"].cpu().numpy(),
