@@ -19,9 +19,11 @@
 - **Precision-Weighted Ridge & Abelian OMP Travel-Time Tomography** (`solve_ridge_tomography_update`, `solve_abelian_omp_tomography`, and $O(ZYX)$ marginal Wasserstein-1 $W_1^{\mathrm{marg}}$)
 - **4D Time-Lapse Continuity Splitting & Zeno Surgical Hazard Gate** (`TemporalSurveyContinuitySplitter` in $\mathcal H_{\mathrm{clock}} \oplus \mathcal H_{\mathrm{nope}}$ and `ZenoSurgicalAnomalyGate`)
 
-![G3VM v0.2.0 3D Studio — TTI Anisotropic Vp(psi) & Deviated Well-G7 S-Curve](results/g3vm_studio_v020_vp_tti.png)
+![G3VM v0.3.0 3D Workstation — Real US DOE Utah FORGE EGS Doublet (Wells 16A(78)-32 & 16B(78)-32)](results/g3vm_studio_v030_utah_forge.png)
 
-![G3VM v0.2.0 3D Studio — Acoustic Impedance Zp & Horizontal Well-H8 Lateral](results/g3vm_studio_v020_zp.png)
+![G3VM v0.3.0 3D Workstation — SEG/EAGE Overthrust TTI Anisotropic Vp(psi) & Deviated Well-G7 S-Curve](results/g3vm_studio_v020_vp_tti.png)
+
+![G3VM v0.3.0 3D Workstation — Marmousi2 Subsalt Acoustic Impedance Zp & Horizontal Well-H8 Lateral](results/g3vm_studio_v020_zp.png)
 
 ![G3VM 5-Scenario 3D Subsurface Velocity Showcase](results/g3vm_leapfrog_showcase.png)
 
