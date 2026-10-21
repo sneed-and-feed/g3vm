@@ -973,12 +973,12 @@
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:1px;">
             <label style="font-size:10px;">
-              <span>Slice &alpha;</span>
-              <input type="range" id="sliderSliceAlpha" min="0.25" max="1.0" step="0.05" value="1.0" style="width:58%;" />
+              <span>Slice &alpha; <span class="val" id="valSliceAlpha" style="font-size:9.5px;">100%</span></span>
+              <input type="range" id="sliderSliceAlpha" min="0.25" max="1.0" step="0.05" value="1.0" style="width:52%;" />
             </label>
             <label style="font-size:10px;">
-              <span>Fault &alpha;</span>
-              <input type="range" id="sliderFaultAlpha" min="0.05" max="0.85" step="0.05" value="0.26" style="width:58%;" />
+              <span>Fault &alpha; <span class="val" id="valFaultAlpha" style="font-size:9.5px;">26%</span></span>
+              <input type="range" id="sliderFaultAlpha" min="0.05" max="0.85" step="0.05" value="0.26" style="width:52%;" />
             </label>
           </div>
         </div>
@@ -2196,7 +2196,8 @@
         if (plane === "y") return z < sz && x < sx;
         if (plane === "x") return z < sz && y < sy;
       } else if (chairMode === "ne_lower") {
-        if (plane === "z") return y > sy && x > sx && sz < 31;
+        const maxZ = (STATE.data && STATE.data.grid_shape) ? (STATE.data.grid_shape[0] - 1) : 31;
+        if (plane === "z") return y > sy && x > sx && sz < maxZ;
         if (plane === "y") return z > sz && x > sx;
         if (plane === "x") return z > sz && y > sy;
       }
@@ -3148,20 +3149,28 @@
     });
 
     // Camera Presets, Focus Well, Turntable & Reset
-    function setCameraView(yaw, pitch, zoom, panX = 0.0, panY = 0.0) {
+    const CAM_PRESET_BTNS = ["btnCamIso", "btnCamNE", "btnCamDip", "btnCamStrike", "btnCamMap", "btnCamSubsalt", "btnCamFocusWell"];
+    function highlightActiveCamBtn(activeId) {
+      CAM_PRESET_BTNS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle("cam-active", id === activeId);
+      });
+    }
+    function setCameraView(yaw, pitch, zoom, panX = 0.0, panY = 0.0, activeId = null) {
       STATE.camYaw = yaw;
       STATE.camPitch = pitch;
       STATE.camZoom = zoom;
       STATE.camPanX = panX;
       STATE.camPanY = panY;
+      if (activeId) highlightActiveCamBtn(activeId);
       render3DViewport();
     }
-    document.getElementById("btnCamIso").addEventListener("click", () => setCameraView(-0.68, 0.52, 1.0));
-    document.getElementById("btnCamNE").addEventListener("click", () => setCameraView(0.72, 0.48, 1.02));
-    document.getElementById("btnCamDip").addEventListener("click", () => setCameraView(0.0, 0.08, 1.1));
-    document.getElementById("btnCamStrike").addEventListener("click", () => setCameraView(-1.57, 0.08, 1.1));
-    document.getElementById("btnCamMap").addEventListener("click", () => setCameraView(0.0, 1.48, 1.05));
-    document.getElementById("btnCamSubsalt").addEventListener("click", () => setCameraView(-0.48, -0.36, 1.16));
+    document.getElementById("btnCamIso").addEventListener("click", () => setCameraView(-0.68, 0.52, 1.0, 0.0, 0.0, "btnCamIso"));
+    document.getElementById("btnCamNE").addEventListener("click", () => setCameraView(0.72, 0.48, 1.02, 0.0, 0.0, "btnCamNE"));
+    document.getElementById("btnCamDip").addEventListener("click", () => setCameraView(0.0, 0.08, 1.1, 0.0, 0.0, "btnCamDip"));
+    document.getElementById("btnCamStrike").addEventListener("click", () => setCameraView(-1.57, 0.08, 1.1, 0.0, 0.0, "btnCamStrike"));
+    document.getElementById("btnCamMap").addEventListener("click", () => setCameraView(0.0, 1.48, 1.05, 0.0, 0.0, "btnCamMap"));
+    document.getElementById("btnCamSubsalt").addEventListener("click", () => setCameraView(-0.48, -0.36, 1.16, 0.0, 0.0, "btnCamSubsalt"));
     document.getElementById("btnCamFocusWell").addEventListener("click", () => {
       if (!STATE.data || !STATE.data.wells.length) return;
       const w = STATE.data.wells[STATE.selectedWell] || STATE.data.wells[0];
@@ -3176,19 +3185,20 @@
       STATE.camZoom = 1.22;
       STATE.camPanX = 0;
       STATE.camPanY = 0;
+      highlightActiveCamBtn("btnCamFocusWell");
       renderAll();
     });
     document.getElementById("btnCamReset").addEventListener("click", () => {
       STATE.zExag = 1.0;
       document.getElementById("sliderZExag").value = 1.0;
       document.getElementById("valZExag").textContent = "1.0x";
-      setCameraView(-0.68, 0.52, 1.0, 0.0, 0.0);
+      setCameraView(-0.68, 0.52, 1.0, 0.0, 0.0, "btnCamIso");
     });
 
     function toggleTurntable() {
       STATE.turntableActive = !STATE.turntableActive;
       const btn = document.getElementById("btnCamTurntable");
-      if (btn) btn.classList.toggle("active-cam", STATE.turntableActive);
+      if (btn) btn.classList.toggle("cam-active", STATE.turntableActive);
       if (STATE.turntableActive) {
         function stepTurn() {
           if (!STATE.turntableActive) return;
@@ -3215,7 +3225,7 @@
       STATE.lastMouseX = e.clientX;
       STATE.lastMouseY = e.clientY;
     });
-    c3d.addEventListener("dblclick", () => setCameraView(-0.68, 0.52, 1.0, 0.0, 0.0));
+    c3d.addEventListener("dblclick", () => setCameraView(-0.68, 0.52, 1.0, 0.0, 0.0, "btnCamIso"));
     window.addEventListener("mousemove", (e) => {
       if (!STATE.isDragging3D && !STATE.isPanning3D) return;
       const dx = e.clientX - STATE.lastMouseX;
@@ -3241,9 +3251,11 @@
       render3DViewport();
     });
 
-    // Click & Drag on 2D Slices to Scrub 3D Crosshairs + Mousewheel Orthogonal Stepping
-    function bind2DSliceInteraction(canvasId, wheelAxis, onCoord) {
+    // Click & Drag on 2D Slices to Scrub 3D Crosshairs + Live Hover Readout + Mousewheel Orthogonal Stepping
+    function bind2DSliceInteraction(canvasId, wheelAxis, onCoord, hoverVoxFn) {
       const el = document.getElementById(canvasId);
+      const hoverEl = document.getElementById("hoverReadout");
+      const defaultHoverText = "ORBIT: L-DRAG | PAN: SHIFT+DRAG | ZOOM: WHEEL | PROBE: CLICK/HOVER 2D";
       let dragging = false;
       function applyEvent(e) {
         if (!STATE.data) return;
@@ -3260,6 +3272,24 @@
         dragging = true;
         applyEvent(e);
       });
+      el.addEventListener("mousemove", (e) => {
+        if (!STATE.data || !hoverVoxFn || !hoverEl) return;
+        const rect = el.getBoundingClientRect();
+        const fx = Math.max(0, Math.min(0.999, (e.clientX - rect.left) / rect.width));
+        const fy = Math.max(0, Math.min(0.999, (e.clientY - rect.top) / rect.height));
+        const [hz, hy, hx] = hoverVoxFn(fx, fy);
+        const cubeArr = STATE.data.cubes[STATE.activeField] || STATE.data.cubes.g3vm_vp;
+        const val = cubeArr[hz]?.[hy]?.[hx];
+        const meta = getFieldScaleMeta(STATE.activeField);
+        const lid = STATE.data.cubes.g3vm_litho[hz]?.[hy]?.[hx] ?? 0;
+        const lname = STATE.data.lithology_catalog[lid]?.name || "";
+        if (val !== undefined) {
+          hoverEl.textContent = `PROBE (Z=${hz}, Y=${hy}, X=${hx}) | ${meta.label}: ${Number(val).toFixed(3)} ${meta.unit} | [${lid}] ${lname}`;
+        }
+      });
+      el.addEventListener("mouseleave", () => {
+        if (hoverEl) hoverEl.textContent = defaultHoverText;
+      });
       window.addEventListener("mousemove", (e) => {
         if (dragging) applyEvent(e);
       });
@@ -3271,21 +3301,45 @@
         stepSliceAxis(wheelAxis, e.deltaY < 0 ? -1 : 1);
       });
     }
-    bind2DSliceInteraction("canvasInline", "y", (fx, fy) => {
-      const [Z, , X] = STATE.data.grid_shape;
-      STATE.sliceX = Math.floor(fx * X);
-      STATE.sliceZ = Math.floor(fy * Z);
-    });
-    bind2DSliceInteraction("canvasCrossline", "x", (fx, fy) => {
-      const [Z, Y] = STATE.data.grid_shape;
-      STATE.sliceY = Math.floor(fx * Y);
-      STATE.sliceZ = Math.floor(fy * Z);
-    });
-    bind2DSliceInteraction("canvasDepth", "z", (fx, fy) => {
-      const [, Y, X] = STATE.data.grid_shape;
-      STATE.sliceX = Math.floor(fx * X);
-      STATE.sliceY = Math.floor(fy * Y);
-    });
+    bind2DSliceInteraction(
+      "canvasInline",
+      "y",
+      (fx, fy) => {
+        const [Z, , X] = STATE.data.grid_shape;
+        STATE.sliceX = Math.floor(fx * X);
+        STATE.sliceZ = Math.floor(fy * Z);
+      },
+      (fx, fy) => {
+        const [Z, , X] = STATE.data.grid_shape;
+        return [Math.floor(fy * Z), STATE.sliceY, Math.floor(fx * X)];
+      }
+    );
+    bind2DSliceInteraction(
+      "canvasCrossline",
+      "x",
+      (fx, fy) => {
+        const [Z, Y] = STATE.data.grid_shape;
+        STATE.sliceY = Math.floor(fx * Y);
+        STATE.sliceZ = Math.floor(fy * Z);
+      },
+      (fx, fy) => {
+        const [Z, Y] = STATE.data.grid_shape;
+        return [Math.floor(fy * Z), Math.floor(fx * Y), STATE.sliceX];
+      }
+    );
+    bind2DSliceInteraction(
+      "canvasDepth",
+      "z",
+      (fx, fy) => {
+        const [, Y, X] = STATE.data.grid_shape;
+        STATE.sliceX = Math.floor(fx * X);
+        STATE.sliceY = Math.floor(fy * Y);
+      },
+      (fx, fy) => {
+        const [, Y, X] = STATE.data.grid_shape;
+        return [STATE.sliceZ, Math.floor(fy * Y), Math.floor(fx * X)];
+      }
+    );
 
     // Click/Drag on Borehole Log Panel to Jump Depth Z
     (function bindWellCanvasClick() {
@@ -3307,13 +3361,63 @@
       window.addEventListener("mouseup", () => { dragging = false; });
     })();
 
-    // Snapshot PNG Export, Deep-Link URL Copy, and Keyboard Shortcuts Modal
+    // Composite PNG Snapshot Export (3D Block + 3 Orthogonal 2D Slices + Borehole Beltrami Log), Deep-Link Copy, and Shortcuts Modal
     document.getElementById("btnSnapshotPng").addEventListener("click", () => {
-      const canvas = document.getElementById("canvas3d");
+      const c3dEl = document.getElementById("canvas3d");
+      const cInl = document.getElementById("canvasInline");
+      const cCrl = document.getElementById("canvasCrossline");
+      const cDep = document.getElementById("canvasDepth");
+      const cWel = document.getElementById("canvasWell");
+      const comp = document.createElement("canvas");
+      comp.width = 1600;
+      comp.height = 960;
+      const ctx = comp.getContext("2d");
+      ctx.fillStyle = "#06090f";
+      ctx.fillRect(0, 0, comp.width, comp.height);
+
+      // Header banner
+      const scenTitle = STATE.data ? STATE.data.meta.title : "G3VM Studio v0.6.0";
+      const meta = getFieldScaleMeta(STATE.activeField);
+      ctx.fillStyle = "#0b101b";
+      ctx.fillRect(0, 0, comp.width, 40);
+      ctx.strokeStyle = "#1e2c44";
+      ctx.strokeRect(0, 0, comp.width, 40);
+      ctx.font = "700 13px 'JetBrains Mono', Consolas, monospace";
+      ctx.fillStyle = "#00f2d4";
+      ctx.fillText(`G3VM STUDIO v0.6.0 // ${scenTitle} // ${meta.label} (${meta.unit})`, 16, 25);
+
+      // 3D viewport (top-left, 1080 x 560)
+      ctx.drawImage(c3dEl, 12, 52, 1080, 560);
+      ctx.strokeStyle = "#1e2c44";
+      ctx.strokeRect(12, 52, 1080, 560);
+
+      // Borehole sonic log (top-right, 484 x 560)
+      ctx.drawImage(cWel, 1104, 52, 484, 560);
+      ctx.strokeRect(1104, 52, 484, 560);
+
+      // 3 orthogonal 2D slices (bottom row, 3 x 516 x 324)
+      const sliceCanvases = [
+        [cInl, `INLINE DIP (Y=${STATE.sliceY})`],
+        [cCrl, `CROSSLINE STRIKE (X=${STATE.sliceX})`],
+        [cDep, `DEPTH HORIZON (Z=${STATE.sliceZ})`],
+      ];
+      sliceCanvases.forEach(([sc, title], idx) => {
+        const sx = 12 + idx * 526;
+        const sy = 624;
+        ctx.drawImage(sc, sx, sy, 514, 320);
+        ctx.strokeStyle = "#1e2c44";
+        ctx.strokeRect(sx, sy, 514, 320);
+        ctx.fillStyle = "rgba(7, 11, 19, 0.85)";
+        ctx.fillRect(sx + 6, sy + 6, 210, 18);
+        ctx.font = "700 10px 'JetBrains Mono', Consolas, monospace";
+        ctx.fillStyle = "#00f2d4";
+        ctx.fillText(title, sx + 12, sy + 18);
+      });
+
       const link = document.createElement("a");
       const scen = STATE.data ? STATE.data.scenario_name : "subsalt_graben";
       link.download = `g3vm_v060_${scen}_${STATE.activeField}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = comp.toDataURL("image/png");
       link.click();
     });
     document.getElementById("btnCopyDeepLink").addEventListener("click", (e) => {
@@ -3351,12 +3455,12 @@
         return;
       }
       const k = e.key.toLowerCase();
-      if (k === "1") setCameraView(-0.68, 0.52, 1.0);
-      else if (k === "2") setCameraView(0.72, 0.48, 1.02);
-      else if (k === "3") setCameraView(0.0, 0.08, 1.1);
-      else if (k === "4") setCameraView(-1.57, 0.08, 1.1);
-      else if (k === "5") setCameraView(0.0, 1.48, 1.05);
-      else if (k === "6") setCameraView(-0.48, -0.36, 1.16);
+      if (k === "1") setCameraView(-0.68, 0.52, 1.0, 0.0, 0.0, "btnCamIso");
+      else if (k === "2") setCameraView(0.72, 0.48, 1.02, 0.0, 0.0, "btnCamNE");
+      else if (k === "3") setCameraView(0.0, 0.08, 1.1, 0.0, 0.0, "btnCamDip");
+      else if (k === "4") setCameraView(-1.57, 0.08, 1.1, 0.0, 0.0, "btnCamStrike");
+      else if (k === "5") setCameraView(0.0, 1.48, 1.05, 0.0, 0.0, "btnCamMap");
+      else if (k === "6") setCameraView(-0.48, -0.36, 1.16, 0.0, 0.0, "btnCamSubsalt");
       else if (k === "f") document.getElementById("btnCamFocusWell").click();
       else if (k === "r") document.getElementById("btnCamReset").click();
       else if (k === " ") { e.preventDefault(); toggleTurntable(); }
@@ -3521,8 +3625,11 @@
       function applyClientSegyBuffer(filename, arrayBuf) {
         if (!STATE.data || arrayBuf.byteLength < 3840) return;
         const dv = new DataView(arrayBuf);
-        const ns = dv.getUint16(3220, false);
-        const fmt = dv.getUint16(3224, false) || 5;
+        const fmtBE = dv.getUint16(3224, false);
+        const fmtLE = dv.getUint16(3224, true);
+        const isLittleEndian = (fmtBE > 16 && fmtLE >= 1 && fmtLE <= 8);
+        const ns = dv.getUint16(3220, isLittleEndian);
+        const fmt = dv.getUint16(3224, isLittleEndian) || 5;
         const traceBytes = 240 + ns * 4;
         const nTraces = Math.floor((arrayBuf.byteLength - 3600) / traceBytes);
         if (ns <= 0 || nTraces <= 0) return;
@@ -3534,8 +3641,8 @@
             for (let x = 0; x < X; x++) {
               const tIdx = Math.min(nTraces - 1, Math.floor(((y * X + x) * nTraces) / (Y * X)));
               const byteOff = 3600 + tIdx * traceBytes + 240 + sIdx * 4;
-              const val = fmt === 1 ? ibmToFloat32(dv.getUint32(byteOff, false)) : dv.getFloat32(byteOff, false);
-              if (Number.isFinite(val) && val > 0.5 && val < 9.5) {
+              const val = fmt === 1 ? ibmToFloat32(dv.getUint32(byteOff, false)) : dv.getFloat32(byteOff, isLittleEndian);
+              if (Number.isFinite(val) && val > 0.02 && val < 9.5) {
                 newCube[z][y][x] = Number(val.toFixed(4));
               }
             }
@@ -3600,7 +3707,16 @@
         document.getElementById("btnScoreModeA").classList.remove("active");
       }
       if (params.has("tab")) {
-        const tabId = params.get("tab");
+        const rawTab = params.get("tab");
+        const tabAliases = {
+          strat: "tabStrat",
+          elastic: "tabElastic",
+          operator: "tabOperator",
+          well: "tabBorehole",
+          borehole: "tabBorehole",
+          blind: "tabBlind",
+        };
+        const tabId = tabAliases[rawTab.toLowerCase()] || rawTab;
         const tabBtn = document.querySelector(`.telemetry-tab-btn[data-tab="${tabId}"]`);
         if (tabBtn) tabBtn.click();
       }

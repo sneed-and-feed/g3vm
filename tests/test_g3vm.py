@@ -299,7 +299,10 @@ def test_suite8_web_studio_endpoints_and_portable_bundle():
             '"traj_x"',
             'id="selectChairQuadrant"',
             'id="sliderZExag"',
+            'id="valSliceAlpha"',
+            'id="valFaultAlpha"',
             'id="btnScoreModeB"',
+            'highlightActiveCamBtn',
         ):
             assert req_key in html_txt
 
