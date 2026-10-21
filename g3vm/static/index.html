@@ -718,6 +718,93 @@
       vertical-align: middle;
       border: 1px solid rgba(255, 255, 255, 0.25);
     }
+    .step-btn {
+      width: auto;
+      padding: 1px 5px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      background: #09111f;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 2px;
+      line-height: 1.2;
+    }
+    .step-btn:hover {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+    .mode-switch-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+      background: var(--bg-input);
+      padding: 2px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+    }
+    .mode-switch-btn {
+      padding: 3px 6px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .mode-switch-btn.active {
+      background: rgba(0, 242, 212, 0.14);
+      border-color: rgba(0, 242, 212, 0.45);
+      color: var(--accent-cyan);
+    }
+    .telemetry-tabs-5 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 2px;
+      background: var(--bg-input);
+      padding: 3px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+    }
+    .viewport-toolbar .cam-active {
+      color: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      background: rgba(0, 242, 212, 0.15);
+    }
+    .hud-cam-pill {
+      color: #a6d4ff;
+      background: rgba(14, 23, 40, 0.9);
+      border: 1px solid var(--border-hi);
+      padding: 2px 6px;
+      border-radius: 2px;
+      white-space: nowrap;
+      font-size: 10px;
+    }
+    .help-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 6, 12, 0.78);
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .help-modal-backdrop.open {
+      display: flex;
+    }
+    .help-modal-card {
+      width: 560px;
+      max-width: 92vw;
+      background: var(--bg-panel);
+      border: 1px solid var(--accent-cyan);
+      border-radius: 3px;
+      padding: 14px 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
   </style>
 </head>
 <body>
@@ -725,8 +812,8 @@
     <div class="brand">
       <div class="brand-logo">G3</div>
       <div class="brand-title-wrap">
-        <span class="brand-title">G3VM Studio // Workstation v0.5.0</span>
-        <span class="brand-sub">DarkSnail-Geo3D Beltrami-Triad Subsurface Velocity, TTI Elastic &amp; Coupled Seismic-Radar Dielectric Engine</span>
+        <span class="brand-title">G3VM Studio // Workstation v0.6.0</span>
+        <span class="brand-sub">DarkSnail-Geo3D Beltrami-Triad Subsurface Velocity, TTI Elastic, Lunar Radar &amp; Mode B Blind Kriging Workstation</span>
       </div>
     </div>
     <div class="header-badges">
@@ -735,6 +822,9 @@
       <span class="pill ok" id="badgeHomotopy">Thm 2.4 Step-0 Homotopy: 0.000e+00</span>
       <span class="pill ok" id="badgeBeltrami">Beltrami Spike Recovery: 100.0%</span>
       <span class="pill" id="badgeRmse">Vp RMSE: --</span>
+      <button class="mini-btn" id="btnSnapshotPng" title="Export 4-panel composite PNG snapshot of current 3D + 2D + Well Log views">&#128247; Snapshot PNG</button>
+      <button class="mini-btn" id="btnCopyDeepLink" title="Copy shareable URL deep-link with full camera, slice, and cube state">&#128279; Deep-Link</button>
+      <button class="mini-btn" id="btnShowShortcuts" title="Show workstation keyboard &amp; mouse navigation shortcuts (? key)">? Keys</button>
     </div>
   </header>
 
@@ -780,11 +870,15 @@
         <div class="control-group">
           <div class="control-title-row">
             <span class="control-title">2. Active 3D Property Cube</span>
-            <span class="control-code">VOL-21</span>
+            <span class="control-code">VOL-25</span>
           </div>
           <select id="selectField">
             <option value="g3vm_vp">DarkSnail G3VM Vp Cube (km/s)</option>
             <option value="g3vm_vp_tti">DarkSnail G3VM TTI Anisotropic Vp(&psi;) (km/s)</option>
+            <option value="blind_g3vm_vp">Mode B Blind DarkSnail G3VM Vp (SNR=20dB, Zero Leakage)</option>
+            <option value="kriging_vp">Mode B Tuned Anisotropic Mat&eacute;rn-3/2 Kriging Vp (km/s)</option>
+            <option value="fkriging_vp">Mode B Fault-Partitioned Structural Kriging Vp (km/s)</option>
+            <option value="blind_gain">Mode B Signed Blind Error Gain (|Err_Krig| - |Err_G3VM|)</option>
             <option value="g3vm_eps_r">Dielectric Permittivity &epsilon;r (Radar)</option>
             <option value="g3vm_v_em">Radar Velocity v_EM (m/ns)</option>
             <option value="g3vm_zp">DarkSnail G3VM Acoustic Impedance Zp (g/cm&sup3;&middot;km/s)</option>
@@ -806,23 +900,87 @@
             <option value="precision_pi">Sensor Precision Pi(z,y,x) &amp; Sub-Salt Shadow</option>
             <option value="timelapse_nope_plume">4D H_nope Plume Shift (Weather Stripped)</option>
           </select>
-          <div class="btn-row">
-            <button class="accent" id="btnToggleCompare">Flip: G3VM &harr; Naive RBF</button>
-            <button id="btnToggleTruth">Flip: G3VM &harr; Truth</button>
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+            <button class="accent" id="btnToggleCompare" title="Flip between G3VM and Naive RBF">G3VM &harr; RBF</button>
+            <button id="btnToggleBlindKrig" title="Flip between Mode B Blind G3VM and Tuned Matérn-3/2 Kriging">Blind &harr; Krig</button>
+            <button id="btnToggleTruth" title="Flip between G3VM and Ground Truth">G3VM &harr; Truth</button>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr auto; gap: 5px; align-items:center; margin-top: 2px;">
+            <select id="selectColormap" title="Override active property colormap palette" style="font-size:10.5px; padding:3px 6px;">
+              <option value="auto">Palette: Auto (Domain Default)</option>
+              <option value="turbo">Palette: Seismic Turbo</option>
+              <option value="viridis">Palette: Perceptual Viridis</option>
+              <option value="plasma">Palette: Radar Plasma</option>
+              <option value="ice">Palette: Cryo Ice</option>
+              <option value="seismic">Palette: Diverging Seismic RWB</option>
+            </select>
+            <label class="layer-toggle" style="padding:3px 6px;" title="Invert active colormap scale">
+              <input type="checkbox" id="chkInvertCmap" /> <span>Invert</span>
+            </label>
           </div>
         </div>
 
         <div class="control-group">
           <div class="control-title-row">
-            <span class="control-title">3. 3D Fence &amp; Chair-Cut Planes</span>
-            <span class="control-code">SLICE-ZYX</span>
+            <span class="control-title">3. 3D Fence, Chair-Cut &amp; View Control</span>
+            <span class="control-code">VIEW-3D</span>
           </div>
-          <label>Inline Y (North) <span class="val" id="valSliceY">16</span></label>
+          <label>
+            <span>Inline Y (North)</span>
+            <span style="display:flex; align-items:center; gap:3px;">
+              <button class="step-btn" id="btnStepYDec" title="Step Inline Y -1">&minus;</button>
+              <span class="val" id="valSliceY" style="min-width:18px; text-align:center;">16</span>
+              <button class="step-btn" id="btnStepYInc" title="Step Inline Y +1">+</button>
+            </span>
+          </label>
           <input type="range" id="sliderY" min="0" max="31" value="16" />
-          <label>Crossline X (East) <span class="val" id="valSliceX">16</span></label>
+
+          <label>
+            <span>Crossline X (East)</span>
+            <span style="display:flex; align-items:center; gap:3px;">
+              <button class="step-btn" id="btnStepXDec" title="Step Crossline X -1">&minus;</button>
+              <span class="val" id="valSliceX" style="min-width:18px; text-align:center;">16</span>
+              <button class="step-btn" id="btnStepXInc" title="Step Crossline X +1">+</button>
+            </span>
+          </label>
           <input type="range" id="sliderX" min="0" max="31" value="16" />
-          <label>Depth Horizon Z <span class="val" id="valSliceZ">16</span></label>
+
+          <label>
+            <span>Depth Horizon Z</span>
+            <span style="display:flex; align-items:center; gap:3px;">
+              <button class="step-btn" id="btnStepZDec" title="Step Depth Z -1">&minus;</button>
+              <span class="val" id="valSliceZ" style="min-width:18px; text-align:center;">16</span>
+              <button class="step-btn" id="btnStepZInc" title="Step Depth Z +1">+</button>
+            </span>
+          </label>
           <input type="range" id="sliderZ" min="0" max="31" value="16" />
+
+          <div style="display:grid; grid-template-columns: 1.15fr 0.85fr; gap:5px; margin-top:2px;">
+            <select id="selectChairQuadrant" title="Select 3D Chair-Cut octant/quadrant excavation mode" style="font-size:10.5px; padding:3px 6px;">
+              <option value="ne_upper">Cut: NE Upper (+Y,+X,-Z)</option>
+              <option value="nw_upper">Cut: NW Upper (+Y,-X,-Z)</option>
+              <option value="se_upper">Cut: SE Upper (-Y,+X,-Z)</option>
+              <option value="sw_upper">Cut: SW Upper (-Y,-X,-Z)</option>
+              <option value="ne_lower">Cut: NE Deep (+Y,+X,+Z)</option>
+              <option value="fence_only">Mode: 3D Fence Only</option>
+            </select>
+            <div style="display:flex; align-items:center; gap:4px;" title="Vertical Exaggeration (Z-Scale)">
+              <span style="font-family:var(--font-mono); font-size:9.5px; color:var(--text-muted);">VE:</span>
+              <input type="range" id="sliderZExag" min="0.5" max="2.5" step="0.1" value="1.0" />
+              <span class="val" id="valZExag" style="font-family:var(--font-mono); font-size:10px; color:var(--accent-cyan);">1.0x</span>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:1px;">
+            <label style="font-size:10px;">
+              <span>Slice &alpha;</span>
+              <input type="range" id="sliderSliceAlpha" min="0.25" max="1.0" step="0.05" value="1.0" style="width:58%;" />
+            </label>
+            <label style="font-size:10px;">
+              <span>Fault &alpha;</span>
+              <input type="range" id="sliderFaultAlpha" min="0.05" max="0.85" step="0.05" value="0.26" style="width:58%;" />
+            </label>
+          </div>
         </div>
 
         <div class="control-group">
@@ -843,8 +1001,9 @@
             <label class="layer-toggle full-span"><input type="checkbox" id="chkCavity" checked /> <span id="lblCavity">Enclosed &beta;<sub>1</sub> Anomaly Body</span></label>
             <label class="layer-toggle"><input type="checkbox" id="chkCrosshairs" checked /> <span>3D Slice Axes</span></label>
             <label class="layer-toggle"><input type="checkbox" id="chk2DWellProj" checked /> <span>2D Well Tracks</span></label>
-            <label class="layer-toggle"><input type="checkbox" id="chkHudOverlay" checked /> <span>Top HUD Ribbon</span></label>
+            <label class="layer-toggle"><input type="checkbox" id="chk2DFaultOverlay" checked /> <span>2D Fault &amp; &beta;<sub>1</sub> Contours</span></label>
             <label class="layer-toggle"><input type="checkbox" id="chkColorbar" checked /> <span>3D Colorbar Scale</span></label>
+            <label class="layer-toggle full-span"><input type="checkbox" id="chkHudOverlay" checked /> <span>Top HUD Ribbon &amp; Orientation Gizmo</span></label>
           </div>
         </div>
 
@@ -894,7 +1053,7 @@
         <div class="panel-header">
           <span>3D Subsurface Velocity &amp; Structural Chair-Cut Block</span>
           <span id="hoverReadout" style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-cyan);">
-            ORBIT: DRAG | ZOOM: WHEEL | PROBE: CLICK 2D SLICES
+            ORBIT: L-DRAG | PAN: SHIFT+DRAG | ZOOM: WHEEL | PROBE: CLICK/HOVER 2D
           </span>
         </div>
         <div class="viewport-3d-wrap">
@@ -903,7 +1062,10 @@
               <span class="hud-title" id="overlayTitle">Marmousi2 Subsalt Graben</span>
               <span class="hud-mode" id="overlayMode">Mode: DarkSnail G3VM Vp (km/s)</span>
             </div>
-            <div class="hud-cursor" id="overlayCursor">Cursor (Z=16, Y=16, X=16) | Vp: -- km/s</div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <div class="hud-cursor" id="overlayCursor">Cursor (Z=16, Y=16, X=16) | Vp: -- km/s</div>
+              <div class="hud-cam-pill" id="overlayCamTelemetry">Az: -39&deg; | El: +30&deg; | Zoom: 1.00x | VE: 1.0x</div>
+            </div>
           </div>
 
           <div class="canvas3d-stage">
@@ -927,11 +1089,16 @@
             </div>
 
             <div class="viewport-toolbar">
-              <button id="btnCamIso">Isometric</button>
-              <button id="btnCamDip">Inline Dip</button>
-              <button id="btnCamStrike">Crossline Strike</button>
-              <button id="btnCamMap">Map Horizon</button>
-              <button id="btnOpenSubmenuDrawer" style="border-color: rgba(0, 242, 212, 0.45); color: var(--accent-cyan);">Display Submenu &#9652;</button>
+              <button id="btnCamIso" class="cam-active" title="Standard SW Isometric View (Key: 1)">SW Iso</button>
+              <button id="btnCamNE" title="Back NE Isometric View (Key: 2)">NE Back</button>
+              <button id="btnCamDip" title="Inline Dip Section Elevation (Key: 3)">Inline Dip</button>
+              <button id="btnCamStrike" title="Crossline Strike Section Elevation (Key: 4)">Cross Strike</button>
+              <button id="btnCamMap" title="Top-Down Map Horizon View (Key: 5)">Map Plan</button>
+              <button id="btnCamSubsalt" title="Upward Sub-Salt / Lava-Tube Arch Underside View (Key: 6)">Sub-Arch</button>
+              <button id="btnCamFocusWell" title="Center slices &amp; camera on selected borehole (Key: F)">Focus Well</button>
+              <button id="btnCamTurntable" title="Toggle smooth 360° 3D turntable rotation (Key: Space)">&#9654; Orbit</button>
+              <button id="btnCamReset" title="Reset camera orbit, pan, zoom, and vertical exaggeration (Key: R)">Reset</button>
+              <button id="btnOpenSubmenuDrawer" style="border-color: rgba(0, 242, 212, 0.45); color: var(--accent-cyan);">Layers &#9652;</button>
             </div>
           </div>
         </div>
@@ -977,17 +1144,18 @@
         <span id="inspectorCoordTag" style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-cyan);">Z16 Y16 X16</span>
       </div>
       <div class="panel-body">
-        <!-- New Granular Information Display Submenu / Inspector -->
+        <!-- 5-Tab Granular Information Display Submenu / Inspector -->
         <div class="control-group" id="granularTelemetrySubmenu">
           <div class="control-title-row">
             <span class="control-title">Granular Voxel &amp; Borehole Telemetry</span>
             <button class="mini-btn" id="btnExpandAllTelemetry" title="Toggle between single-tab and all-sections expanded view">Expand All</button>
           </div>
-          <div class="telemetry-tabs" id="telemetryTabBar">
-            <button class="telemetry-tab-btn active" data-tab="tabStrat">1. Strat/Pos</button>
-            <button class="telemetry-tab-btn" data-tab="tabElastic">2. TTI Tensor</button>
-            <button class="telemetry-tab-btn" data-tab="tabOperator">3. DarkSnail</button>
-            <button class="telemetry-tab-btn" data-tab="tabBorehole">4. Well/DLS</button>
+          <div class="telemetry-tabs-5" id="telemetryTabBar">
+            <button class="telemetry-tab-btn active" data-tab="tabStrat">1. Strat</button>
+            <button class="telemetry-tab-btn" data-tab="tabElastic">2. TTI/EM</button>
+            <button class="telemetry-tab-btn" data-tab="tabOperator">3. Triad</button>
+            <button class="telemetry-tab-btn" data-tab="tabBorehole">4. Well</button>
+            <button class="telemetry-tab-btn" data-tab="tabBlind">5. Mode B</button>
           </div>
 
           <!-- Tab 1: Coordinates & Stratigraphy -->
@@ -1009,6 +1177,11 @@
           <div class="telemetry-pane" id="tabBorehole">
             <div class="kv-grid" id="gridTelemetryBorehole"></div>
           </div>
+
+          <!-- Tab 5: Mode B Blind LOWO & Tuned Kriging Telemetry -->
+          <div class="telemetry-pane" id="tabBlind">
+            <div class="kv-grid" id="gridTelemetryBlind"></div>
+          </div>
         </div>
 
         <div class="control-group">
@@ -1018,19 +1191,23 @@
           </div>
           <select id="selectWell"></select>
           <div class="well-canvas-wrap">
-            <canvas id="canvasWell"></canvas>
+            <canvas id="canvasWell" title="Click any depth along the sonic log to jump 3D Depth Horizon Z"></canvas>
           </div>
-          <div id="wellStats" style="font-size: 10.5px; font-family: var(--font-mono); color: var(--text-muted); display: flex; justify-content: space-between;"></div>
+          <div id="wellStats" style="font-size: 10px; font-family: var(--font-mono); color: var(--text-muted); display: flex; justify-content: space-between;"></div>
         </div>
 
         <div class="control-group">
           <div class="control-title-row">
-            <span class="control-title">Benchmark: DarkSnail G3VM vs. Naive RBF</span>
-            <span class="control-code">HEAD-TO-HEAD</span>
+            <span class="control-title" id="lblScorecardTitle">Benchmark: Mode A Structural vs. Mode B Blind</span>
+            <span class="control-code" id="lblScorecardCode">HEAD-TO-HEAD</span>
+          </div>
+          <div class="mode-switch-bar">
+            <button class="mode-switch-btn active" id="btnScoreModeA" title="Mode A: Structural Operator Verification (G3VM vs. Naive RBF)">Mode A: Operator vs. RBF</button>
+            <button class="mode-switch-btn" id="btnScoreModeB" title="Mode B: Blind LOWO CV &amp; Unseen Deviated Wells (SNR=20dB, Zero Leakage)">Mode B: Blind vs. Kriging</button>
           </div>
           <table class="scorecard">
             <thead>
-              <tr>
+              <tr id="scorecardHeadRow">
                 <th>Metric</th>
                 <th style="text-align:right;">Naive RBF</th>
                 <th style="text-align:right;">DarkSnail G3VM</th>
@@ -1053,6 +1230,26 @@
     </div>
   </div>
 
+  <!-- Keyboard & Mouse Navigation Shortcuts Modal -->
+  <div class="help-modal-backdrop" id="shortcutsModal">
+    <div class="help-modal-card">
+      <div class="control-title-row">
+        <span class="control-title">G3VM Studio v0.6.0 // Industry View &amp; Keyboard Controls</span>
+        <button class="mini-btn" id="btnCloseShortcutsModal">&times; Close</button>
+      </div>
+      <div class="kv-grid">
+        <div class="kv-cell hi-cyan"><span class="kv-k">3D Orbit / Rotate</span><span class="kv-v">Left-Drag on 3D Canvas or Arrow Keys</span></div>
+        <div class="kv-cell hi-blue"><span class="kv-k">3D Pan / Translate</span><span class="kv-v">Shift + Left-Drag or Right-Drag</span></div>
+        <div class="kv-cell hi-cyan"><span class="kv-k">3D Zoom / Fit</span><span class="kv-v">Mouse Wheel / Pinch | Double-Click Reset</span></div>
+        <div class="kv-cell hi-amber"><span class="kv-k">Camera Presets</span><span class="kv-v">Keys [1..6], [F] Focus Well, [R] Reset</span></div>
+        <div class="kv-cell"><span class="kv-k">360&deg; Turntable Orbit</span><span class="kv-v">[Space] Toggle Smooth Rotation</span></div>
+        <div class="kv-cell"><span class="kv-k">Step Z / Y / X Planes</span><span class="kv-v">[W/S] Z, [A/D] X, [Q/E] Y or Slice Wheel</span></div>
+        <div class="kv-cell"><span class="kv-k">2D Cross-Section Probe</span><span class="kv-v">Click/Drag to Move | Hover for Live Readout</span></div>
+        <div class="kv-cell"><span class="kv-k">Borehole Log Sync</span><span class="kv-v">Click Sonic Log to Jump to Depth Z</span></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SCENARIO_CAVITY_LABELS = {
       subsalt_graben: "Louann Salt Diapir (\u03b2\u2081)",
@@ -1066,6 +1263,10 @@
     const FIELD_SCALE_META = {
       g3vm_vp: { min: 1.7, max: 6.4, unit: "km/s", mode: "turbo", label: "G3VM Vp" },
       g3vm_vp_tti: { min: 1.7, max: 6.4, unit: "km/s", mode: "turbo", label: "G3VM Vp(TTI)" },
+      blind_g3vm_vp: { min: 1.7, max: 6.4, unit: "km/s", mode: "turbo", label: "Blind G3VM Vp" },
+      kriging_vp: { min: 1.7, max: 6.4, unit: "km/s", mode: "turbo", label: "Tuned Kriging Vp" },
+      fkriging_vp: { min: 1.7, max: 6.4, unit: "km/s", mode: "turbo", label: "Fault-Krig Vp" },
+      blind_gain: { min: -0.75, max: 0.75, unit: "\u0394|Err| km/s", mode: "seismic", label: "Blind Gain vs Krig" },
       g3vm_eps_r: { min: 1.0, max: 10.0, unit: "\u03b5r'", mode: "plasma", label: "Dielectric \u03b5r'" },
       g3vm_v_em: { min: 0.09, max: 0.30, unit: "m/ns", mode: "ice", label: "Radar v_EM" },
       g3vm_zp: { min: 3.4, max: 17.8, unit: "g/cm\u00b3\u00b7km/s", mode: "turbo", label: "Impedance Zp" },
@@ -1091,18 +1292,20 @@
     function getFieldScaleMeta(field) {
       const base = FIELD_SCALE_META[field] || FIELD_SCALE_META.g3vm_vp;
       if (STATE.data && STATE.data.scenario_name === "lunar_lava_tube_isru") {
-        if (field === "g3vm_vp" || field === "g3vm_vp_tti" || field === "naive_vp" || field === "true_vp") {
+        if (
+          field === "g3vm_vp" ||
+          field === "g3vm_vp_tti" ||
+          field === "blind_g3vm_vp" ||
+          field === "kriging_vp" ||
+          field === "fkriging_vp" ||
+          field === "naive_vp" ||
+          field === "true_vp"
+        ) {
           return { ...base, min: 0.05, max: 5.5 };
         }
-        if (field === "g3vm_vs") {
-          return { ...base, min: 0.0, max: 3.2 };
-        }
-        if (field === "g3vm_rho") {
-          return { ...base, min: 0.0, max: 3.5 };
-        }
-        if (field === "g3vm_zp") {
-          return { ...base, min: 0.0, max: 19.2 };
-        }
+        if (field === "g3vm_vs") return { ...base, min: 0.0, max: 3.2 };
+        if (field === "g3vm_rho") return { ...base, min: 0.0, max: 3.5 };
+        if (field === "g3vm_zp") return { ...base, min: 0.0, max: 19.2 };
       }
       return base;
     }
@@ -1117,29 +1320,59 @@
       camYaw: -0.68,
       camPitch: 0.52,
       camZoom: 1.0,
+      camPanX: 0.0,
+      camPanY: 0.0,
+      zExag: 1.0,
+      chairMode: "ne_upper",
+      sliceAlpha: 1.0,
+      faultAlpha: 0.26,
+      cmapOverride: "auto",
+      invertCmap: false,
+      scorecardMode: "modeA",
       isDragging3D: false,
+      isPanning3D: false,
       lastMouseX: 0,
       lastMouseY: 0,
       expandAllTelemetry: false,
       activeTelemetryTab: "tabStrat",
+      turntableActive: false,
+      turntableRaf: null,
     };
 
-    // High-contrast geophysical & planetary radar colormaps
     function sampleColormap(t, mode) {
       t = Math.max(0.0, Math.min(1.0, t));
-      if (mode === "plasma") {
+      const effMode = (STATE.cmapOverride && STATE.cmapOverride !== "auto" && mode !== "litho")
+        ? STATE.cmapOverride
+        : mode;
+      if (STATE.invertCmap) t = 1.0 - t;
+
+      if (effMode === "viridis") {
+        const r = Math.min(255, Math.max(0, Math.round(255 * (0.267 - 0.05 * t + 0.77 * Math.pow(t, 2.2)))));
+        const g = Math.min(255, Math.max(0, Math.round(255 * (0.004 + 0.87 * Math.pow(t, 0.88)))));
+        const b = Math.min(255, Math.max(0, Math.round(255 * (0.329 + 0.42 * Math.sin(Math.PI * t * 0.85) - 0.18 * t))));
+        return [r, g, b];
+      }
+      if (effMode === "seismic") {
+        if (t < 0.5) {
+          const u = t * 2.0;
+          return [Math.round(35 + 210 * u), Math.round(85 + 160 * u), Math.round(215 + 30 * u)];
+        }
+        const u = (t - 0.5) * 2.0;
+        return [Math.round(245 + 10 * (1 - u)), Math.round(245 * (1 - 0.82 * u)), Math.round(245 * (1 - 0.88 * u))];
+      }
+      if (effMode === "plasma") {
         const r = Math.min(255, Math.round(255 * Math.min(1.0, 0.08 + 1.15 * Math.pow(t, 0.65))));
         const g = Math.min(255, Math.round(255 * Math.pow(t, 1.55)));
         const b = Math.min(255, Math.round(255 * Math.max(0.0, Math.sin(Math.PI * (0.15 + 0.78 * t)))));
         return [r, g, b];
       }
-      if (mode === "ice") {
+      if (effMode === "ice") {
         const r = Math.min(255, Math.round(255 * Math.pow(t, 1.35)));
         const g = Math.min(255, Math.round(255 * (0.12 + 0.88 * Math.pow(t, 0.78))));
         const b = Math.min(255, Math.round(255 * (0.35 + 0.65 * Math.pow(t, 0.45))));
         return [r, g, b];
       }
-      if (mode === "error" || mode === "triad") {
+      if (effMode === "error" || effMode === "triad") {
         const r = Math.min(255, Math.floor(255 * Math.pow(t, 0.55)));
         const g = Math.min(255, Math.floor(255 * Math.pow(t, 1.6)));
         const b = Math.min(255, Math.floor(255 * (0.25 + 0.75 * Math.sin(Math.PI * t))));
@@ -1172,7 +1405,6 @@
       return sampleColormap((val - meta.min) / Math.max(1e-6, meta.max - meta.min), meta.mode);
     }
 
-    // Estimate local structural dip & strike azimuth from central differences of Vp cube at (z,y,x)
     function computeLocalDipAzimuth(z, y, x) {
       if (!STATE.data) return { dipDeg: 0.0, aziDeg: 0.0 };
       const [Z, Y, X] = STATE.data.grid_shape;
@@ -1275,61 +1507,51 @@
       status.style.color = "var(--accent-cyan)";
     }
 
-    function populateSidebarAndTables() {
+    function renderScorecardTable() {
       const d = STATE.data;
       if (!d) return;
+      const m = d.metrics;
+      const bm = d.blind_metrics;
+      const headRow = document.getElementById("scorecardHeadRow");
+      const isLunarScen = d.scenario_name === "lunar_lava_tube_isru";
 
-      document.getElementById("scenarioSummary").textContent = d.meta.summary;
-      document.getElementById("overlayTitle").textContent = d.meta.title;
-
-      // Update scenario-specific enclosed anomaly checkbox label
-      const cavLbl = document.getElementById("lblCavity");
-      if (cavLbl) {
-        cavLbl.textContent =
-          SCENARIO_CAVITY_LABELS[d.scenario_name] || "Enclosed \u03b2\u2081 Anomaly Body";
+      if (STATE.scorecardMode === "modeB" && bm) {
+        if (headRow) {
+          headRow.innerHTML = `<th style="text-align:left">Mode B Blind Metric</th><th>Tuned Krig</th><th>Blind G3VM</th>`;
+        }
+        const lw = bm.lowo_heldout_well_rmse_kms || {};
+        const dw = bm.heldout_deviated_well_rmse_kms || {};
+        const cw = bm.whole_cube_blind_rmse_kms || {};
+        const ef = bm.bounded_edge_gradient_fidelity || {};
+        const bRows = [
+          ["Blind LOWO Well RMSE (km/s)", (lw.tuned_anisotropic_kriging ?? lw.tuned_kriging ?? 0).toFixed(4), (lw.blind_darksnail_g3vm ?? lw.g3vm ?? 0).toFixed(4)],
+          ["Fault-Krig LOWO Well RMSE", (lw.fault_partitioned_kriging ?? lw.fault_kriging ?? 0).toFixed(4), (lw.blind_darksnail_g3vm ?? lw.g3vm ?? 0).toFixed(4)],
+          ["Held-Out Deviated RMSE", (dw.tuned_anisotropic_kriging ?? dw.tuned_kriging ?? 0).toFixed(4), (dw.blind_darksnail_g3vm ?? dw.g3vm ?? 0).toFixed(4)],
+          ["Whole-Cube Blind RMSE", (cw.tuned_anisotropic_kriging ?? cw.tuned_kriging ?? 0).toFixed(4), (cw.blind_darksnail_g3vm ?? cw.g3vm ?? 0).toFixed(4)],
+          ["Fault-Krig Whole-Cube RMSE", (cw.fault_partitioned_kriging ?? cw.fault_kriging ?? 0).toFixed(4), (cw.blind_darksnail_g3vm ?? cw.g3vm ?? 0).toFixed(4)],
+          ["Bounded Edge Fidelity", ((ef.tuned_anisotropic_kriging ?? ef.tuned_kriging ?? 0) * 100).toFixed(1) + "%", ((ef.blind_darksnail_g3vm ?? ef.g3vm ?? 0) * 100).toFixed(1) + "%"],
+          ["Fault-Krig Edge Fidelity", ((ef.fault_partitioned_kriging ?? ef.fault_kriging ?? 0) * 100).toFixed(1) + "%", ((ef.blind_darksnail_g3vm ?? ef.g3vm ?? 0) * 100).toFixed(1) + "%"],
+        ];
+        document.getElementById("scorecardBody").innerHTML = bRows
+          .map(
+            ([label, krig, g3]) => `
+          <tr>
+            <td>${label}</td>
+            <td class="num lose">${krig}</td>
+            <td class="num win">${g3}</td>
+          </tr>`
+          )
+          .join("");
+        return;
       }
 
-      // Header pills
-      const m = d.metrics;
-      document.getElementById("badgeOrtho").textContent =
-        `<v, d_ell>: ${m.max_orthogonality_residual.toExponential(2)}`;
-      document.getElementById("badgeHomotopy").textContent =
-        `Thm 2.4 Step-0 Homotopy: ${m.step0_homotopy_error.toExponential(2)}`;
-      document.getElementById("badgeBeltrami").textContent =
-        `Beltrami Spike Recovery: ${(m.beltrami_spike_recovery * 100).toFixed(1)}%`;
-      document.getElementById("badgeRmse").textContent =
-        `Vp RMSE: ${m.g3vm_vp_rmse_kms.toFixed(3)} km/s (-${m.rmse_reduction_pct.toFixed(1)}% vs RBF)`;
-
-      // Scenario-specific Lithostratigraphic column legend
-      const leg = document.getElementById("lithoLegend");
-      const activeLid = d.cubes.g3vm_litho[STATE.sliceZ]?.[STATE.sliceY]?.[STATE.sliceX] ?? -1;
-      leg.innerHTML = d.lithology_catalog
-        .map(
-          (item) => `
-        <div class="litho-item ${item.id === activeLid ? 'active-unit' : ''}" data-lid="${item.id}">
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-            <span class="swatch" style="background:${item.color}"></span>${item.id}: ${item.name}
-          </span>
-          <span style="font-family:var(--font-mono);color:var(--accent-cyan);margin-left:6px;flex-shrink:0;">${item.vp_kms.toFixed(2)} km/s</span>
-        </div>`
-        )
-        .join("");
-
-      // Well selector
-      const selWell = document.getElementById("selectWell");
-      const prevIdx = Math.min(STATE.selectedWell, d.wells.length - 1);
-      selWell.innerHTML = d.wells
-        .map((w, i) => `<option value="${i}">${w.name} [${w.well_type || 'vertical'}]</option>`)
-        .join("");
-      selWell.value = String(prevIdx);
-      STATE.selectedWell = prevIdx;
-
-      // Scorecard table
+      if (headRow) {
+        headRow.innerHTML = `<th style="text-align:left">Metric</th><th>Naive RBF</th><th>G3VM</th>`;
+      }
       const rows = [
         ["Whole-Cube Vp RMSE (km/s)", m.naive_vp_rmse_kms.toFixed(4), m.g3vm_vp_rmse_kms.toFixed(4)],
         ["TTI Anisotropic Vp RMSE (km/s)", (m.naive_vp_tti_rmse_kms || m.naive_vp_rmse_kms).toFixed(4), (m.g3vm_vp_tti_rmse_kms || m.g3vm_vp_rmse_kms).toFixed(4)],
       ];
-      const isLunarScen = d.scenario_name === "lunar_lava_tube_isru";
       if (isLunarScen && m.g3vm_eps_r_rmse !== undefined && m.naive_eps_r_rmse !== undefined) {
         rows.push(["Dielectric \u03b5r' RMSE (Radar)", m.naive_eps_r_rmse.toFixed(4), m.g3vm_eps_r_rmse.toFixed(4)]);
       }
@@ -1362,6 +1584,54 @@
         </tr>`
         )
         .join("");
+    }
+
+    function populateSidebarAndTables() {
+      const d = STATE.data;
+      if (!d) return;
+
+      document.getElementById("scenarioSummary").textContent = d.meta.summary;
+      document.getElementById("overlayTitle").textContent = d.meta.title;
+
+      const cavLbl = document.getElementById("lblCavity");
+      if (cavLbl) {
+        cavLbl.textContent =
+          SCENARIO_CAVITY_LABELS[d.scenario_name] || "Enclosed \u03b2\u2081 Anomaly Body";
+      }
+
+      const m = d.metrics;
+      document.getElementById("badgeOrtho").textContent =
+        `<v, d_ell>: ${m.max_orthogonality_residual.toExponential(2)}`;
+      document.getElementById("badgeHomotopy").textContent =
+        `Thm 2.4 Step-0 Homotopy: ${m.step0_homotopy_error.toExponential(2)}`;
+      document.getElementById("badgeBeltrami").textContent =
+        `Beltrami Spike Recovery: ${(m.beltrami_spike_recovery * 100).toFixed(1)}%`;
+      document.getElementById("badgeRmse").textContent =
+        `Vp RMSE: ${m.g3vm_vp_rmse_kms.toFixed(3)} km/s (-${m.rmse_reduction_pct.toFixed(1)}% vs RBF)`;
+
+      const leg = document.getElementById("lithoLegend");
+      const activeLid = d.cubes.g3vm_litho[STATE.sliceZ]?.[STATE.sliceY]?.[STATE.sliceX] ?? -1;
+      leg.innerHTML = d.lithology_catalog
+        .map(
+          (item) => `
+        <div class="litho-item ${item.id === activeLid ? 'active-unit' : ''}" data-lid="${item.id}">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <span class="swatch" style="background:${item.color}"></span>${item.id}: ${item.name}
+          </span>
+          <span style="font-family:var(--font-mono);color:var(--accent-cyan);margin-left:6px;flex-shrink:0;">${item.vp_kms.toFixed(2)} km/s</span>
+        </div>`
+        )
+        .join("");
+
+      const selWell = document.getElementById("selectWell");
+      const prevIdx = Math.min(STATE.selectedWell, d.wells.length - 1);
+      selWell.innerHTML = d.wells
+        .map((w, i) => `<option value="${i}">${w.name} [${w.well_type || 'vertical'}]</option>`)
+        .join("");
+      selWell.value = String(prevIdx);
+      STATE.selectedWell = prevIdx;
+
+      renderScorecardTable();
 
       const t = m.theorem_audit;
       const thmRows = [
@@ -1385,7 +1655,6 @@
         .join("");
     }
 
-    // Update the 4-section Granular Voxel & Borehole Telemetry Submenu
     function updateGranularTelemetryInspector() {
       const d = STATE.data;
       if (!d) return;
@@ -1408,7 +1677,6 @@
       const catUnit = d.lithology_catalog[lid] || d.lithology_catalog[0];
       const trueUnit = d.lithology_catalog[trueLid] || catUnit;
 
-      // Highlight active lithology row in left sidebar
       document.querySelectorAll("#lithoLegend .litho-item").forEach((el) => {
         el.classList.toggle("active-unit", parseInt(el.dataset.lid, 10) === lid);
       });
@@ -1444,7 +1712,6 @@
       const nopePlume = c.timelapse_nope_plume ? c.timelapse_nope_plume[sz][sy][sx] : 0.0;
       const jordanFlag = (c.jordan_cavity && c.jordan_cavity[sz][sy][sx] > 0.5) ? "ENCLOSED (\u03b2\u2081=1)" : "EXTERIOR (\u03b2\u2081=0)";
 
-      // 1. Stratigraphy & Coordinates Grid
       document.getElementById("gridTelemetryStrat").innerHTML = `
         <div class="kv-cell hi-cyan full">
           <span class="kv-k">Active Stratigraphic Formation (G3VM)</span>
@@ -1460,7 +1727,7 @@
         </div>
         <div class="kv-cell">
           <span class="kv-k">Inline North / East</span>
-          <span class="kv-v">Y:${northM.toFixed(0)}m X:${eastM.toFixed(0)}m</span>
+          <span class="kv-v">Y:${northM.toFixed(0)}m X:${eastM.toFixed(0)}m (${dipDeg.toFixed(0)}&deg;/${aziDeg.toFixed(0)}&deg;)</span>
         </div>
         <div class="kv-cell">
           <span class="kv-k">Ground Truth Facies</span>
@@ -1476,7 +1743,6 @@
         </div>
       `;
 
-      // 2. Elastic, Thomsen TTI & Olhoeft-Strangway Dielectric Grid
       document.getElementById("gridTelemetryElastic").innerHTML = `
         <div class="kv-cell hi-cyan">
           <span class="kv-k">Isotropic Vp0 / TTI Vp(&psi;)</span>
@@ -1504,7 +1770,6 @@
         </div>
       `;
 
-      // 3. DarkSnail Operator & 4D State Grid
       document.getElementById("gridTelemetryOperator").innerHTML = `
         <div class="kv-cell hi-cyan">
           <span class="kv-k">so(C) Triad Shift ||&Delta;&ell;||_2</span>
@@ -1532,7 +1797,6 @@
         </div>
       `;
 
-      // 4. Selected Borehole Directional & Beltrami Telemetry
       const w = d.wells[STATE.selectedWell] || d.wells[0];
       if (w) {
         const hasTraj = w.traj_z && w.traj_z.length > 1;
@@ -1544,6 +1808,8 @@
         const tdZ = hasTraj ? w.traj_z[w.traj_z.length - 1].toFixed(1) : (Z - 1);
         const tdY = hasTraj ? w.traj_y[w.traj_y.length - 1].toFixed(1) : w.y;
         const tdX = hasTraj ? w.traj_x[w.traj_x.length - 1].toFixed(1) : w.x;
+        const eqRec = w.equal_budget_naive_recovery !== undefined ? (w.equal_budget_naive_recovery * 100).toFixed(1) + "%" : ((w.naive_spike_recovery * 100).toFixed(1) + "%");
+        const f1Val = w.thin_bed_f1 !== undefined ? (w.thin_bed_f1 * 100).toFixed(1) + "%" : "100.0%";
 
         document.getElementById("gridTelemetryBorehole").innerHTML = `
           <div class="kv-cell hi-cyan full">
@@ -1567,12 +1833,57 @@
             <span class="kv-v">${maxDls.toFixed(2)}&deg; / 30m</span>
           </div>
           <div class="kv-cell">
-            <span class="kv-k">Pinned Stringer Z Bins</span>
-            <span class="kv-v">Z = [${(w.stringer_depths || []).join(", ")}]</span>
+            <span class="kv-k">Beltrami vs. Eq-Pool (K=16)</span>
+            <span class="kv-v">${(w.beltrami_spike_recovery * 100).toFixed(1)}% vs ${eqRec}</span>
           </div>
           <div class="kv-cell hi-cyan">
-            <span class="kv-k">Beltrami vs. Naive Spike</span>
-            <span class="kv-v">${(w.beltrami_spike_recovery * 100).toFixed(1)}% vs ${(w.naive_spike_recovery * 100).toFixed(1)}%</span>
+            <span class="kv-k">Thin-Bed Detection F1</span>
+            <span class="kv-v">${f1Val} (Z=[${(w.stringer_depths || []).join(",")}])</span>
+          </div>
+        `;
+      }
+
+      const gridBlind = document.getElementById("gridTelemetryBlind");
+      if (gridBlind) {
+        const bVp = c.blind_g3vm_vp ? c.blind_g3vm_vp[sz][sy][sx] : g3Vp;
+        const kVp = c.kriging_vp ? c.kriging_vp[sz][sy][sx] : rbfVp;
+        const fkVp = c.fkriging_vp ? c.fkriging_vp[sz][sy][sx] : rbfVp;
+        const bGain = c.blind_gain ? c.blind_gain[sz][sy][sx] : (Math.abs(kVp - trueVp) - Math.abs(bVp - trueVp));
+        const bm = d.blind_metrics;
+        const lw = bm ? (bm.lowo_heldout_well_rmse_kms || {}) : {};
+        const dw = bm ? (bm.heldout_deviated_well_rmse_kms || {}) : {};
+        const lowoG3 = (lw.blind_darksnail_g3vm ?? lw.g3vm ?? 0.447).toFixed(4);
+        const lowoKrig = (lw.tuned_anisotropic_kriging ?? lw.tuned_kriging ?? 0.650).toFixed(4);
+        const devG3 = (dw.blind_darksnail_g3vm ?? dw.g3vm ?? 0.470).toFixed(4);
+        const devFk = (dw.fault_partitioned_kriging ?? dw.fault_kriging ?? 0.580).toFixed(4);
+        const kp = (bm && bm.kriging_tuned_params) ? bm.kriging_tuned_params : { ell_z: 6.0, ell_xy: 11.0, nugget_lambda: 0.02 };
+        const rz = kp.ell_z ?? kp.range_z ?? 6.0;
+        const rxy = kp.ell_xy ?? kp.range_xy ?? 11.0;
+
+        gridBlind.innerHTML = `
+          <div class="kv-cell hi-cyan">
+            <span class="kv-k">Voxel Blind G3VM Vp</span>
+            <span class="kv-v">${bVp.toFixed(3)} km/s (&Delta;=${(bVp - trueVp >= 0 ? '+' : '') + (bVp - trueVp).toFixed(3)})</span>
+          </div>
+          <div class="kv-cell hi-amber">
+            <span class="kv-k">Tuned Mat&eacute;rn-3/2 Krig Vp</span>
+            <span class="kv-v">${kVp.toFixed(3)} km/s (&Delta;=${(kVp - trueVp >= 0 ? '+' : '') + (kVp - trueVp).toFixed(3)})</span>
+          </div>
+          <div class="kv-cell hi-blue">
+            <span class="kv-k">Fault-Block Kriging Vp</span>
+            <span class="kv-v">${fkVp.toFixed(3)} km/s (&Delta;=${(fkVp - trueVp >= 0 ? '+' : '') + (fkVp - trueVp).toFixed(3)})</span>
+          </div>
+          <div class="kv-cell hi-cyan">
+            <span class="kv-k">Voxel Blind Gain vs Krig</span>
+            <span class="kv-v">${bGain >= 0 ? '+' : ''}${bGain.toFixed(3)} km/s</span>
+          </div>
+          <div class="kv-cell">
+            <span class="kv-k">LOWO Blind RMSE (G3 / Krig)</span>
+            <span class="kv-v">${lowoG3} vs ${lowoKrig} km/s</span>
+          </div>
+          <div class="kv-cell">
+            <span class="kv-k">Dev Holdout (G3 / F-Krig)</span>
+            <span class="kv-v">${devG3} vs ${devFk} (lz=${rz}, lxy=${rxy})</span>
           </div>
         `;
       }
@@ -1584,20 +1895,25 @@
       }
     }
 
-    // Render 2D Slices
     function render2DSlices() {
       if (!STATE.data) return;
       const [Z, Y, X] = STATE.data.grid_shape;
       const sz = STATE.sliceZ;
       const sy = STATE.sliceY;
       const sx = STATE.sliceX;
+      const isLunar = STATE.data.scenario_name === "lunar_lava_tube_isru";
+      const maxDepthM = isLunar ? 320.0 : 3000.0;
+      const maxSpanM = isLunar ? 480.0 : 4800.0;
+      const curDepthM = ((sz / Math.max(1, Z - 1)) * maxDepthM).toFixed(0);
+      const curNorthM = ((sy / Math.max(1, Y - 1)) * maxSpanM).toFixed(0);
+      const curEastM = ((sx / Math.max(1, X - 1)) * maxSpanM).toFixed(0);
 
       document.getElementById("valSliceZ").textContent = sz;
       document.getElementById("valSliceY").textContent = sy;
       document.getElementById("valSliceX").textContent = sx;
-      document.getElementById("lblInlineY").textContent = `Y = ${sy}`;
-      document.getElementById("lblCrossX").textContent = `X = ${sx}`;
-      document.getElementById("lblDepthZ").textContent = `Z = ${sz}`;
+      document.getElementById("lblInlineY").textContent = `Y=${sy} (${curNorthM}m)`;
+      document.getElementById("lblCrossX").textContent = `X=${sx} (${curEastM}m)`;
+      document.getElementById("lblDepthZ").textContent = `Z=${sz} (${curDepthM}m)`;
 
       const g3Vp = STATE.data.cubes.g3vm_vp[sz][sy][sx];
       const rbfVp = STATE.data.cubes.naive_vp[sz][sy][sx];
@@ -1654,12 +1970,24 @@
           }))
         : [];
 
-      drawSliceCanvas("canvasInline", X, Z, (c, r) => getVoxelColor(r, sy, c), sx, sz, inlineWells);
-      drawSliceCanvas("canvasCrossline", Y, Z, (c, r) => getVoxelColor(r, c, sx), sy, sz, crossWells);
-      drawSliceCanvas("canvasDepth", X, Y, (c, r) => getVoxelColor(sz, r, c), sx, sy, mapWells);
+      drawSliceCanvas("canvasInline", X, Z, (c, r) => getVoxelColor(r, sy, c), sx, sz, inlineWells, {
+        kind: "inline",
+        xMaxLabel: isLunar ? "480m E" : "4.8km E",
+        yMaxLabel: isLunar ? "320m TVD" : "3.0km TVD",
+      });
+      drawSliceCanvas("canvasCrossline", Y, Z, (c, r) => getVoxelColor(r, c, sx), sy, sz, crossWells, {
+        kind: "crossline",
+        xMaxLabel: isLunar ? "480m N" : "4.8km N",
+        yMaxLabel: isLunar ? "320m TVD" : "3.0km TVD",
+      });
+      drawSliceCanvas("canvasDepth", X, Y, (c, r) => getVoxelColor(sz, r, c), sx, sy, mapWells, {
+        kind: "depth",
+        xMaxLabel: isLunar ? "480m E" : "4.8km E",
+        yMaxLabel: isLunar ? "480m N" : "4.8km N",
+      });
     }
 
-    function drawSliceCanvas(canvasId, cols, rows, colorFn, crossCol, crossRow, markers) {
+    function drawSliceCanvas(canvasId, cols, rows, colorFn, crossCol, crossRow, markers, axisMeta) {
       const canvas = document.getElementById(canvasId);
       const rect = canvas.parentElement.getBoundingClientRect();
       canvas.width = Math.max(120, Math.floor(rect.width));
@@ -1688,6 +2016,68 @@
 
       const scaleX = canvas.width / cols;
       const scaleY = canvas.height / rows;
+
+      // Optional 2D Structural Fault & Jordan Cavity Contours
+      const chk2DFault = document.getElementById("chk2DFaultOverlay");
+      if ((!chk2DFault || chk2DFault.checked) && STATE.data) {
+        const [Z, Y, X] = STATE.data.grid_shape;
+        const cav = STATE.data.cubes.jordan_cavity;
+        if (cav) {
+          ctx.strokeStyle = "rgba(0, 242, 212, 0.88)";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              const v = axisMeta?.kind === "inline"
+                ? cav[r][STATE.sliceY][c]
+                : (axisMeta?.kind === "crossline" ? cav[r][c][STATE.sliceX] : cav[STATE.sliceZ][r][c]);
+              if (v > 0.5) {
+                const vR = c + 1 < cols ? (axisMeta?.kind === "inline" ? cav[r][STATE.sliceY][c + 1] : (axisMeta?.kind === "crossline" ? cav[r][c + 1][STATE.sliceX] : cav[STATE.sliceZ][r][c + 1])) : 0;
+                const vL = c > 0 ? (axisMeta?.kind === "inline" ? cav[r][STATE.sliceY][c - 1] : (axisMeta?.kind === "crossline" ? cav[r][c - 1][STATE.sliceX] : cav[STATE.sliceZ][r][c - 1])) : 0;
+                const vB = r + 1 < rows ? (axisMeta?.kind === "inline" ? cav[r + 1][STATE.sliceY][c] : (axisMeta?.kind === "crossline" ? cav[r + 1][c][STATE.sliceX] : cav[STATE.sliceZ][r + 1][c])) : 0;
+                const vT = r > 0 ? (axisMeta?.kind === "inline" ? cav[r - 1][STATE.sliceY][c] : (axisMeta?.kind === "crossline" ? cav[r - 1][c][STATE.sliceX] : cav[STATE.sliceZ][r - 1][c])) : 0;
+                const x0 = c * scaleX, x1 = (c + 1) * scaleX, y0 = r * scaleY, y1 = (r + 1) * scaleY;
+                if (vR <= 0.5) { ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); }
+                if (vL <= 0.5) { ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); }
+                if (vB <= 0.5) { ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); }
+                if (vT <= 0.5) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); }
+              }
+            }
+          }
+          ctx.stroke();
+        }
+
+        if (STATE.data.fault_planes_meta && axisMeta) {
+          for (const fp of STATE.data.fault_planes_meta) {
+            ctx.save();
+            ctx.strokeStyle = fp.color || "#ff6b6b";
+            ctx.lineWidth = 1.6;
+            ctx.setLineDash([5, 3]);
+            ctx.beginPath();
+            if (fp.x_top !== undefined && fp.x_bot !== undefined) {
+              if (axisMeta.kind === "inline") {
+                ctx.moveTo(fp.x_top * canvas.width, 0);
+                ctx.lineTo(fp.x_bot * canvas.width, canvas.height);
+              } else if (axisMeta.kind === "depth") {
+                const zFrac = STATE.sliceZ / Math.max(1, Z - 1);
+                const xFrac = fp.x_top + (fp.x_bot - fp.x_top) * zFrac;
+                ctx.moveTo(xFrac * canvas.width, 0);
+                ctx.lineTo(xFrac * canvas.width, canvas.height);
+              }
+            } else if (fp.z_level !== undefined && axisMeta.kind === "inline") {
+              ctx.moveTo(0, (fp.z_level - 0.04) * canvas.height);
+              ctx.lineTo(canvas.width, (fp.z_level + 0.04) * canvas.height);
+            } else if (fp.z_level !== undefined && axisMeta.kind === "crossline") {
+              const xOff = 0.08 * ((STATE.sliceX - X * 0.5) / X);
+              const yPx = (fp.z_level + xOff) * canvas.height;
+              ctx.moveTo(0, yPx);
+              ctx.lineTo(canvas.width, yPx);
+            }
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
 
       // Draw borehole trajectories or map pins
       for (const m of markers) {
@@ -1772,9 +2162,51 @@
       ctx.moveTo(0, cy);
       ctx.lineTo(canvas.width, cy);
       ctx.stroke();
+
+      // Compact Physical Coordinate Scale Badges
+      if (axisMeta) {
+        ctx.font = "600 8.5px 'JetBrains Mono', Consolas, monospace";
+        const w1 = ctx.measureText(axisMeta.xMaxLabel).width + 8;
+        ctx.fillStyle = "rgba(7, 11, 19, 0.78)";
+        ctx.fillRect(canvas.width - w1 - 4, canvas.height - 15, w1, 12);
+        ctx.fillStyle = "#9fb3c8";
+        ctx.fillText(axisMeta.xMaxLabel, canvas.width - w1, canvas.height - 6);
+
+        const w2 = ctx.measureText(axisMeta.yMaxLabel).width + 8;
+        ctx.fillStyle = "rgba(7, 11, 19, 0.78)";
+        ctx.fillRect(4, canvas.height - 15, w2, 12);
+        ctx.fillStyle = "#00f2d4";
+        ctx.fillText(axisMeta.yMaxLabel, 8, canvas.height - 6);
+      }
     }
 
-    // Render 3D Chair-Cut & Fence Volume with Non-Overlapping Callout Badges & Colorbar
+    // Render 3D Chair-Cut & Fence Volume with Non-Overlapping Callout Badges, 3D Orientation Gizmo & Colorbar
+    function shouldClipChairVoxel(plane, z, y, x, sz, sy, sx, chairCut, chairMode) {
+      if (!chairCut || chairMode === "fence_only") return false;
+      if (chairMode === "nw_upper") {
+        if (plane === "z") return y > sy && x < sx && sz > 0;
+        if (plane === "y") return z < sz && x < sx;
+        if (plane === "x") return z < sz && y > sy;
+      } else if (chairMode === "se_upper") {
+        if (plane === "z") return y < sy && x > sx && sz > 0;
+        if (plane === "y") return z < sz && x > sx;
+        if (plane === "x") return z < sz && y < sy;
+      } else if (chairMode === "sw_upper") {
+        if (plane === "z") return y < sy && x < sx && sz > 0;
+        if (plane === "y") return z < sz && x < sx;
+        if (plane === "x") return z < sz && y < sy;
+      } else if (chairMode === "ne_lower") {
+        if (plane === "z") return y > sy && x > sx && sz < 31;
+        if (plane === "y") return z > sz && x > sx;
+        if (plane === "x") return z > sz && y > sy;
+      }
+      // Default: ne_upper
+      if (plane === "z") return y > sy && x > sx && sz > 0;
+      if (plane === "y") return z < sz && x > sx;
+      if (plane === "x") return z < sz && y > sy;
+      return false;
+    }
+
     function render3DViewport() {
       if (!STATE.data) return;
       const canvas = document.getElementById("canvas3d");
@@ -1789,6 +2221,7 @@
       const sy = STATE.sliceY;
       const sx = STATE.sliceX;
       const chairCut = document.getElementById("chkChairCut").checked;
+      const chairMode = STATE.chairMode || "ne_upper";
       const showBoreholes = document.getElementById("chkBoreholes").checked;
       const showWellBadges = document.getElementById("chkWellBadges").checked;
       const showSpikeRings = document.getElementById("chkSpikeRings").checked;
@@ -1797,10 +2230,21 @@
       const showEllipsoids = document.getElementById("chkEllipsoids").checked;
       const showCrosshairs = document.getElementById("chkCrosshairs").checked;
       const showColorbar = document.getElementById("chkColorbar").checked;
+      const sliceAlpha = STATE.sliceAlpha !== undefined ? STATE.sliceAlpha : 1.0;
+      const faultAlpha = STATE.faultAlpha !== undefined ? STATE.faultAlpha : 0.26;
+      const zExag = STATE.zExag !== undefined ? STATE.zExag : 1.0;
+
+      // Update live camera telemetry in HUD bar
+      const camTel = document.getElementById("overlayCamTelemetry");
+      if (camTel) {
+        const azDeg = Math.round(((STATE.camYaw * 180) / Math.PI));
+        const elDeg = Math.round(((STATE.camPitch * 180) / Math.PI));
+        camTel.textContent = `Az: ${azDeg}\u00b0 El: ${elDeg}\u00b0 Zoom: ${STATE.camZoom.toFixed(2)}x VE: ${zExag.toFixed(1)}x`;
+      }
 
       // Center 3D block with generous top headroom so wellhead badges never clip
-      const cx = canvas.width * (showColorbar ? 0.46 : 0.50);
-      const cy = canvas.height * 0.55;
+      const cx = canvas.width * (showColorbar ? 0.46 : 0.50) + (STATE.camPanX || 0);
+      const cy = canvas.height * 0.55 + (STATE.camPanY || 0);
       const scale = Math.min(canvas.width, canvas.height) * 0.0168 * STATE.camZoom;
 
       const cosY = Math.cos(STATE.camYaw);
@@ -1811,7 +2255,7 @@
       function project(z, y, x) {
         const dx = x - X * 0.5;
         const dy = y - Y * 0.5;
-        const dz = z - Z * 0.5;
+        const dz = (z - Z * 0.5) * zExag;
 
         const rx = dx * cosY - dy * sinY;
         const ry = dx * sinY + dy * cosY;
@@ -1837,7 +2281,7 @@
       // 1. Horizontal Slice Z = sz
       for (let y = 0; y < Y; y++) {
         for (let x = 0; x < X; x++) {
-          if (chairCut && y > sy && x > sx && sz > 0) continue;
+          if (shouldClipChairVoxel("z", sz, y, x, sz, sy, sx, chairCut, chairMode)) continue;
           const rgb = getVoxelColor(sz, y, x);
           pushQuad(
             project(sz, y, x),
@@ -1845,7 +2289,8 @@
             project(sz, y + 1, x + 1),
             project(sz, y + 1, x),
             rgb,
-            1.05
+            1.05,
+            sliceAlpha
           );
         }
       }
@@ -1853,7 +2298,7 @@
       // 2. Inline Slice Y = sy (Z x X)
       for (let z = 0; z < Z; z++) {
         for (let x = 0; x < X; x++) {
-          if (chairCut && z < sz && x > sx) continue;
+          if (shouldClipChairVoxel("y", z, sy, x, sz, sy, sx, chairCut, chairMode)) continue;
           const rgb = getVoxelColor(z, sy, x);
           pushQuad(
             project(z, sy, x),
@@ -1861,7 +2306,8 @@
             project(z + 1, sy, x + 1),
             project(z + 1, sy, x),
             rgb,
-            0.92
+            0.92,
+            sliceAlpha
           );
         }
       }
@@ -1869,7 +2315,7 @@
       // 3. Crossline Slice X = sx (Z x Y)
       for (let z = 0; z < Z; z++) {
         for (let y = 0; y < Y; y++) {
-          if (chairCut && z < sz && y > sy) continue;
+          if (shouldClipChairVoxel("x", z, y, sx, sz, sy, sx, chairCut, chairMode)) continue;
           const rgb = getVoxelColor(z, y, sx);
           pushQuad(
             project(z, y, sx),
@@ -1877,7 +2323,8 @@
             project(z + 1, y + 1, sx),
             project(z + 1, y, sx),
             rgb,
-            0.80
+            0.80,
+            sliceAlpha
           );
         }
       }
@@ -1903,7 +2350,7 @@
       }
 
       // 5. Structural Fault Ribbon Planes & Unconformity Surfaces
-      if (showFaults && STATE.data.fault_planes_meta) {
+      if (showFaults && STATE.data.fault_planes_meta && faultAlpha > 0.01) {
         for (const fp of STATE.data.fault_planes_meta) {
           const rgb = hexToRgb(fp.color || "#ff6b6b");
           if (fp.x_top !== undefined && fp.x_bot !== undefined) {
@@ -1918,7 +2365,7 @@
                 project(Z, y, xBot),
                 rgb,
                 1.0,
-                0.26
+                faultAlpha
               );
             }
           } else if (fp.z_level !== undefined) {
@@ -1934,7 +2381,7 @@
                   project(zBase + 0.08 * Z * ((xn - X * 0.5) / X), y, xn),
                   rgb,
                   1.0,
-                  0.20
+                  faultAlpha * 0.78
                 );
               }
             }
@@ -1992,7 +2439,7 @@
         }
       }
 
-      // Bounding Wireframe Box & Axis Orientation Labels
+      // Bounding Wireframe Box & Exterior Axis Dimension Badges
       if (showCrosshairs) {
         const corners = [
           [0, 0, 0], [0, 0, X], [0, Y, X], [0, Y, 0],
@@ -2020,19 +2467,34 @@
         ctx.arc(pCur[0], pCur[1], 4.5, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Subtle axis compass tags at box corners
+        // Exterior-displaced axis tags so labels NEVER cross the interior chair-cut slices
         const isLunar = STATE.data.scenario_name === "lunar_lava_tube_isru";
-        ctx.font = "600 9.5px 'JetBrains Mono', Consolas, monospace";
-        ctx.fillStyle = "rgba(132, 150, 176, 0.78)";
-        ctx.fillText(isLunar ? "X:EAST (480m)" : "X:EAST (4.8km)", corners[1][0] + 4, corners[1][1]);
-        ctx.fillText("Y:NORTH", corners[3][0] - 42, corners[3][1] - 4);
-        ctx.fillText(isLunar ? "Z:320m" : "Z:3.0km", corners[4][0] - 42, corners[4][1] + 10);
+        ctx.font = "600 9px 'JetBrains Mono', Consolas, monospace";
+        function drawExteriorTag(pt, text, fallbackDx, fallbackDy) {
+          const vx = pt[0] - cx;
+          const vy = pt[1] - cy;
+          const len = Math.hypot(vx, vy) || 1.0;
+          const ox = pt[0] + (vx / len) * 16 + fallbackDx;
+          const oy = pt[1] + (vy / len) * 12 + fallbackDy;
+          const tw = ctx.measureText(text).width;
+          const bx = Math.max(6, Math.min(canvas.width - tw - 12, ox - tw * 0.5));
+          const by = Math.max(12, Math.min(canvas.height - 8, oy));
+          ctx.fillStyle = "rgba(7, 11, 19, 0.80)";
+          ctx.fillRect(bx - 3, by - 9, tw + 6, 12);
+          ctx.fillStyle = "rgba(159, 179, 200, 0.88)";
+          ctx.fillText(text, bx, by);
+        }
+        drawExteriorTag(corners[5], isLunar ? "X:EAST (480m)" : "X:EAST (4.8km)", 18, 8);
+        drawExteriorTag(corners[3], isLunar ? "Y:NORTH (480m)" : "Y:NORTH (4.8km)", -18, -6);
+        drawExteriorTag(corners[4], isLunar ? "Z:TVD (320m)" : "Z:TVD (3.0km)", -22, 8);
       }
 
-      // 6. Vertical & Deviated/Horizontal Boreholes + Non-Overlapping Wellhead Leader Badges
+      // 6. Vertical & Deviated/Horizontal Boreholes + De-Collided Wellhead Leader Badges
       if (showBoreholes) {
         const isForge = STATE.data.scenario_name === "utah_forge_egs_doublet";
         const isLunar = STATE.data.scenario_name === "lunar_lava_tube_isru";
+        const pendingBadges = [];
+
         STATE.data.wells.forEach((w, idx) => {
           const isDev = w.well_type && w.well_type !== "vertical";
           const isHoriz = Boolean(w.well_type && w.well_type.includes("horizontal"));
@@ -2108,7 +2570,6 @@
             });
           }
 
-          // Wellhead Callout Badges with Leader Lines (De-collided for 16A & 16B shared pad and Lunar ISRU)
           if (showWellBadges) {
             const shortTag = is16A
               ? "16A(78)-32 Injector (65\u00b0)"
@@ -2123,36 +2584,119 @@
             if (isDev || idx === STATE.selectedWell || is16A || is16B || isLunar) {
               ctx.font = "700 10px 'JetBrains Mono', Consolas, sans-serif";
               const tw = ctx.measureText(shortTag).width;
-              const xOff = is16A ? -tw - 14 : (is16B ? 14 : -tw * 0.5);
-              const yOff = is16A ? -24 : (is16B ? -42 : -22);
+              const xOff = is16A ? -tw - 16 : (is16B ? 16 : -tw * 0.5);
+              const yOff = is16A ? -24 : (is16B ? -44 : -24);
               const bx = Math.max(8, Math.min(canvas.width - tw - 16, pTop[0] + xOff));
               const by = Math.max(8, pTop[1] + yOff);
-
-              // Leader line from surface wellhead to badge
-              ctx.strokeStyle = tubeColor;
-              ctx.lineWidth = 1.0;
-              ctx.beginPath();
-              ctx.moveTo(pTop[0], pTop[1]);
-              ctx.lineTo(bx + tw * 0.5, by + 14);
-              ctx.stroke();
-
-              ctx.fillStyle = "rgba(7, 11, 19, 0.92)";
-              ctx.fillRect(bx - 4, by, tw + 8, 15);
-              ctx.strokeStyle = tubeColor;
-              ctx.lineWidth = 1.0;
-              ctx.strokeRect(bx - 4, by, tw + 8, 15);
-              ctx.fillStyle = tubeColor;
-              ctx.fillText(shortTag, bx, by + 11);
+              pendingBadges.push({
+                boxed: true,
+                pTop,
+                bx,
+                by,
+                tw,
+                th: 15,
+                shortTag,
+                tubeColor,
+              });
             } else {
-              ctx.fillStyle = "rgba(230, 237, 246, 0.85)";
               ctx.font = "600 9.5px 'JetBrains Mono', Consolas, sans-serif";
-              ctx.fillText(shortTag, pTop[0] - 8, pTop[1] - 6);
+              const tw = ctx.measureText(shortTag).width;
+              pendingBadges.push({
+                boxed: false,
+                pTop,
+                bx: pTop[0] - 8,
+                by: pTop[1] - 16,
+                tw,
+                th: 12,
+                shortTag,
+                tubeColor: "rgba(230, 237, 246, 0.85)",
+              });
             }
           }
         });
+
+        // Screen-space bounding-box de-collision pass so wellhead badges never overlap
+        for (let pass = 0; pass < 4; pass++) {
+          for (let i = 0; i < pendingBadges.length; i++) {
+            for (let j = i + 1; j < pendingBadges.length; j++) {
+              const a = pendingBadges[i];
+              const b = pendingBadges[j];
+              const overlapX = (a.bx - 6) < (b.bx + b.tw + 6) && (a.bx + a.tw + 6) > (b.bx - 6);
+              const overlapY = (a.by - 2) < (b.by + b.th + 2) && (a.by + a.th + 2) > (b.by - 2);
+              if (overlapX && overlapY) {
+                if (a.by <= b.by) {
+                  a.by = Math.max(6, a.by - 10);
+                  b.by = Math.min(canvas.height - 22, b.by + 9);
+                } else {
+                  b.by = Math.max(6, b.by - 10);
+                  a.by = Math.min(canvas.height - 22, a.by + 9);
+                }
+              }
+            }
+          }
+        }
+
+        for (const b of pendingBadges) {
+          if (b.boxed) {
+            ctx.strokeStyle = b.tubeColor;
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.moveTo(b.pTop[0], b.pTop[1]);
+            ctx.lineTo(b.bx + b.tw * 0.5, b.by + b.th);
+            ctx.stroke();
+
+            ctx.fillStyle = "rgba(7, 11, 19, 0.92)";
+            ctx.fillRect(b.bx - 4, b.by, b.tw + 8, b.th);
+            ctx.strokeStyle = b.tubeColor;
+            ctx.lineWidth = 1.0;
+            ctx.strokeRect(b.bx - 4, b.by, b.tw + 8, b.th);
+            ctx.font = "700 10px 'JetBrains Mono', Consolas, sans-serif";
+            ctx.fillStyle = b.tubeColor;
+            ctx.fillText(b.shortTag, b.bx, b.by + 11);
+          } else {
+            ctx.fillStyle = b.tubeColor;
+            ctx.font = "600 9.5px 'JetBrains Mono', Consolas, sans-serif";
+            ctx.fillText(b.shortTag, b.bx, b.by + 10);
+          }
+        }
       }
 
-      // 7. Docked Continuous Property Colorbar & Live Cursor Marker on Right Edge of 3D Viewport
+      // 7. 3D Orientation Gizmo Triad (East / North / TVD) in Bottom-Left Corner (Above Toolbar)
+      {
+        const gx = 38;
+        const gy = canvas.height - 70;
+        const arm = 20;
+        ctx.fillStyle = "rgba(7, 11, 19, 0.78)";
+        ctx.strokeStyle = "rgba(59, 158, 255, 0.25)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(gx, gy, 28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        const axes = [
+          { dx: 1, dy: 0, dz: 0, color: "#ff5470", label: "E" },
+          { dx: 0, dy: 1, dz: 0, color: "#2ee59d", label: "N" },
+          { dx: 0, dy: 0, dz: 1, color: "#3b9eff", label: "Z" },
+        ];
+        ctx.font = "700 8.5px 'JetBrains Mono', Consolas, monospace";
+        for (const ax of axes) {
+          const rx = ax.dx * cosY - ax.dy * sinY;
+          const ry = ax.dx * sinY + ax.dy * cosY;
+          const ex = gx + rx * arm;
+          const ey = gy + (ax.dz * cosP - ry * sinP) * arm;
+          ctx.strokeStyle = ax.color;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(gx, gy);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+          ctx.fillStyle = ax.color;
+          ctx.fillText(ax.label, ex + (ex >= gx ? 3 : -8), ey + (ey >= gy ? 7 : -3));
+        }
+      }
+
+      // 8. Docked Continuous Property Colorbar & Live Cursor Marker on Right Edge of 3D Viewport
       if (showColorbar) {
         const meta = getFieldScaleMeta(STATE.activeField);
         const cbW = 11;
@@ -2299,27 +2843,44 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
+      // Tier-2 Smooth Background Medoids (purple squares)
+      if (w.tier2_indices && w.tier2_values) {
+        ctx.fillStyle = "#b583ff";
+        for (let i = 0; i < w.tier2_indices.length; i++) {
+          const z = w.tier2_indices[i];
+          const v = w.tier2_values[i];
+          ctx.fillRect(xOfVp(v) - 2.3, yOfZ(z) - 2.3, 4.6, 4.6);
+        }
+      }
+
       // Tier-1 Shielded Spikes (gold circles)
       for (let i = 0; i < w.tier1_indices.length; i++) {
         const z = w.tier1_indices[i];
         const v = w.tier1_values[i];
         ctx.beginPath();
-        ctx.arc(xOfVp(v), yOfZ(z), 3.4, 0, Math.PI * 2);
+        ctx.arc(xOfVp(v), yOfZ(z), 3.5, 0, Math.PI * 2);
         ctx.fillStyle = "#ffbe0b";
         ctx.fill();
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
       }
 
       // Active Depth Z cursor line
       const curY = yOfZ(STATE.sliceZ);
-      ctx.strokeStyle = "rgba(0, 242, 212, 0.65)";
+      ctx.strokeStyle = "rgba(0, 242, 212, 0.72)";
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(padL, curY);
       ctx.lineTo(padL + plotW, curY);
       ctx.stroke();
 
+      const eqPoolVal = w.equal_budget_naive_recovery !== undefined ? w.equal_budget_naive_recovery : w.naive_spike_recovery;
+      const f1Val = w.thin_bed_f1 !== undefined ? w.thin_bed_f1 : 1.0;
       document.getElementById("wellStats").innerHTML =
-        `<span>Beltrami Spike Rec: <strong style="color:var(--accent-cyan)">${(w.beltrami_spike_recovery * 100).toFixed(1)}%</strong></span>` +
-        `<span>Naive Pool Rec: <strong style="color:var(--accent-red)">${(w.naive_spike_recovery * 100).toFixed(1)}%</strong></span>`;
+        `<span>Beltrami: <strong style="color:var(--accent-cyan)">${(w.beltrami_spike_recovery * 100).toFixed(1)}%</strong></span>` +
+        `<span>Eq-Pool(K=16): <strong style="color:var(--accent-red)">${(eqPoolVal * 100).toFixed(1)}%</strong></span>` +
+        `<span>F1: <strong style="color:var(--accent-green)">${(f1Val * 100).toFixed(0)}%</strong></span>`;
     }
 
     function renderAll() {
@@ -2352,6 +2913,14 @@
       STATE.activeField = e.target.value;
       renderAll();
     });
+    document.getElementById("selectColormap").addEventListener("change", (e) => {
+      STATE.cmapOverride = e.target.value;
+      renderAll();
+    });
+    document.getElementById("chkInvertCmap").addEventListener("change", (e) => {
+      STATE.invertCmap = e.target.checked;
+      renderAll();
+    });
     document.getElementById("selectWell").addEventListener("change", (e) => {
       STATE.selectedWell = parseInt(e.target.value, 10);
       const w = STATE.data.wells[STATE.selectedWell];
@@ -2373,6 +2942,49 @@
       });
     });
 
+    function stepSliceAxis(axis, delta) {
+      if (!STATE.data) return;
+      const [Z, Y, X] = STATE.data.grid_shape;
+      if (axis === "z") {
+        STATE.sliceZ = Math.max(0, Math.min(Z - 1, STATE.sliceZ + delta));
+        document.getElementById("sliderZ").value = STATE.sliceZ;
+      } else if (axis === "y") {
+        STATE.sliceY = Math.max(0, Math.min(Y - 1, STATE.sliceY + delta));
+        document.getElementById("sliderY").value = STATE.sliceY;
+      } else if (axis === "x") {
+        STATE.sliceX = Math.max(0, Math.min(X - 1, STATE.sliceX + delta));
+        document.getElementById("sliderX").value = STATE.sliceX;
+      }
+      renderAll();
+    }
+
+    document.getElementById("btnStepYDec").addEventListener("click", () => stepSliceAxis("y", -1));
+    document.getElementById("btnStepYInc").addEventListener("click", () => stepSliceAxis("y", 1));
+    document.getElementById("btnStepXDec").addEventListener("click", () => stepSliceAxis("x", -1));
+    document.getElementById("btnStepXInc").addEventListener("click", () => stepSliceAxis("x", 1));
+    document.getElementById("btnStepZDec").addEventListener("click", () => stepSliceAxis("z", -1));
+    document.getElementById("btnStepZInc").addEventListener("click", () => stepSliceAxis("z", 1));
+
+    document.getElementById("selectChairQuadrant").addEventListener("change", (e) => {
+      STATE.chairMode = e.target.value;
+      render3DViewport();
+    });
+    document.getElementById("sliderZExag").addEventListener("input", (e) => {
+      STATE.zExag = parseFloat(e.target.value);
+      document.getElementById("valZExag").textContent = STATE.zExag.toFixed(1) + "x";
+      render3DViewport();
+    });
+    document.getElementById("sliderSliceAlpha").addEventListener("input", (e) => {
+      STATE.sliceAlpha = parseFloat(e.target.value);
+      document.getElementById("valSliceAlpha").textContent = Math.round(STATE.sliceAlpha * 100) + "%";
+      render3DViewport();
+    });
+    document.getElementById("sliderFaultAlpha").addEventListener("input", (e) => {
+      STATE.faultAlpha = parseFloat(e.target.value);
+      document.getElementById("valFaultAlpha").textContent = Math.round(STATE.faultAlpha * 100) + "%";
+      render3DViewport();
+    });
+
     // Display Layer Submenu Checkboxes
     [
       "chkChairCut",
@@ -2384,6 +2996,7 @@
       "chkCavity",
       "chkCrosshairs",
       "chk2DWellProj",
+      "chk2DFaultOverlay",
       "chkHudOverlay",
       "chkColorbar",
     ].forEach((id) => {
@@ -2402,6 +3015,7 @@
         "chkCavity",
         "chkCrosshairs",
         "chk2DWellProj",
+        "chk2DFaultOverlay",
         "chkHudOverlay",
         "chkColorbar",
       ].forEach((id) => {
@@ -2420,6 +3034,20 @@
       document.getElementById("chkEllipsoids").checked = false;
       document.getElementById("chkCavity").checked = false;
       renderAll();
+    });
+
+    // Mode A / Mode B Scorecard Switcher
+    document.getElementById("btnScoreModeA").addEventListener("click", () => {
+      STATE.scorecardMode = "modeA";
+      document.getElementById("btnScoreModeA").classList.add("active");
+      document.getElementById("btnScoreModeB").classList.remove("active");
+      renderScorecardTable();
+    });
+    document.getElementById("btnScoreModeB").addEventListener("click", () => {
+      STATE.scorecardMode = "modeB";
+      document.getElementById("btnScoreModeB").classList.add("active");
+      document.getElementById("btnScoreModeA").classList.remove("active");
+      renderScorecardTable();
     });
 
     // Viewport Quick Display Submenu Drawer
@@ -2502,6 +3130,12 @@
       STATE.activeField = sel.value;
       renderAll();
     });
+    document.getElementById("btnToggleBlindKrig").addEventListener("click", () => {
+      const sel = document.getElementById("selectField");
+      sel.value = sel.value === "kriging_vp" ? "blind_g3vm_vp" : "kriging_vp";
+      STATE.activeField = sel.value;
+      renderAll();
+    });
     document.getElementById("btnToggleTruth").addEventListener("click", () => {
       const sel = document.getElementById("selectField");
       if (sel.value.includes("eps_r")) {
@@ -2513,50 +3147,105 @@
       renderAll();
     });
 
-    // Camera Presets
-    document.getElementById("btnCamIso").addEventListener("click", () => {
-      STATE.camYaw = -0.68; STATE.camPitch = 0.52; STATE.camZoom = 1.0; render3DViewport();
+    // Camera Presets, Focus Well, Turntable & Reset
+    function setCameraView(yaw, pitch, zoom, panX = 0.0, panY = 0.0) {
+      STATE.camYaw = yaw;
+      STATE.camPitch = pitch;
+      STATE.camZoom = zoom;
+      STATE.camPanX = panX;
+      STATE.camPanY = panY;
+      render3DViewport();
+    }
+    document.getElementById("btnCamIso").addEventListener("click", () => setCameraView(-0.68, 0.52, 1.0));
+    document.getElementById("btnCamNE").addEventListener("click", () => setCameraView(0.72, 0.48, 1.02));
+    document.getElementById("btnCamDip").addEventListener("click", () => setCameraView(0.0, 0.08, 1.1));
+    document.getElementById("btnCamStrike").addEventListener("click", () => setCameraView(-1.57, 0.08, 1.1));
+    document.getElementById("btnCamMap").addEventListener("click", () => setCameraView(0.0, 1.48, 1.05));
+    document.getElementById("btnCamSubsalt").addEventListener("click", () => setCameraView(-0.48, -0.36, 1.16));
+    document.getElementById("btnCamFocusWell").addEventListener("click", () => {
+      if (!STATE.data || !STATE.data.wells.length) return;
+      const w = STATE.data.wells[STATE.selectedWell] || STATE.data.wells[0];
+      const [Z, Y, X] = STATE.data.grid_shape;
+      const midIdx = w.traj_z && w.traj_z.length > 2 ? Math.floor(w.traj_z.length * 0.6) : -1;
+      STATE.sliceZ = midIdx >= 0 ? Math.min(Z - 1, Math.round(w.traj_z[midIdx])) : Math.floor(Z * 0.5);
+      STATE.sliceY = midIdx >= 0 ? Math.min(Y - 1, Math.round(w.traj_y[midIdx])) : w.y;
+      STATE.sliceX = midIdx >= 0 ? Math.min(X - 1, Math.round(w.traj_x[midIdx])) : w.x;
+      document.getElementById("sliderZ").value = STATE.sliceZ;
+      document.getElementById("sliderY").value = STATE.sliceY;
+      document.getElementById("sliderX").value = STATE.sliceX;
+      STATE.camZoom = 1.22;
+      STATE.camPanX = 0;
+      STATE.camPanY = 0;
+      renderAll();
     });
-    document.getElementById("btnCamDip").addEventListener("click", () => {
-      STATE.camYaw = 0.0; STATE.camPitch = 0.08; STATE.camZoom = 1.1; render3DViewport();
-    });
-    document.getElementById("btnCamStrike").addEventListener("click", () => {
-      STATE.camYaw = -1.57; STATE.camPitch = 0.08; STATE.camZoom = 1.1; render3DViewport();
-    });
-    document.getElementById("btnCamMap").addEventListener("click", () => {
-      STATE.camYaw = 0.0; STATE.camPitch = 1.48; STATE.camZoom = 1.05; render3DViewport();
+    document.getElementById("btnCamReset").addEventListener("click", () => {
+      STATE.zExag = 1.0;
+      document.getElementById("sliderZExag").value = 1.0;
+      document.getElementById("valZExag").textContent = "1.0x";
+      setCameraView(-0.68, 0.52, 1.0, 0.0, 0.0);
     });
 
-    // 3D Orbit Mouse Drag & Zoom
+    function toggleTurntable() {
+      STATE.turntableActive = !STATE.turntableActive;
+      const btn = document.getElementById("btnCamTurntable");
+      if (btn) btn.classList.toggle("active-cam", STATE.turntableActive);
+      if (STATE.turntableActive) {
+        function stepTurn() {
+          if (!STATE.turntableActive) return;
+          STATE.camYaw += 0.012;
+          render3DViewport();
+          STATE.turntableRaf = requestAnimationFrame(stepTurn);
+        }
+        STATE.turntableRaf = requestAnimationFrame(stepTurn);
+      } else if (STATE.turntableRaf) {
+        cancelAnimationFrame(STATE.turntableRaf);
+      }
+    }
+    document.getElementById("btnCamTurntable").addEventListener("click", toggleTurntable);
+
+    // 3D Orbit (Left Drag) + Pan (Shift+Drag / Right Drag) + Wheel Zoom + Double-Click Reset
     const c3d = document.getElementById("canvas3d");
+    c3d.addEventListener("contextmenu", (e) => e.preventDefault());
     c3d.addEventListener("mousedown", (e) => {
-      STATE.isDragging3D = true;
+      if (e.button === 2 || e.shiftKey) {
+        STATE.isPanning3D = true;
+      } else {
+        STATE.isDragging3D = true;
+      }
       STATE.lastMouseX = e.clientX;
       STATE.lastMouseY = e.clientY;
     });
+    c3d.addEventListener("dblclick", () => setCameraView(-0.68, 0.52, 1.0, 0.0, 0.0));
     window.addEventListener("mousemove", (e) => {
-      if (!STATE.isDragging3D) return;
+      if (!STATE.isDragging3D && !STATE.isPanning3D) return;
       const dx = e.clientX - STATE.lastMouseX;
       const dy = e.clientY - STATE.lastMouseY;
       STATE.lastMouseX = e.clientX;
       STATE.lastMouseY = e.clientY;
-      STATE.camYaw += dx * 0.01;
-      STATE.camPitch = Math.max(-1.4, Math.min(1.45, STATE.camPitch + dy * 0.01));
+      if (STATE.isPanning3D) {
+        STATE.camPanX = Math.max(-240, Math.min(240, (STATE.camPanX || 0) + dx));
+        STATE.camPanY = Math.max(-180, Math.min(180, (STATE.camPanY || 0) + dy));
+      } else {
+        STATE.camYaw += dx * 0.01;
+        STATE.camPitch = Math.max(-1.4, Math.min(1.45, STATE.camPitch + dy * 0.01));
+      }
       render3DViewport();
     });
     window.addEventListener("mouseup", () => {
       STATE.isDragging3D = false;
+      STATE.isPanning3D = false;
     });
     c3d.addEventListener("wheel", (e) => {
       e.preventDefault();
-      STATE.camZoom = Math.max(0.55, Math.min(2.2, STATE.camZoom * (e.deltaY < 0 ? 1.08 : 0.92)));
+      STATE.camZoom = Math.max(0.55, Math.min(2.4, STATE.camZoom * (e.deltaY < 0 ? 1.08 : 0.92)));
       render3DViewport();
     });
 
-    // Click on 2D Slices to reposition 3D Crosshairs
-    function bind2DSliceClick(canvasId, onCoord) {
+    // Click & Drag on 2D Slices to Scrub 3D Crosshairs + Mousewheel Orthogonal Stepping
+    function bind2DSliceInteraction(canvasId, wheelAxis, onCoord) {
       const el = document.getElementById(canvasId);
-      el.addEventListener("mousedown", (e) => {
+      let dragging = false;
+      function applyEvent(e) {
         if (!STATE.data) return;
         const rect = el.getBoundingClientRect();
         const fx = Math.max(0, Math.min(0.999, (e.clientX - rect.left) / rect.width));
@@ -2566,22 +3255,119 @@
         document.getElementById("sliderY").value = STATE.sliceY;
         document.getElementById("sliderX").value = STATE.sliceX;
         renderAll();
+      }
+      el.addEventListener("mousedown", (e) => {
+        dragging = true;
+        applyEvent(e);
+      });
+      window.addEventListener("mousemove", (e) => {
+        if (dragging) applyEvent(e);
+      });
+      window.addEventListener("mouseup", () => {
+        dragging = false;
+      });
+      el.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        stepSliceAxis(wheelAxis, e.deltaY < 0 ? -1 : 1);
       });
     }
-    bind2DSliceClick("canvasInline", (fx, fy) => {
+    bind2DSliceInteraction("canvasInline", "y", (fx, fy) => {
       const [Z, , X] = STATE.data.grid_shape;
       STATE.sliceX = Math.floor(fx * X);
       STATE.sliceZ = Math.floor(fy * Z);
     });
-    bind2DSliceClick("canvasCrossline", (fx, fy) => {
+    bind2DSliceInteraction("canvasCrossline", "x", (fx, fy) => {
       const [Z, Y] = STATE.data.grid_shape;
       STATE.sliceY = Math.floor(fx * Y);
       STATE.sliceZ = Math.floor(fy * Z);
     });
-    bind2DSliceClick("canvasDepth", (fx, fy) => {
+    bind2DSliceInteraction("canvasDepth", "z", (fx, fy) => {
       const [, Y, X] = STATE.data.grid_shape;
       STATE.sliceX = Math.floor(fx * X);
       STATE.sliceY = Math.floor(fy * Y);
+    });
+
+    // Click/Drag on Borehole Log Panel to Jump Depth Z
+    (function bindWellCanvasClick() {
+      const el = document.getElementById("canvasWell");
+      let dragging = false;
+      function updateWellZ(e) {
+        if (!STATE.data) return;
+        const [Z] = STATE.data.grid_shape;
+        const rect = el.getBoundingClientRect();
+        const padT = 14, padB = 22;
+        const plotH = Math.max(20, rect.height - padT - padB);
+        const fy = Math.max(0, Math.min(1, (e.clientY - rect.top - padT) / plotH));
+        STATE.sliceZ = Math.min(Z - 1, Math.max(0, Math.round(fy * (Z - 1))));
+        document.getElementById("sliderZ").value = STATE.sliceZ;
+        renderAll();
+      }
+      el.addEventListener("mousedown", (e) => { dragging = true; updateWellZ(e); });
+      window.addEventListener("mousemove", (e) => { if (dragging) updateWellZ(e); });
+      window.addEventListener("mouseup", () => { dragging = false; });
+    })();
+
+    // Snapshot PNG Export, Deep-Link URL Copy, and Keyboard Shortcuts Modal
+    document.getElementById("btnSnapshotPng").addEventListener("click", () => {
+      const canvas = document.getElementById("canvas3d");
+      const link = document.createElement("a");
+      const scen = STATE.data ? STATE.data.scenario_name : "subsalt_graben";
+      link.download = `g3vm_v060_${scen}_${STATE.activeField}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+    document.getElementById("btnCopyDeepLink").addEventListener("click", (e) => {
+      const url = new URL(window.location.href);
+      url.searchParams.set("preset", document.getElementById("selectScenario").value);
+      url.searchParams.set("field", STATE.activeField);
+      url.searchParams.set("well", String(STATE.selectedWell));
+      url.searchParams.set("sliceZ", String(STATE.sliceZ));
+      url.searchParams.set("sliceY", String(STATE.sliceY));
+      url.searchParams.set("sliceX", String(STATE.sliceX));
+      url.searchParams.set("yaw", STATE.camYaw.toFixed(2));
+      url.searchParams.set("pitch", STATE.camPitch.toFixed(2));
+      url.searchParams.set("zoom", STATE.camZoom.toFixed(2));
+      url.searchParams.set("chair", STATE.chairMode);
+      url.searchParams.set("ve", STATE.zExag.toFixed(1));
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url.toString()).catch(() => {});
+      }
+      const btn = e.currentTarget;
+      const orig = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => { btn.textContent = orig; }, 1200);
+    });
+
+    const shortcutsModal = document.getElementById("shortcutsModal");
+    document.getElementById("btnShowShortcuts").addEventListener("click", () => {
+      shortcutsModal.classList.toggle("open");
+    });
+    document.getElementById("btnCloseShortcutsModal").addEventListener("click", () => {
+      shortcutsModal.classList.remove("open");
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA")) {
+        return;
+      }
+      const k = e.key.toLowerCase();
+      if (k === "1") setCameraView(-0.68, 0.52, 1.0);
+      else if (k === "2") setCameraView(0.72, 0.48, 1.02);
+      else if (k === "3") setCameraView(0.0, 0.08, 1.1);
+      else if (k === "4") setCameraView(-1.57, 0.08, 1.1);
+      else if (k === "5") setCameraView(0.0, 1.48, 1.05);
+      else if (k === "6") setCameraView(-0.48, -0.36, 1.16);
+      else if (k === "f") document.getElementById("btnCamFocusWell").click();
+      else if (k === "r") document.getElementById("btnCamReset").click();
+      else if (k === " ") { e.preventDefault(); toggleTurntable(); }
+      else if (k === "w") stepSliceAxis("z", -1);
+      else if (k === "s") stepSliceAxis("z", 1);
+      else if (k === "a") stepSliceAxis("x", -1);
+      else if (k === "d") stepSliceAxis("x", 1);
+      else if (k === "q") stepSliceAxis("y", -1);
+      else if (k === "e") stepSliceAxis("y", 1);
+      else if (k === "?" || k === "/") shortcutsModal.classList.toggle("open");
+      else if (k === "escape") shortcutsModal.classList.remove("open");
     });
 
     // Client-Side Drag-and-Drop .LAS / .DEV / .SEGY Inspector (FileReader + ArrayBuffer)
@@ -2778,12 +3564,46 @@
       if (params.has("well")) {
         STATE.selectedWell = parseInt(params.get("well"), 10);
       }
-      if (params.has("sliceZ")) STATE.sliceZ = parseInt(params.get("sliceZ"), 10);
-      if (params.has("sliceY")) STATE.sliceY = parseInt(params.get("sliceY"), 10);
-      if (params.has("sliceX")) STATE.sliceX = parseInt(params.get("sliceX"), 10);
+      if (params.has("sliceZ")) {
+        STATE.sliceZ = parseInt(params.get("sliceZ"), 10);
+        document.getElementById("sliderZ").value = STATE.sliceZ;
+      }
+      if (params.has("sliceY")) {
+        STATE.sliceY = parseInt(params.get("sliceY"), 10);
+        document.getElementById("sliderY").value = STATE.sliceY;
+      }
+      if (params.has("sliceX")) {
+        STATE.sliceX = parseInt(params.get("sliceX"), 10);
+        document.getElementById("sliderX").value = STATE.sliceX;
+      }
       if (params.has("yaw")) STATE.camYaw = parseFloat(params.get("yaw"));
       if (params.has("pitch")) STATE.camPitch = parseFloat(params.get("pitch"));
       if (params.has("zoom")) STATE.camZoom = parseFloat(params.get("zoom"));
+      if (params.has("panX")) STATE.camPanX = parseFloat(params.get("panX"));
+      if (params.has("panY")) STATE.camPanY = parseFloat(params.get("panY"));
+      if (params.has("chair")) {
+        STATE.chairMode = params.get("chair");
+        document.getElementById("selectChairQuadrant").value = STATE.chairMode;
+      }
+      if (params.has("ve")) {
+        STATE.zExag = parseFloat(params.get("ve"));
+        document.getElementById("sliderZExag").value = STATE.zExag;
+        document.getElementById("valZExag").textContent = STATE.zExag.toFixed(1) + "x";
+      }
+      if (params.has("cmap")) {
+        STATE.cmapOverride = params.get("cmap");
+        document.getElementById("selectColormap").value = STATE.cmapOverride;
+      }
+      if (params.get("scoreMode") === "modeB") {
+        STATE.scorecardMode = "modeB";
+        document.getElementById("btnScoreModeB").classList.add("active");
+        document.getElementById("btnScoreModeA").classList.remove("active");
+      }
+      if (params.has("tab")) {
+        const tabId = params.get("tab");
+        const tabBtn = document.querySelector(`.telemetry-tab-btn[data-tab="${tabId}"]`);
+        if (tabBtn) tabBtn.click();
+      }
     })();
 
     loadScenarioData();

@@ -240,10 +240,13 @@ def test_suite8_web_studio_endpoints_and_portable_bundle():
     r_health = client.get("/api/health")
     assert r_health.status_code == 200
     assert r_health.get_json()["status"] == "ok"
+    assert r_health.get_json()["version"] == "0.6.0"
 
     r_idx = client.get("/")
     assert r_idx.status_code == 200
     assert b"G3VM Studio" in r_idx.data
+    assert b"selectChairQuadrant" in r_idx.data
+    assert b"blind_g3vm_vp" in r_idx.data
 
     r_eval = client.post(
         "/api/evaluate",
@@ -258,6 +261,15 @@ def test_suite8_web_studio_endpoints_and_portable_bundle():
     assert "g3vm_zp" in payload["cubes"]
     assert "g3vm_vs" in payload["cubes"]
     assert "g3vm_rho" in payload["cubes"]
+    assert "blind_g3vm_vp" in payload["cubes"]
+    assert "kriging_vp" in payload["cubes"]
+    assert "fkriging_vp" in payload["cubes"]
+    assert "blind_gain" in payload["cubes"]
+    assert "blind_metrics" in payload
+    assert "lowo_heldout_well_rmse_kms" in payload["blind_metrics"]
+    assert "whole_cube_blind_rmse_kms" in payload["blind_metrics"]
+    assert "bounded_edge_gradient_fidelity" in payload["blind_metrics"]
+    assert "thin_bed_f1" in payload["wells"][0]
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
@@ -275,11 +287,19 @@ def test_suite8_web_studio_endpoints_and_portable_bundle():
             '"g3vm_epsilon"',
             '"g3vm_delta"',
             '"g3vm_vp_vs_ratio"',
+            '"blind_g3vm_vp"',
+            '"kriging_vp"',
+            '"fkriging_vp"',
+            '"blind_gain"',
+            '"blind_metrics"',
             '"Well-G7 (Deviated Subsalt S-Curve)"',
             '"Well-H8 (Horizontal EGS Lateral)"',
             '"traj_z"',
             '"traj_y"',
             '"traj_x"',
+            'id="selectChairQuadrant"',
+            'id="sliderZExag"',
+            'id="btnScoreModeB"',
         ):
             assert req_key in html_txt
 

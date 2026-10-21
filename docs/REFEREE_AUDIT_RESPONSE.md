@@ -1,6 +1,6 @@
-# Peer Audit Response & Blind Inversion Benchmark Report (`G3VM` `v0.5.0`)
+# Peer Audit Response & Blind Inversion Benchmark Report (`G3VM` `v0.6.0`)
 
-This document provides a point-by-point methodological audit and empirical response to the five referee critiques raised regarding **G3VM (`DarkSnail-Geo3D`)**, backed by the blind inversion and ablation suite implemented in [`g3vm/blind_benchmark.py`](../g3vm/blind_benchmark.py) and serialized in [`results/g3vm_referee_audit_summary.json`](../results/g3vm_referee_audit_summary.json).
+This document provides a point-by-point methodological audit and empirical response to the five referee critiques raised regarding **G3VM (`DarkSnail-Geo3D`)**, backed by the blind inversion and ablation suite implemented in [`g3vm/blind_benchmark.py`](../g3vm/blind_benchmark.py), exposed interactively in the `v0.6.0` 3D Subsurface Workstation (`Mode B: Blind LOWO & Kriging` scorecard, `Tab 5: Blind & Kriging`, and live `blind_g3vm_vp` / `kriging_vp` / `fkriging_vp` / `blind_gain` 3D property cubes), and serialized in [`results/g3vm_referee_audit_summary.json`](../results/g3vm_referee_audit_summary.json).
 
 ---
 
@@ -43,7 +43,7 @@ All four methods are trained on the **exact same training wells** and evaluated 
 | **`05` `utah_forge_egs_doublet`** | `0.7707` | `0.7978` | `0.5836` | **`0.5273`** | `0.5489` | **`0.4700`** | `0.6702` | `0.4053` | **`0.3526`** | `9.7%` | **`70.0%`** |
 | **`06` `lunar_lava_tube_isru`** | `0.5705` | `0.5196` | **`0.4063`** | `0.4477` | `1.9846` | **`1.1552`** | `1.1088` | `0.8747` | **`0.5903`** | `25.6%` | **`35.6%`** |
 
-![G3VM v0.5.0 Mode B Blind Benchmark Showcase (SNR=20dB, Zero Target Leakage)](../results/g3vm_leapfrog_showcase.png)
+![G3VM v0.6.0 Mode B Blind Benchmark Showcase (SNR=20dB, Zero Target Leakage)](../results/g3vm_leapfrog_showcase.png)
 
 ### Key Takeaways from the Blind Benchmark (Mode B):
 1. **Realistic Error Magnitudes**: Once oracle knowledge of `true_litho_cube` is removed and $20\text{ dB}$ observation noise is added, blind whole-cube $V_p$ RMSE is `0.35–0.59 km/s` (rather than `0.02–0.15 km/s` in Mode A), and bounded edge fidelity is `23%–70%` (rather than `96%–100%`).
@@ -95,7 +95,7 @@ We fixed both issues in [`g3vm/engine.py`](../g3vm/engine.py):
 | **High Noise + 10% Caliper Washout** ($\mathrm{SNR} = 15\text{ dB}$, Washout $= 10\%$) | **`80.80%`** (`0.8080`) | **`61.77%`** (`0.6177`) | **`0.7317`** | `36.39%` (`0.3639`) | `12.49%` (`0.1249`) |
 | **Severe Noise + 20% Caliper Washout** ($\mathrm{SNR} = 10\text{ dB}$, Washout $= 20\%$) | **`56.38%`** (`0.5638`) | **`39.87%`** (`0.3987`) | **`0.5186`** | `37.35%` (`0.3735`) | `15.11%` (`0.1511`) |
 
-![G3VM v0.5.0 Pure Non-Circular Beltrami Shell (K=8+8=16 Tokens, SNR=20dB, 10% Caliper Washout) vs. Equal-Budget (K=16) & Coarse Pooling](../results/g3vm_well_log_beltrami.png)
+![G3VM v0.6.0 Pure Non-Circular Beltrami Shell (K=8+8=16 Tokens, SNR=20dB, 10% Caliper Washout) vs. Equal-Budget (K=16) & Coarse Pooling](../results/g3vm_well_log_beltrami.png)
 
 ---
 

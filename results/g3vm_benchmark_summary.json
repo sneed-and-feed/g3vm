@@ -1,5 +1,5 @@
 {
-  "engine": "G3VM (DarkSnail-Geo3D) v0.5.0",
+  "engine": "G3VM (DarkSnail-Geo3D) v0.6.0",
   "grid_shape": [
     48,
     48,
@@ -88,7 +88,7 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.822
+      "peak_heap_ram_mb": 4.824
     },
     "thrust_anticline": {
       "scenario_name": "thrust_anticline",
@@ -156,12 +156,12 @@
         "theorem_2_1_self_interaction_error": 0.0,
         "theorem_2_2_tie_break_gap": 2.5,
         "theorem_2_2_formula_error": 0.0,
-        "theorem_2_3_orthogonality_residual": 9.778887033462524e-09,
+        "theorem_2_3_orthogonality_residual": 9.89530235528946e-09,
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
         "theorem_2_6_spherical_radial_drift": 0.0,
-        "theorem_2_6_cascade_orthogonality_error": 9.66247171163559e-09,
+        "theorem_2_6_cascade_orthogonality_error": 7.450580596923828e-09,
         "theorem_2_7_so6_orthogonality_error": 4.440892098500626e-16,
         "theorem_2_7_stiffness_trace_drift": 5.684341886080802e-14,
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
@@ -246,7 +246,7 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.808
+      "peak_heap_ram_mb": 4.812
     },
     "egs_tbm_hazard": {
       "scenario_name": "egs_tbm_hazard",
@@ -314,12 +314,12 @@
         "theorem_2_1_self_interaction_error": 0.0,
         "theorem_2_2_tie_break_gap": 2.5,
         "theorem_2_2_formula_error": 0.0,
-        "theorem_2_3_orthogonality_residual": 9.42964106798172e-09,
+        "theorem_2_3_orthogonality_residual": 9.313225746154785e-09,
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
         "theorem_2_6_spherical_radial_drift": 0.0,
-        "theorem_2_6_cascade_orthogonality_error": 9.778887033462524e-09,
+        "theorem_2_6_cascade_orthogonality_error": 9.313225746154785e-09,
         "theorem_2_7_so6_orthogonality_error": 4.440892098500626e-16,
         "theorem_2_7_stiffness_trace_drift": 5.684341886080802e-14,
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
@@ -393,18 +393,18 @@
         "theorem_2_1_self_interaction_error": 0.0,
         "theorem_2_2_tie_break_gap": 2.5,
         "theorem_2_2_formula_error": 0.0,
-        "theorem_2_3_orthogonality_residual": 9.546056389808655e-09,
+        "theorem_2_3_orthogonality_residual": 9.313225746154785e-09,
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
         "theorem_2_6_spherical_radial_drift": 0.0,
-        "theorem_2_6_cascade_orthogonality_error": 9.313225746154785e-09,
+        "theorem_2_6_cascade_orthogonality_error": 9.778887033462524e-09,
         "theorem_2_7_so6_orthogonality_error": 4.440892098500626e-16,
         "theorem_2_7_stiffness_trace_drift": 5.684341886080802e-14,
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.815
+      "peak_heap_ram_mb": 4.816
     },
     "lunar_lava_tube_isru": {
       "scenario_name": "lunar_lava_tube_isru",
@@ -483,11 +483,11 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 1.559
+      "peak_heap_ram_mb": 1.557
     }
   },
   "referee_audit_mode_b": {
-    "peak_heap_mb": 1.038,
+    "peak_heap_mb": 1.054,
     "blind_scenarios_snr20db": {
       "subsalt_graben": {
         "scenario_name": "subsalt_graben",

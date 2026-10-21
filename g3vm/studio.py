@@ -1,10 +1,10 @@
 """
 g3vm.studio: Interactive 3D WebGL/Canvas Geological Workstation, Portable HTML5 Studio Bundler,
-and Publication Showcase Renderer (`v0.4.0`).
+and Publication Showcase Renderer (`v0.6.0`).
 
-Provides Scenario 06 (`lunar_lava_tube_isru`) preset routing, `g3vm_eps_r` (`Dielectric Permittivity εr (Radar)`)
-and `g3vm_v_em` (`Radar Velocity v_EM (m/ns)`) 3D field rendering, and borehole Beltrami spike callouts
-for `LSPE-GT1`, `VIPER-TR2`, and `LRS-IL3`.
+Provides Scenario 06 (`lunar_lava_tube_isru`) preset routing, Mode B Blind LOWO & Tuned Matérn-3/2 Kriging
+3D property cubes (`blind_g3vm_vp`, `kriging_vp`, `fkriging_vp`, `blind_gain`), 6-quadrant 3D chair-cut &
+vertical exaggeration controls, de-collided wellhead leader badges, and 2D fault/cavity contour overlays.
 """
 
 from __future__ import annotations

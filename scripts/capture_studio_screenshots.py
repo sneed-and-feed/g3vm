@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 scripts/capture_studio_screenshots.py — Capture 1920x1080 headless Chrome/Edge screenshots
-of G3VM Studio v0.4.0 (`results/g3vm_portable_studio.html`) and regenerate Matplotlib showcase figures.
+of G3VM Studio v0.6.0 (`results/g3vm_portable_studio.html`) and regenerate Matplotlib showcase figures.
 """
 
 from __future__ import annotations
@@ -68,25 +68,34 @@ def main() -> int:
     base_url = f"http://127.0.0.1:{port}/results/g3vm_portable_studio.html"
     shots = [
         (
+            "g3vm_studio_v060_lunar_isru.png",
             "g3vm_studio_v050_lunar_isru.png",
-            f"{base_url}?scenario=lunar_lava_tube_isru&field=g3vm_eps_r&well=6&sliceZ=13&sliceY=12&sliceX=12&zoom=1.12",
+            f"{base_url}?scenario=lunar_lava_tube_isru&field=g3vm_eps_r&well=6&sliceZ=13&sliceY=12&sliceX=12&zoom=1.08",
         ),
         (
+            "g3vm_studio_v060_utah_forge.png",
             "g3vm_studio_v050_utah_forge.png",
-            f"{base_url}?preset=utah_forge_egs_doublet&field=g3vm_vp_tti&well=6&sliceZ=16&sliceY=16&sliceX=16&zoom=1.12",
+            f"{base_url}?preset=utah_forge_egs_doublet&field=g3vm_vp_tti&well=6&sliceZ=16&sliceY=16&sliceX=16&zoom=1.08",
         ),
         (
+            "g3vm_studio_v060_vp_tti.png",
             "g3vm_studio_v050_vp_tti.png",
-            f"{base_url}?scenario=thrust_anticline&field=g3vm_vp_tti&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12",
+            f"{base_url}?scenario=thrust_anticline&field=g3vm_vp_tti&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.08",
         ),
         (
+            "g3vm_studio_v060_zp.png",
             "g3vm_studio_v050_zp.png",
-            f"{base_url}?scenario=subsalt_graben&field=g3vm_zp&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12",
+            f"{base_url}?scenario=subsalt_graben&field=g3vm_zp&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.08&chair=fence_only",
+        ),
+        (
+            "g3vm_studio_v060_blind_mode_b.png",
+            None,
+            f"{base_url}?scenario=subsalt_graben&field=blind_gain&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.08&scoreMode=modeB&tab=tabBlind&chair=nw_upper&ve=1.2",
         ),
     ]
 
     import shutil
-    for fname, url in shots:
+    for fname, legacy_fname, url in shots:
         dest = out_dir / fname
         prof = tempfile.mkdtemp(prefix="g3vm_chrome_")
         try:
@@ -115,6 +124,8 @@ def main() -> int:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
+            if legacy_fname:
+                shutil.copy2(dest, out_dir / legacy_fname)
             print(f"[+] Captured {dest.name} ({dest.stat().st_size:,} bytes)", flush=True)
         finally:
             shutil.rmtree(prof, ignore_errors=True)

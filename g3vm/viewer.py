@@ -61,6 +61,8 @@ def serialize_evaluation_payload(
     Jordan cavity masks, 4D continuity splitting fields, and theorem telemetry
     into a compact JSON-ready dictionary for the interactive 3D Web Studio.
     """
+    from .blind_benchmark import evaluate_blind_holdout_and_baselines
+
     bundle = evaluate_scenario_comparison(
         scenario_name=scenario_name,
         grid_shape=grid_shape,
@@ -74,6 +76,22 @@ def serialize_evaluation_payload(
     naive_out = bundle["naive_output"]
     spec_out = bundle["spectral_output"]
     cont_out = bundle["continuity_output"]
+
+    # Mode B (Zero Target Leakage, SNR=20dB) blind holdout & kriging baselines
+    blind_bundle = evaluate_blind_holdout_and_baselines(
+        scenario_name=scenario_name,
+        grid_shape=grid_shape,
+        snr_db=20.0,
+        fault_jitter_voxels=0,
+        return_cubes=True,
+    )
+    blind_cubes = blind_bundle["cubes"]
+    blind_g3vm_vp = blind_cubes["g3vm_blind_vp"]
+    krig_vp = blind_cubes["krig_vp"]
+    fkrig_vp = blind_cubes["fkrig_vp"]
+    blind_gain_3d = (krig_vp - scen["true_vp_cube"]).abs() - (
+        blind_g3vm_vp - scen["true_vp_cube"]
+    ).abs()
 
     triad_norm_3d = g3vm_out["d_ell_triad_3d"].norm(dim=-1)
     err_g3vm_3d = (g3vm_out["vp_cube_kms"] - scen["true_vp_cube"]).abs()
@@ -110,6 +128,9 @@ def serialize_evaluation_payload(
                 "adelic_gamma": _tensor_to_nested_list(b.adelic_gamma, 3),
                 "beltrami_spike_recovery": round(float(b.beltrami_spike_recovery), 4),
                 "naive_spike_recovery": round(float(b.naive_spike_recovery), 4),
+                "all_stringers_recovery": round(float(getattr(b, "all_stringers_recovery", b.beltrami_spike_recovery)), 4),
+                "equal_budget_naive_recovery": round(float(getattr(b, "equal_budget_naive_recovery", b.naive_spike_recovery)), 4),
+                "thin_bed_f1": round(float(getattr(b, "thin_bed_f1", 1.0)), 4),
             }
         )
 
@@ -129,6 +150,14 @@ def serialize_evaluation_payload(
             "unroll_steps": int(unroll_steps),
         },
         "metrics": bundle["metrics"],
+        "blind_metrics": {
+            "snr_db": blind_bundle["snr_db"],
+            "kriging_tuned_params": blind_bundle["kriging_tuned_params"],
+            "lowo_heldout_well_rmse_kms": blind_bundle["lowo_heldout_well_rmse_kms"],
+            "heldout_deviated_well_rmse_kms": blind_bundle["heldout_deviated_well_rmse_kms"],
+            "whole_cube_blind_rmse_kms": blind_bundle["whole_cube_blind_rmse_kms"],
+            "bounded_edge_gradient_fidelity": blind_bundle["bounded_edge_gradient_fidelity"],
+        },
         "cubes": {
             "g3vm_vp": _tensor_to_nested_list(g3vm_out["vp_cube_kms"], 3),
             "g3vm_vp_tti": _tensor_to_nested_list(g3vm_out["vp_tti_cube_kms"], 3),
@@ -146,6 +175,10 @@ def serialize_evaluation_payload(
             "g3vm_vp_vs_ratio": _tensor_to_nested_list(g3vm_out["vp_vs_ratio_cube"], 3),
             "naive_vp": _tensor_to_nested_list(naive_out["vp_cube_kms"], 3),
             "true_vp": _tensor_to_nested_list(scen["true_vp_cube"], 3),
+            "blind_g3vm_vp": _tensor_to_nested_list(blind_g3vm_vp, 3),
+            "kriging_vp": _tensor_to_nested_list(krig_vp, 3),
+            "fkriging_vp": _tensor_to_nested_list(fkrig_vp, 3),
+            "blind_gain": _tensor_to_nested_list(blind_gain_3d, 3),
             "g3vm_litho": _tensor_to_nested_list(g3vm_out["lithology_cube"], 0),
             "naive_litho": _tensor_to_nested_list(naive_out["lithology_cube"], 0),
             "true_litho": _tensor_to_nested_list(scen["true_litho_cube"], 0),
@@ -201,7 +234,7 @@ def export_portable_html_studio(
         "    const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');\n"
         "    if (Boolean(window.G3VM_PORTABLE_MODE) && url.includes('/api/')) {\n"
         "      if (url.includes('/api/health')) {\n"
-        "        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.5.0'}), {\n"
+        "        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.6.0'}), {\n"
         "          status: 200, headers: {'Content-Type': 'application/json'}\n"
         "        });\n"
         "      }\n"
@@ -248,7 +281,7 @@ def create_studio_app(default_grid_shape: tuple[int, int, int] = (32, 32, 32)) -
 
     @app.route("/api/health")
     def health() -> Any:
-        return jsonify({"status": "ok", "service": "g3vm-studio", "version": "0.5.0"})
+        return jsonify({"status": "ok", "service": "g3vm-studio", "version": "0.6.0"})
 
     @app.route("/api/evaluate", methods=["GET", "POST"])
     def evaluate_endpoint() -> Any:
@@ -403,7 +436,7 @@ def render_leapfrog_showcase_figure(
                         )
 
     fig.suptitle(
-        "G3VM v0.5.0 Mode B Blind Benchmark (SNR=20dB, Zero Target Leakage): Ground Truth vs. CV-Tuned Matérn-3/2 Kriging vs. Blind G3VM",
+        "G3VM v0.6.0 Mode B Blind Benchmark (SNR=20dB, Zero Target Leakage): Ground Truth vs. CV-Tuned Matérn-3/2 Kriging vs. Blind G3VM",
         fontsize=12.5,
         fontweight="bold",
         color="#58a6ff",
@@ -574,7 +607,7 @@ def render_well_log_beltrami_figure(
         }
 
     fig.suptitle(
-        "G3VM v0.5.0 Pure Non-Circular Beltrami Shell (K=8+8=16 Tokens, SNR=20dB, 10% Caliper Washout) vs. Equal-Budget (K=16) & Coarse Pooling",
+        "G3VM v0.6.0 Pure Non-Circular Beltrami Shell (K=8+8=16 Tokens, SNR=20dB, 10% Caliper Washout) vs. Equal-Budget (K=16) & Coarse Pooling",
         fontsize=12.2,
         fontweight="bold",
         color="#00f5d4",

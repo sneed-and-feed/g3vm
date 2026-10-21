@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-scripts/evaluate_g3vm.py — Full 6-Scenario Benchmark & Verification Suite for G3VM v0.4.0.
+scripts/evaluate_g3vm.py — Full 6-Scenario Benchmark & Verification Suite for G3VM v0.6.0.
 
 Evaluates Scenarios 01-06:
   01: subsalt_graben          (Marmousi2 / Gulf of Mexico Subsalt Graben & Louann Diapir)
@@ -43,7 +43,7 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     summary = {
-        "engine": "G3VM (DarkSnail-Geo3D) v0.5.0",
+        "engine": "G3VM (DarkSnail-Geo3D) v0.6.0",
         "grid_shape": [48, 48, 48],
         "lunar_grid_shape": [32, 24, 24],
         "scenarios": {},
@@ -51,7 +51,7 @@ def main() -> int:
 
     print("=" * 120)
     print(
-        "G3VM (DarkSnail-Geo3D) v0.5.0 — 6-Scenario 3D Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Evaluation"
+        "G3VM (DarkSnail-Geo3D) v0.6.0 — 6-Scenario 3D Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Evaluation"
     )
     print("=" * 120)
     header = (

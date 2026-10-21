@@ -17,7 +17,7 @@ benchmark scenarios, and interactive viewer:
 - `create_studio_app`, `export_portable_html_studio`, `render_leapfrog_showcase_figure`, `render_well_log_beltrami_figure`
 """
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 from .anisotropy import (
     DielectricCubeBundle,
