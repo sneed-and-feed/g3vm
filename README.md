@@ -88,13 +88,14 @@ While the table above (**Mode A — Structural Operator Verification**) evaluate
 
 | Theorem | Mathematical Statement | Empirical Audit Residual | Status |
 | :--- | :--- | :--- | :--- |
-| **Theorem 2.1 (`triad_skew_symmetric`)** | $W_{i, j, k} + W_{i, k, j} = 0, \quad \langle v, B(u, v) \rangle = 0$ | `0.000e+00` | Verified |
+| **Theorem 2.1 (`skew_triad_swap_neg`)** | $W_{i, j, k} + W_{i, k, j} = 0, \quad \langle v, B(u, v) \rangle = 0$ | `0.000e+00` | Verified |
 | **Theorem 2.2 (`occlusion_triad_breaks_symmetric_tie`)** | $\ell_{\mathrm{post}}(c_1) - \ell_{\mathrm{post}}(c_2) = 2\beta\alpha W_{i_0, c_1, c_2} \neq 0$ | `0.000e+00` (Gap `2.50`) | Verified |
 | **Theorem 2.3 (`darksnail_readout_energy_conservation`)** | $\lvert \langle v_{\mathrm{prior}}, \Delta\ell_{\mathrm{fault}} \rangle \rvert \le 10^{-8}$ | `9.779e-09` (`1.64e-31` lunar) | Verified |
-| **Theorem 2.4 (`spherical_retraction_unit_norm`)** | Step-0 identity homotopy at $u_{\mathrm{fault}} = 0$ | `0.000e+00` | Verified |
+| **Theorem 2.4 (`darksnail_step0_system1_homotopy`)** | Step-0 identity homotopy at $u_{\mathrm{fault}} = 0$ | `0.000e+00` | Verified |
 | **Theorem 2.5 (`rope2d_arithmetic_norm_lt`)** | Medoid pooling preserves $\lVert z_{\mathrm{med}} \rVert = 1$ vs. arithmetic loss `0.366` | `5.551e-17` | Verified |
-| **Theorem 2.6 (`multi_step_spherical_invariance`)** | Multi-step cascade preserves $\lVert v^{(K)} \rVert = \lVert v^{(0)} \rVert$ across $K \in \{1, 4, 8, 16\}$ | `0.000e+00` | Verified |
-| **Theorem 2.7 (`so6_kelvin_stiffness_isometry`)** | $M(R)^\top M(R) = I_6$ in $\mathrm{SO}(6)$, $\mathrm{Tr}(C^{\mathrm{TTI}}) = \mathrm{Tr}(C^{\mathrm{VTI}})$ | `<= 1.14e-13` | Verified |
+| **Theorem 2.6 (`darksnail_multistep_spherical_invariance`)** | Multi-step cascade preserves $\lVert v^{(K)} \rVert = \lVert v^{(0)} \rVert$ across $K \in \{1, 4, 8, 16\}$ | `0.000e+00` | Verified |
+| **Theorem 2.7 (`so6_stiffness_preserves_pos_def`, `so6_stiffness_trace_conservation` & `caliper_morse_rejects_washout_step`)** | $M(R)^\top M(R) = I_6, \quad \mathrm{Tr}(M C M^\top) = \mathrm{Tr}(C)$, positive-definite energy conservation, and 3-point discrete Morse washout rejection `Delta_- v(z) * Delta_+ v(z) > 0` | `<= 1.14e-13` | Verified |
+| **Theorem 2.8 (`mhd_euler_force_balance_bijection` & `stellarator_parity_breaks_tie_and_conserves_flux`)** | $\mathbf{J}\times\mathbf{B} = \nabla p \leftrightarrow \boldsymbol{\omega}\times\mathbf{u} = -\nabla H$, flux-surface confinement $\mathbf{B}\cdot\nabla\psi = 0 \iff \langle v, B_W(u, v)\rangle = 0$, and `tau_0 = 0 <=> delta_z = 0` | `0.000e+00` | Verified |
 
 ---
 

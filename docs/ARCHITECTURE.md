@@ -263,7 +263,7 @@ v_{\mathrm{EM}}(\mathbf x) = \frac{0.299792458}{\sqrt{\max\left(\varepsilon_r'(\
 ```
 g3vm/
 ├── formalization/
-│   └── OcclusionTriad.lean      # Lean 4 formalization of skew-symmetric triad, spherical cascade & RoPE medoids (0 sorry)
+│   └── OcclusionTriad.lean      # Lean 4 formalization of skew-symmetric triad, spherical cascade, RoPE medoids, SO(6) Kelvin-Mandel stiffness/Morse shielding & 3D MHD isomorphism (0 sorry, L1-L885)
 ├── data/
 │   ├── utah_forge/              # Public-domain US DOE Utah FORGE EGS Doublet field files (< 235 KB)
 │   └── lunar_isru/              # Apollo 17 LSPE, Kaguya LRS & VIPER-TRIDENT LAS 2.0 / .dev logs (< 115 KB)
