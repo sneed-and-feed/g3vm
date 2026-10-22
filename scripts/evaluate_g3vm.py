@@ -13,7 +13,7 @@ Evaluates Scenarios 01-06:
 Generates:
   - results/g3vm_evaluation_summary.json
   - results/g3vm_benchmark_summary.json
-  - results/g3vm_portable_studio.html
+  - studio/g3vm_portable_studio.html
 """
 
 from __future__ import annotations
@@ -119,7 +119,7 @@ def main() -> int:
     eval_json_path = out_dir / "g3vm_evaluation_summary.json"
     bench_json_path = out_dir / "g3vm_benchmark_summary.json"
     audit_json_path = out_dir / "g3vm_referee_audit_summary.json"
-    html_path = out_dir / "g3vm_portable_studio.html"
+    html_path = ROOT / "studio" / "g3vm_portable_studio.html"
 
     # Execute Mode B: Referee-Hardened Blind Holdout, Tuned Kriging & Stress-Test Suite
     audit_res = run_referee_audit_suite(grid_shape=(32, 24, 24))

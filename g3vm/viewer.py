@@ -197,12 +197,12 @@ def serialize_evaluation_payload(
 
 
 def export_portable_html_studio(
-    output_path: str | Path,
+    output_path: str | Path = "studio/g3vm_portable_studio.html",
     grid_shape: tuple[int, int, int] = (24, 24, 24),
 ) -> Path:
     """
     Generate a 100% standalone, zero-install single-file HTML5 3D Studio
-    (`g3vm_portable_studio.html`) with pre-evaluated 3D cubes for all 6 scenarios
+    (`studio/g3vm_portable_studio.html`) with pre-evaluated 3D cubes for all 6 scenarios
     embedded directly inside the HTML so users on Windows, macOS, Linux, or mobile
     can open it in any browser without Python or a backend server.
     """

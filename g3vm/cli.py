@@ -81,7 +81,11 @@ def run_benchmark_suite(
     print("=" * 112)
     showcase_path = out_dir / "g3vm_leapfrog_showcase.png"
     well_path = out_dir / "g3vm_well_log_beltrami.png"
-    html_path = out_dir / "g3vm_portable_studio.html"
+    html_path = (
+        (out_dir.parent / "studio" / "g3vm_portable_studio.html")
+        if out_dir.name == "results"
+        else (out_dir / "g3vm_portable_studio.html")
+    )
     json_path = out_dir / "g3vm_benchmark_summary.json"
 
     render_leapfrog_showcase_figure(showcase_path, grid_shape=shape)
@@ -123,7 +127,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     p_bundle.add_argument(
         "--output",
-        default="results/g3vm_portable_studio.html",
+        default="studio/g3vm_portable_studio.html",
         help="Output HTML file path",
     )
     p_bundle.add_argument("--grid-size", type=int, default=24, help="Embedded cube size (default: 24)")

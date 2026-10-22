@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 scripts/capture_studio_screenshots.py — Capture 1920x1080 headless Chrome/Edge screenshots
-of G3VM Studio v0.6.0 (`results/g3vm_portable_studio.html`) and regenerate Matplotlib showcase figures.
+of G3VM Studio v0.6.0 (`studio/g3vm_portable_studio.html`) and regenerate Matplotlib showcase figures.
 """
 
 from __future__ import annotations
@@ -41,9 +41,11 @@ def find_browser() -> str:
 def main() -> int:
     out_dir = ROOT / "results"
     out_dir.mkdir(parents=True, exist_ok=True)
+    studio_dir = ROOT / "studio"
+    studio_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Export latest portable HTML5 Studio bundle & Matplotlib showcase figures
-    export_portable_html_studio(out_dir / "g3vm_portable_studio.html", grid_shape=(24, 24, 24))
+    export_portable_html_studio(studio_dir / "g3vm_portable_studio.html", grid_shape=(24, 24, 24))
     if "--skip-matplotlib" not in sys.argv:
         render_leapfrog_showcase_figure(out_dir / "g3vm_leapfrog_showcase.png", grid_shape=(32, 24, 24))
         render_well_log_beltrami_figure(out_dir / "g3vm_well_log_beltrami.png", grid_shape=(48, 48, 48))
@@ -65,7 +67,7 @@ def main() -> int:
     srv_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     srv_thread.start()
 
-    base_url = f"http://127.0.0.1:{port}/results/g3vm_portable_studio.html"
+    base_url = f"http://127.0.0.1:{port}/studio/g3vm_portable_studio.html"
     shots = [
         (
             "g3vm_studio_v060_lunar_isru.png",
