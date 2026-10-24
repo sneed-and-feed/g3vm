@@ -22,6 +22,7 @@ Commercial 3D subsurface modeling suites rely on smooth Radial Basis Function (R
 | **4D Time-Lapse Plume & Seasonal Splitter** | `TemporalClockContentSplitter` (`TemporalSurveyContinuitySplitter`) | Orthogonal decomposition $\mathcal H_{\mathrm{clock}} \oplus \mathcal H_{\mathrm{nope}}$ strips seasonal/tidal near-surface velocity drift while isolating invariant subsurface CO₂ or H₂ plume migration. |
 | **Tilted Anisotropic Stiffness Rotor (VTI/TTI)** | `ThomsenTTIElasticModulusEngine` (`g3vm/anisotropy.py`) | Theorem 2.7 lifts 3D bedding rotations $R \in \mathrm{SO}(3)$ into the 6D Kelvin-Mandel orthogonal group $M(R) \in \mathrm{SO}(6)$, rotating VTI stiffness tensors across folded strata with zero trace or Frobenius norm drift. |
 | **Coupled Seismic-Radar Dielectric Engine** | `OlhoeftStrangwayDielectricEngine` (`g3vm/geophysics.py`) | Maps 3D bulk density $\rho$, cryogenic water-ice fraction (`phi_ice`), ilmenite ore fraction (`w_Ilm`), and vacuum indicator (`chi_vac`) to real relative permittivity $\varepsilon_r'$, radar phase velocity (`v_EM`), and two-way vertical radar travel time (`TWT_radar`) via $Z$-slab chunking (`chunk_z = 16`). |
+| **Global Crust-to-Core 3D Raytracer & Double-Difference LET** | `PREMEarthModel`, `trace_3d_bent_ray` & `invert_double_difference_let` (`g3vm/raytrace_let.py`) | 3-point minimum-time pseudo-bending (`P`, `S`, `PmP`, `PcP`, `PKIKP` to $r_{\min} = 1124.62\text{ km}$) coupled with `H_clock (+) H_nope` origin-time/clock projection and $\mathfrak{so}(C)$ Cayley rotor anti-smearing (`0.000` smearing, `< 0.2 MB` active heap). |
 
 ---
 
@@ -258,34 +259,71 @@ v_{\mathrm{EM}}(\mathbf x) = \frac{0.299792458}{\sqrt{\max\left(\varepsilon_r'(\
 
 ---
 
+### 2.10 Coupled Global Spherical Crust-to-Core 3D Raytracer & Double-Difference LET Engine (`g3vm/raytrace_let.py`, `v0.7.0`)
+
+In `v0.7.0`, [`g3vm/raytrace_let.py`](../g3vm/raytrace_let.py) and [`g3vm/scenarios.py`](../g3vm/scenarios.py) introduce the 7th canonical scenario (`07_global_spherical_let_earth`, $32 \times 32 \times 32$ global spherical Earth grid) and provide a unified 3D minimum-time raytracer and Double-Difference Local Earthquake Tomography (`BlindG3VM-LET`) engine across all 7 scenarios, with direct cross-spoke compatibility with `quakesnail`:
+
+1. **Global Spherical 1D Radial `PREM` + 3D Slab & Plume Perturbations (`PREMEarthModel`)**:
+   Normalized radial coordinate $x = r / R_E$ (`R_E = 6371.0 km`) parameterizes the Dziewonski & Anderson (1981) Preliminary Reference Earth Model across the solid Inner Core (`r < 1221.5 km`, `Vp in [11.0, 11.26] km/s`, `Vs in [3.5, 3.67] km/s`), fluid Outer Core (`1221.5 <= r < 3480.0 km`, `Vs = 0.0 km/s`), Lower Mantle (`3480.0 <= r < 5701.0 km`), Upper Mantle Transition Zone (`5701.0 <= r < 6346.6 km`), and Crust (`r >= 6346.6 km`). Superimposed on the 1D radial profile are a 3D Western-Pacific dipping oceanic slab (`+3.5% Vp`) and a 3D Hawaiian thermal mantle plume (`-3.0% Vp` rising from the CMB):
+
+```math
+V_p(\mathbf x) = V_{p,\mathrm{PREM}}(\lVert \mathbf x \rVert) \cdot \left(1 + \delta_{\mathrm{slab}}(\mathbf x) + \delta_{\mathrm{plume}}(\mathbf x)\right)
+```
+
+2. **True 3D Minimum-Time Bent Raytracer (`trace_3d_bent_ray`)**:
+   Implements Um & Thurber (1987) 3-point pseudo-bending across both spherical (`PREMEarthModel`) and Cartesian (`CartesianBasinModel`) 3D velocity fields. At interior ray node $\mathbf x_k$ with chord length `L = ||x_{k+1} - x_{k-1}||`, unit chord tangent `t_k`, and slowness $u(\mathbf x) = 1 / V(\mathbf x)$, the normal pseudo-bending perturbation is:
+
+```math
+\mathbf d_k = -\frac{L^2}{8\, u(\mathbf x_k)} \left[\nabla u(\mathbf x_k) - \left(\nabla u(\mathbf x_k) \cdot \hat t_k\right)\hat t_k\right]
+```
+
+   Monotonic line-search updates enforce Fermat's principle ($T_{\mathrm{bent}} \le T_{\mathrm{straight}}$) across five seismic phases:
+   - **`P` & `S`**: Direct compressional and shear diving waves (`P` travel time `79.04 s` across 17 nodes in Scenario `07`).
+   - **`PmP`**: Crustal reflection pinned and Snell-optimized along the Moho discontinuity ($r_{\mathrm{Moho}} = 6346.6\text{ km}$, travel time `84.49 s`).
+   - **`PcP`**: Steeply diving mantle reflection from the Core-Mantle Boundary ($r_{\mathrm{CMB}} = 3480.0\text{ km}$, travel time `629.99 s`).
+   - **`PKIKP`**: 5-leg antipodal core-refracted transmission (Mantle `P` $\to$ Outer Core `K` across `r_CMB = 3480.0 km` $\to$ Inner Core `I` across `r_ICB = 1221.5 km` $\to$ Outer Core `K` $\to$ Mantle `P`, travel time `1081.58 s` across 21 nodes, penetrating to $r_{\min} = 1124.62\text{ km} \le 1222\text{ km}$).
+
+3. **DarkSnail Double-Difference LET (`BlindG3VM-LET` vs. `SIMULPS` / `LOTOS` Baseline)**:
+   For differential arrival times $\Delta t_{i, j, k}^{\mathrm{obs}} = (T_{i, k} - T_{j, k})^{\mathrm{obs}}$ between event pairs $(i, j)$ at common station $k$ under Mode B noise (`SNR = 20 dB` plus random origin-time shifts and receiver clock drift):
+   - **Clock-Content Subspace Projection** — $(\mathcal H_{\mathrm{clock}} \oplus \mathcal H_{\mathrm{nope}})$: `BlindG3VM-LET` projects out the common-station pair mean residual (`r_bar_{i,j}` in `H_clock`) and mean slowness sensitivity (`s_bar_{i,j}`), isolating the pure differential hypocenter innovation in `H_nope` (`r_nope`).
+   - **Skew-Symmetric Cayley Rotor Anti-Smearing** — $(\mathfrak{so}(C) \to \mathrm{SO}(C))$: Applies the orthogonal Cayley rotor $R = (I - \frac{1}{2}M)^{-1}(I + \frac{1}{2}M) \in \mathrm{SO}(3)$ with skew-symmetric generator `M^T = -M` in $\mathfrak{so}(3)$ to break vertical depth-velocity trade-offs with exact `0.000e+00` norm drift and **`0.000` hypocenter-to-velocity smearing** (whereas standard damped `LSQR` `SIMULPS` leaks origin-time errors into velocity layers with smearing `0.007–0.244`).
+   - **Verified Relocation & Memory Benchmarks (`results/g3vm_v070_let_benchmark_summary.json`)**:
+     - **Scenario `05` (`utah_forge_egs_doublet` microseismic cloud)**: Relocates 16 EGS events from `0.2081 km` initial RMSE (`0.1506 km` straight-ray, `0.2080 km` `SIMULPS`) down to **`0.0243 km`** (**`83.86%` RMSE reduction** over straight-ray, `88.33%` over initial) with **`96,152 B` (`0.092 MB < 0.2 MB`)** peak active heap.
+     - **Scenario `06` (`lunar_lava_tube_isru` deep moonquakes)**: Relocates 8 sub-arch moonquakes skirting the hard-vacuum lava tube ($V_p = 0.05\text{ km/s}$) from `0.5059 km` straight-ray RMSE (`0.1158 km` `SIMULPS`) down to **`0.0215 km`** (**`95.75%` RMSE reduction** over straight-ray) with **`41,496 B` (`0.040 MB < 0.2 MB`)** peak active heap.
+     - **Scenario `07` (`global_spherical_let_earth`)**: Evaluates 12 subduction/plume events and 168 double-difference pairs across 8 global stations with `0.000` velocity smearing and **`174,199 B` (`0.166 MB < 0.2 MB`)** peak active heap (strictly within the `< 2.0 MB` inversion heap ceiling).
+
+---
+
 ## 3. System Module Map
 
 ```
 g3vm/
 ├── formalization/
-│   └── OcclusionTriad.lean      # Lean 4 formalization of skew-symmetric triad, spherical cascade, RoPE medoids, SO(6) Kelvin-Mandel stiffness/Morse shielding & 3D MHD isomorphism (0 sorry, L1-L885)
+│   └── OcclusionTriad.lean      # Lean 4 formalization of skew-symmetric triad, spherical cascade, RoPE medoids, SO(6) Kelvin-Mandel stiffness/Morse shielding & 3D MHD isomorphism (0 sorry, 982 lines)
 ├── data/
 │   ├── utah_forge/              # Public-domain US DOE Utah FORGE EGS Doublet field files (< 235 KB)
 │   └── lunar_isru/              # Apollo 17 LSPE, Kaguya LRS & VIPER-TRIDENT LAS 2.0 / .dev logs (< 115 KB)
 ├── g3vm/
-│   ├── __init__.py          # Public API exports (v0.4.0)
+│   ├── __init__.py          # Public API exports (v0.7.0)
 │   ├── __main__.py          # Module & PyInstaller entrypoint (python -m g3vm)
 │   ├── engine.py            # DarkSnailGeo3DVelocityModeler & Z-slab chunked mathematical primitives
 │   ├── anisotropy.py        # Thomsen VTI/TTI phase velocities, Vp/Vs/rho cubes, so(6) rotor & OlhoeftStrangwayDielectricEngine
 │   ├── geophysics.py        # Coupled seismic-radar petrophysical & DarkSnail geophysical operator facade
+│   ├── blind_benchmark.py   # Mode B zero-leakage LOWO cross-validation, tuned Matérn-3/2 kriging & stress sweeps
+│   ├── raytrace_let.py      # 3D minimum-time bent raytracer (P, S, PmP, PcP, PKIKP), PREMEarthModel & BlindG3VM-LET engine (v0.7.0)
 │   ├── io.py                # Out-of-core np.memmap SEG-Y streaming, Beltrami downsampling, LAS 2.0 (incl. EPS_R/V_EM) & .dev I/O
-│   ├── scenarios.py         # 6 benchmark scenarios (incl. utah_forge_egs_doublet & lunar_lava_tube_isru)
+│   ├── scenarios.py         # 7 benchmark scenarios (incl. utah_forge_egs_doublet, lunar_lava_tube_isru & global_spherical_let_earth)
 │   ├── studio.py            # WebGL/Canvas 3D Studio & portable HTML5 bundler facade
 │   ├── viewer.py            # Flask 3D Studio backend, portable HTML5 bundler, Matplotlib showcase figures
 │   ├── cli.py               # Cross-platform CLI (serve, benchmark, bundle-html, export, ingest-las, ingest-segy)
 │   └── static/
-│       └── index.html       # 3D Chair-Cut Studio + Lunar ISRU & Utah FORGE Presets + Dielectric/Radar Colormaps
+│       └── index.html       # 3D Chair-Cut Studio + Lunar ISRU, Utah FORGE & Global Spherical LET Presets
 ├── scripts/
-│   ├── evaluate_g3vm.py     # Full 6-scenario evaluation, zero-regression audit, and portable studio generator
+│   ├── evaluate_g3vm.py     # Full 7-scenario evaluation, LET benchmark, zero-regression audit, and portable studio generator
 │   ├── generate_showcase.py # Generates benchmark JSON, showcase PNGs, and portable HTML studio
 │   └── audit_gfm_math.py    # 21-rule GitHub Flavored Markdown & KaTeX compliance linter
 ├── tests/
-│   ├── test_g3vm.py         # 15-test core verification suite (Theorems 2.1-2.7, 6 scenarios, Dielectric & Lunar ISRU)
+│   ├── test_g3vm.py         # 20-test core verification suite (Theorems 2.1-2.8, 7 scenarios, Mode B Kriging, 3D Raytracer & LET)
 │   └── test_g3vm_v030.py    # v0.3.0 suite (64 MB SEG-Y memmap < 35 MB RAM, Z-slab bit-identity, Utah FORGE)
 └── .github/workflows/
     └── ci-and-release.yml   # Linux/macOS/Windows CI matrix + PyInstaller binary release workflow
@@ -297,6 +335,6 @@ g3vm/
 
 `g3vm` is engineered to run identically across **Linux**, **macOS (Apple Silicon & Intel)**, and **Windows**:
 
-- **Pure PyTorch + NumPy + SciPy Vectorized Core**: All 3D spectral transforms, 6-way cumulative Jordan integrals, $\mathfrak{so}(C)$ triad projections, $\mathfrak{so}(6)$ Kelvin-Mandel stiffness rotors, and out-of-core `LAS 2.0` / `SEG-Y Rev 1` `np.memmap` parsers execute without custom C++/Fortran compilation steps and stay well under `150 MB` of peak laptop RAM.
+- **Pure PyTorch + NumPy + SciPy Vectorized Core**: All 3D spectral transforms, 6-way cumulative Jordan integrals, $\mathfrak{so}(C)$ triad projections, $\mathfrak{so}(6)$ Kelvin-Mandel stiffness rotors, 3D bent raytracing (`raytrace_let.py`), and out-of-core `LAS 2.0` / `SEG-Y Rev 1` `np.memmap` parsers execute without custom C++/Fortran compilation steps and stay well under `35 MB` of peak evaluation heap (`< 0.2 MB` during `BlindG3VM-LET` inversion).
 - **Frozen Binary Support (`PyInstaller`)**: `g3vm/viewer.py` resolves static assets through `sys._MEIPASS` when packaged as a single-file executable (`--onefile`), and `g3vm/cli.py` automatically launches the local 3D Web Studio and opens the user's default browser when double-clicked on Windows, macOS, or Linux.
-- **Zero-Install Portable HTML5 Studio (`g3vm bundle-html`)**: Pre-computes all 6 benchmark basins (including `utah_forge_egs_doublet` and `lunar_lava_tube_isru`) and embeds the interactive 3D WebGL/Canvas studio into a single self-contained `.html` file (`studio/g3vm_portable_studio.html`) that runs offline in any browser with zero Python or library installation.
+- **Zero-Install Portable HTML5 Studio (`g3vm bundle-html`)**: Pre-computes all 7 benchmark scenarios (including `utah_forge_egs_doublet`, `lunar_lava_tube_isru`, and `global_spherical_let_earth`) and embeds the interactive 3D WebGL/Canvas studio into a single self-contained `.html` file (`studio/g3vm_portable_studio.html`) that runs offline in any browser with zero Python or library installation.

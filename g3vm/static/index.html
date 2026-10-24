@@ -1025,7 +1025,7 @@
     <div class="brand">
       <div class="brand-logo">G3</div>
       <div class="brand-title-wrap">
-        <span class="brand-title">G3VM Studio // Workstation v0.6.0</span>
+        <span class="brand-title">G3VM Studio // Workstation v0.7.0</span>
         <span class="brand-sub">DarkSnail-Geo3D Beltrami-Triad Subsurface Velocity, TTI Elastic, Lunar Radar &amp; Mode B Blind Kriging Workstation</span>
       </div>
     </div>
@@ -1055,6 +1055,7 @@
       <button class="preset-btn" data-preset="egs_tbm_hazard">04 // EGS Granite &amp; Karst</button>
       <button class="preset-btn" data-preset="utah_forge_egs_doublet">05 // Utah FORGE Doublet</button>
       <button class="preset-btn" data-preset="lunar_lava_tube_isru">06 // Lunar Lava Tube ISRU</button>
+      <button class="preset-btn" data-preset="global_spherical_let_earth">07 // Spherical Earth LET</button>
     </div>
     <div style="font-family: var(--font-mono); font-size: 9.5px; color: var(--text-muted); white-space: nowrap;">
       <span id="hdrActiveFormation">UNIT: --</span>
@@ -1081,6 +1082,7 @@
             <option value="egs_tbm_hazard">EGS Superhot Granite &amp; TBM Karst Look-Ahead</option>
             <option value="utah_forge_egs_doublet">Real Field: Utah FORGE EGS Doublet (16A/16B)</option>
             <option value="lunar_lava_tube_isru">Planetary: Lunar Lava Tube &amp; Polar Ice ISRU (Apollo 17 LSPE / Kaguya LRS)</option>
+            <option value="global_spherical_let_earth">Global: Spherical Earth PREM + 3D Slab &amp; Plume LET</option>
           </select>
           <div id="scenarioSummary" style="font-size: 10px; color: var(--text-muted); line-height: 1.3;"></div>
         </div>
@@ -1523,7 +1525,7 @@
   <div class="help-modal-backdrop" id="shortcutsModal">
     <div class="help-modal-card">
       <div class="control-title-row">
-        <span class="control-title">G3VM Studio v0.6.0 // Industry View &amp; Keyboard Controls</span>
+        <span class="control-title">G3VM Studio v0.7.0 // Industry View &amp; Keyboard Controls</span>
         <button class="mini-btn" id="btnCloseShortcutsModal">&times; Close</button>
       </div>
       <div class="kv-grid">
@@ -4324,7 +4326,7 @@
       ctx.fillStyle = "#06090f";
       ctx.fillRect(0, 0, comp.width, comp.height);
 
-      const scenTitle = STATE.data ? STATE.data.meta.title : "G3VM Studio v0.6.0";
+      const scenTitle = STATE.data ? STATE.data.meta.title : "G3VM Studio v0.7.0";
       const meta = getFieldScaleMeta(STATE.activeField);
       ctx.fillStyle = "#0b101b";
       ctx.fillRect(0, 0, comp.width, 40);
@@ -4332,7 +4334,7 @@
       ctx.strokeRect(0, 0, comp.width, 40);
       ctx.font = "700 13px 'JetBrains Mono', Consolas, monospace";
       ctx.fillStyle = "#00f2d4";
-      ctx.fillText(`G3VM STUDIO v0.6.0 // ${scenTitle} // ${meta.label} (${meta.unit})`, 16, 25);
+      ctx.fillText(`G3VM STUDIO v0.7.0 // ${scenTitle} // ${meta.label} (${meta.unit})`, 16, 25);
 
       if (c3dEl) {
         ctx.drawImage(c3dEl, 12, 52, 1576, 540);

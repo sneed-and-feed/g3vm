@@ -17,7 +17,7 @@ benchmark scenarios, and interactive viewer:
 - `create_studio_app`, `export_portable_html_studio`, `render_leapfrog_showcase_figure`, `render_well_log_beltrami_figure`
 """
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 from .anisotropy import (
     DielectricCubeBundle,
@@ -64,6 +64,7 @@ from .io import (
 )
 from .scenarios import (
     FAULT_MODE_NAMES,
+    GLOBAL_SPHERICAL_LITHOLOGY_CATALOG,
     INDUSTRY_DEPLOYMENT_MATRIX,
     LITHOLOGY_CATALOG,
     LUNAR_LITHOLOGY_CATALOG,
@@ -71,9 +72,24 @@ from .scenarios import (
     SCENARIO_Descriptions,
     SCENARIO_LITHOLOGY_CATALOGS,
     build_geological_scenario,
+    build_global_spherical_let_earth_scenario,
     build_lunar_lava_tube_isru_scenario,
     evaluate_scenario_comparison,
     resolve_scenario_name,
+)
+from .raytrace_let import (
+    CartesianBasinModel,
+    EventPair,
+    LETInversionResult,
+    PREMEarthModel,
+    RayPath3D,
+    SeismicEvent,
+    Station,
+    invert_double_difference_let,
+    relocate_lunar_isru_moonquakes,
+    relocate_utah_forge_microseismic,
+    run_global_spherical_let_benchmark,
+    trace_3d_bent_ray,
 )
 from .blind_benchmark import (
     evaluate_beltrami_noise_and_washout_ablation,
@@ -95,6 +111,7 @@ __all__ = [
     "ELASTIC_TTI_CATALOG",
     "LUNAR_ELASTIC_TTI_CATALOG",
     "LUNAR_DIELECTRIC_CATALOG",
+    "GLOBAL_SPHERICAL_LITHOLOGY_CATALOG",
     "ElasticTTICubeBundle",
     "DielectricCubeBundle",
     "ThomsenTTIElasticModulusEngine",
@@ -139,7 +156,20 @@ __all__ = [
     "resolve_scenario_name",
     "build_geological_scenario",
     "build_lunar_lava_tube_isru_scenario",
+    "build_global_spherical_let_earth_scenario",
     "evaluate_scenario_comparison",
+    "RayPath3D",
+    "SeismicEvent",
+    "Station",
+    "EventPair",
+    "LETInversionResult",
+    "PREMEarthModel",
+    "CartesianBasinModel",
+    "trace_3d_bent_ray",
+    "invert_double_difference_let",
+    "relocate_utah_forge_microseismic",
+    "relocate_lunar_isru_moonquakes",
+    "run_global_spherical_let_benchmark",
     "fit_and_predict_anisotropic_matern_kriging",
     "evaluate_blind_holdout_and_baselines",
     "evaluate_beltrami_noise_and_washout_ablation",

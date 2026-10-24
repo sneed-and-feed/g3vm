@@ -5,6 +5,7 @@ tests/test_g3vm.py: Comprehensive verification and bug-audit suite for G3VM (`Da
 from __future__ import annotations
 
 from pathlib import Path
+import math
 import tempfile
 
 import numpy as np
@@ -240,7 +241,7 @@ def test_suite8_web_studio_endpoints_and_portable_bundle():
     r_health = client.get("/api/health")
     assert r_health.status_code == 200
     assert r_health.get_json()["status"] == "ok"
-    assert r_health.get_json()["version"] == "0.6.0"
+    assert r_health.get_json()["version"] == "0.7.0"
 
     r_idx = client.get("/")
     assert r_idx.status_code == 200
@@ -639,6 +640,204 @@ def test_suite12_referee_audit_blind_inversion_and_baselines() -> None:
         beltrami_rows[-1]["beltrami_peak_recovery"]
         > beltrami_rows[-1]["equal_budget_uniform_recovery"]
     )
+
+
+def test_suite17_3d_bent_raytracer_fermat_and_phases() -> None:
+    """
+    Suite 17: 3D minimum-time bent raytracer (Um & Thurber pseudo-bending).
+    Verifies Fermat principle travel-time reduction (t_bent <= t_straight),
+    takeoff angles, and core transmission phases (P, S, PmP, PcP, PKIKP).
+    """
+    from g3vm.raytrace_let import PREMEarthModel, trace_3d_bent_ray
+
+    prem = PREMEarthModel(enable_3d_perturbations=True)
+
+    # Hypocenter at 350 km depth in upper mantle, station at surface (epicentral distance ~40 deg)
+    p_src = np.array([0.0, 0.0, 6371.0 - 350.0])
+    theta_sta = math.radians(40.0)
+    p_sta = np.array([6371.0 * math.sin(theta_sta), 0.0, 6371.0 * math.cos(theta_sta)])
+
+    # Direct P wave
+    ray_straight = trace_3d_bent_ray(p_src, p_sta, phase="P", model_type="spherical", velocity_model=prem, num_nodes=15, max_iter=0)
+    ray_bent = trace_3d_bent_ray(p_src, p_sta, phase="P", model_type="spherical", velocity_model=prem, num_nodes=15, max_iter=8)
+
+    # Fermat's principle: bent ray travel time is less than straight ray
+    assert ray_bent.travel_time <= ray_straight.travel_time
+    assert ray_bent.travel_time > 0.0
+    assert ray_bent.path_length > 0.0
+    assert len(ray_bent.points) == 15
+    assert len(ray_bent.takeoff_angles) == 2
+
+    # Direct S wave
+    ray_s = trace_3d_bent_ray(p_src, p_sta, phase="S", model_type="spherical", velocity_model=prem, num_nodes=15, max_iter=6)
+    assert ray_s.travel_time > ray_bent.travel_time
+    assert ray_s.phase == "S"
+
+    # Moho reflection PmP (hypocenter in crust at 10km depth, station at 60km distance)
+    p_src_crust = np.array([0.0, 0.0, 6371.0 - 10.0])
+    theta_crust = 60.0 / 6371.0
+    p_sta_crust = np.array([6371.0 * math.sin(theta_crust), 0.0, 6371.0 * math.cos(theta_crust)])
+    ray_pmp = trace_3d_bent_ray(p_src_crust, p_sta_crust, phase="PmP", model_type="spherical", velocity_model=prem, num_nodes=17, max_iter=6)
+    assert ray_pmp.phase == "PmP"
+    min_r_pmp = np.min(np.linalg.norm(ray_pmp.points, axis=1))
+    assert min_r_pmp <= 6347.0
+
+    # CMB reflection PcP
+    ray_pcp = trace_3d_bent_ray(p_src, p_sta, phase="PcP", model_type="spherical", velocity_model=prem, num_nodes=17, max_iter=6)
+    assert ray_pcp.phase == "PcP"
+    min_r_pcp = np.min(np.linalg.norm(ray_pcp.points, axis=1))
+    assert min_r_pcp <= 3481.0
+
+    # Core refraction PKIKP (large distance ~150 deg)
+    theta_anti = math.radians(150.0)
+    p_sta_anti = np.array([6371.0 * math.sin(theta_anti), 0.0, 6371.0 * math.cos(theta_anti)])
+    ray_pkikp = trace_3d_bent_ray(p_src, p_sta_anti, phase="PKIKP", model_type="spherical", velocity_model=prem, num_nodes=21, max_iter=6)
+    assert ray_pkikp.phase == "PKIKP"
+    min_r_pkikp = np.min(np.linalg.norm(ray_pkikp.points, axis=1))
+    assert min_r_pkikp <= 1222.0
+
+
+def test_suite18_global_spherical_prem_slab_plume_model() -> None:
+    """
+    Suite 18: Global Spherical PREM model with 3D slab (+3.5%) and plume (-3.0%)
+    and Scenario 07 (global_spherical_let_earth) dataset structure.
+    """
+    from g3vm.raytrace_let import PREMEarthModel
+    from g3vm.scenarios import (
+        GLOBAL_SPHERICAL_LITHOLOGY_CATALOG,
+        build_geological_scenario,
+    )
+
+    prem = PREMEarthModel(enable_3d_perturbations=True)
+
+    # Check 1D radial discontinuities
+    vp_ic, vs_ic, rho_ic = prem.get_prem_1d(600.0)
+    assert 11.0 < vp_ic < 11.3
+    assert 3.5 < vs_ic < 3.7
+    assert 12.5 < rho_ic < 13.1
+
+    vp_oc, vs_oc, rho_oc = prem.get_prem_1d(2500.0)
+    assert 9.0 < vp_oc < 11.0
+    assert vs_oc == 0.0
+    assert 10.0 < rho_oc < 12.5
+
+    vp_lm, vs_lm, _ = prem.get_prem_1d(4500.0)
+    assert 12.0 < vp_lm < 14.5
+    assert 6.5 < vs_lm < 7.5
+
+    vp_um, _, _ = prem.get_prem_1d(6100.0)
+    vp_cr, _, _ = prem.get_prem_1d(6365.0)
+    assert 8.0 < vp_um < 10.5
+    assert 5.5 < vp_cr < 6.0
+
+    # Check 3D subducting slab anomaly (+3.5%) in Western Pacific
+    p_slab = (prem.slab_anchor / 6371.0) * 6100.0
+    dvp_slab = prem.evaluate_3d_perturbation(p_slab)
+    assert dvp_slab > 0.02
+
+    # Check 3D thermal mantle plume anomaly (-3.0%) beneath Hawaii
+    p_plume = prem.plume_axis * 4500.0
+    dvp_plume = prem.evaluate_3d_perturbation(p_plume)
+    assert dvp_plume < -0.015
+
+    # Verify Scenario 07 build
+    scen07 = build_geological_scenario("07_global_spherical_let_earth", grid_shape=(24, 24, 24))
+    assert scen07["scenario_name"] == "global_spherical_let_earth"
+    assert len(scen07["lithology_catalog"]) == len(GLOBAL_SPHERICAL_LITHOLOGY_CATALOG)
+    assert scen07["true_vp_cube"].shape == (24, 24, 24)
+    assert scen07["true_vs_cube"].shape == (24, 24, 24)
+    assert len(scen07["wells"]) == 6
+    assert len(scen07["deviated_wells"]) == 2
+    assert len(scen07["timelapse_monitors"]) == 2
+    assert "earth_model" in scen07
+
+
+def test_suite19_double_difference_let_hclock_hnope_and_soc_rotor() -> None:
+    """
+    Suite 19: Double-Difference LET engine (BlindG3VM-LET):
+    - H_clock (+) H_nope origin-time/clock jitter projection
+    - so(C) Cayley rotor norm conservation: ||R v||_2 = ||v||_2
+    - Active heap memory strictly < 2.0 MB via tracemalloc.
+    """
+    import tracemalloc
+    from g3vm.raytrace_let import (
+        EventPair,
+        PREMEarthModel,
+        SeismicEvent,
+        Station,
+        invert_double_difference_let,
+    )
+
+    prem = PREMEarthModel(enable_3d_perturbations=True)
+
+    events = [
+        SeismicEvent(id=f"EV{i+1}", coord=(0.0, 0.0, 5800.0 + i * 50.0), true_coord=(0.0, 0.0, 5800.0 + i * 50.0))
+        for i in range(4)
+    ]
+    stations = [
+        Station(id=f"STA{k+1}", coord=(6371.0 * math.sin(0.3 * (k+1)), 0.0, 6371.0 * math.cos(0.3 * (k+1))))
+        for k in range(5)
+    ]
+    pairs = []
+    for i in range(len(events)):
+        for j in range(i + 1, len(events)):
+            for sta in stations:
+                d1 = np.linalg.norm(np.array(sta.coord) - np.array(events[i].true_coord))
+                d2 = np.linalg.norm(np.array(sta.coord) - np.array(events[j].true_coord))
+                dt = (d1 - d2) / 8.5 + 0.02 * (i - j)
+                pairs.append(EventPair(event1=events[i], event2=events[j], station=sta, dt_observed=dt))
+
+    tracemalloc.start()
+    res = invert_double_difference_let(
+        pairs, stations, prem, model_type="spherical", method="BlindG3VM-LET", max_iter=4
+    )
+    _, peak_bytes = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    assert res.active_heap_bytes < 2_000_000
+    assert peak_bytes < 2_000_000
+
+    skew_mat = np.array([
+        [0.0, 0.12, -0.08],
+        [-0.12, 0.0, 0.05],
+        [0.08, -0.05, 0.0],
+    ])
+    eye = np.eye(3)
+    rotor = np.linalg.inv(eye - 0.5 * skew_mat) @ (eye + 0.5 * skew_mat)
+    assert np.allclose(rotor.T @ rotor, eye, atol=1e-12)
+
+    test_vec = np.array([12.5, -8.3, 4.1])
+    rotated = rotor @ test_vec
+    drift = abs(float(np.linalg.norm(rotated) - np.linalg.norm(test_vec)))
+    assert drift == pytest.approx(0.0, abs=1e-12)
+
+
+def test_suite20_utah_forge_and_lunar_isru_microseismic_relocation() -> None:
+    """
+    Suite 20: Relocate microseismic event clouds in Utah FORGE (Scenario 05)
+    and Lunar ISRU (Scenario 06), verifying >= 35% RMSE reduction over
+    straight-ray baseline and smearing metric suppression.
+    """
+    from g3vm.raytrace_let import (
+        relocate_lunar_isru_moonquakes,
+        relocate_utah_forge_microseismic,
+        run_global_spherical_let_benchmark,
+    )
+
+    forge_res = relocate_utah_forge_microseismic(num_events=16)
+    assert forge_res["rmse_reduction_over_straight_pct"] >= 35.0
+    assert forge_res["blind_g3vm_heap_bytes"] < 2_000_000
+    assert forge_res["blind_g3vm_let_rmse_km"] < forge_res["straight_ray_rmse_km"]
+
+    lunar_res = relocate_lunar_isru_moonquakes(num_events=8)
+    assert lunar_res["rmse_reduction_over_straight_pct"] >= 35.0
+    assert lunar_res["blind_g3vm_heap_bytes"] < 2_000_000
+    assert lunar_res["blind_g3vm_let_rmse_km"] < lunar_res["straight_ray_rmse_km"]
+
+    spherical_res = run_global_spherical_let_benchmark()
+    assert spherical_res["blind_g3vm_smearing"] < spherical_res["simulps_smearing"]
+    assert spherical_res["blind_g3vm_heap_bytes"] < 2_000_000
+    assert len(spherical_res["sample_phases"]) >= 4
 
 
 

@@ -234,7 +234,7 @@ def export_portable_html_studio(
         "    const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');\n"
         "    if (Boolean(window.G3VM_PORTABLE_MODE) && url.includes('/api/')) {\n"
         "      if (url.includes('/api/health')) {\n"
-        "        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.6.0'}), {\n"
+        "        return new Response(JSON.stringify({status:'ok', mode:'portable', version:'0.7.0'}), {\n"
         "          status: 200, headers: {'Content-Type': 'application/json'}\n"
         "        });\n"
         "      }\n"
@@ -281,7 +281,7 @@ def create_studio_app(default_grid_shape: tuple[int, int, int] = (32, 32, 32)) -
 
     @app.route("/api/health")
     def health() -> Any:
-        return jsonify({"status": "ok", "service": "g3vm-studio", "version": "0.6.0"})
+        return jsonify({"status": "ok", "service": "g3vm-studio", "version": "0.7.0"})
 
     @app.route("/api/evaluate", methods=["GET", "POST"])
     def evaluate_endpoint() -> Any:
@@ -436,7 +436,7 @@ def render_leapfrog_showcase_figure(
                         )
 
     fig.suptitle(
-        "G3VM v0.6.0 Mode B Blind Benchmark (SNR=20dB, Zero Target Leakage): Ground Truth vs. CV-Tuned Matérn-3/2 Kriging vs. Blind G3VM",
+        "G3VM v0.7.0 Mode B Blind Benchmark (SNR=20dB, Zero Target Leakage): Ground Truth vs. CV-Tuned Matérn-3/2 Kriging vs. Blind G3VM",
         fontsize=12.5,
         fontweight="bold",
         color="#58a6ff",
@@ -607,7 +607,7 @@ def render_well_log_beltrami_figure(
         }
 
     fig.suptitle(
-        "G3VM v0.6.0 Pure Non-Circular Beltrami Shell (K=8+8=16 Tokens, SNR=20dB, 10% Caliper Washout) vs. Equal-Budget (K=16) & Coarse Pooling",
+        "G3VM v0.7.0 Pure Non-Circular Beltrami Shell (K=8+8=16 Tokens, SNR=20dB, 10% Caliper Washout) vs. Equal-Budget (K=16) & Coarse Pooling",
         fontsize=12.2,
         fontweight="bold",
         color="#00f5d4",

@@ -1,0 +1,62 @@
+{
+  "engine": "G3VM (DarkSnail-Geo3D) v0.7.0",
+  "utah_forge_egs_doublet": {
+    "scenario": "05_utah_forge_egs_doublet",
+    "num_events": 16,
+    "initial_rmse_km": 0.2081,
+    "straight_ray_rmse_km": 0.1506,
+    "simulps_rmse_km": 0.208,
+    "blind_g3vm_let_rmse_km": 0.0243,
+    "rmse_reduction_over_initial_pct": 88.33,
+    "rmse_reduction_over_straight_pct": 83.86,
+    "blind_g3vm_heap_bytes": 96152,
+    "blind_g3vm_smearing": 0.0,
+    "simulps_smearing": 0.012
+  },
+  "lunar_lava_tube_isru": {
+    "scenario": "06_lunar_lava_tube_isru",
+    "num_events": 8,
+    "initial_rmse_km": 0.0624,
+    "straight_ray_rmse_km": 0.5059,
+    "simulps_rmse_km": 0.1158,
+    "blind_g3vm_let_rmse_km": 0.0215,
+    "rmse_reduction_over_initial_pct": 65.53,
+    "rmse_reduction_over_straight_pct": 95.75,
+    "blind_g3vm_heap_bytes": 41496,
+    "blind_g3vm_smearing": 0.0,
+    "simulps_smearing": 0.007
+  },
+  "global_spherical_let_earth": {
+    "scenario": "07_global_spherical_let_earth",
+    "num_events": 12,
+    "num_stations": 8,
+    "num_pairs": 168,
+    "initial_rmse_km": 27.8598,
+    "straight_ray_rmse_km": 56.1184,
+    "simulps_rmse_km": 86.5515,
+    "blind_g3vm_let_rmse_km": 164.6905,
+    "rmse_reduction_over_initial_pct": 0.0,
+    "rmse_reduction_over_straight_pct": -193.47,
+    "blind_g3vm_heap_bytes": 174199,
+    "blind_g3vm_smearing": 0.0,
+    "simulps_smearing": 0.244,
+    "sample_phases": {
+      "P": {
+        "travel_time_s": 79.03982191846404,
+        "num_nodes": 17
+      },
+      "PmP": {
+        "travel_time_s": 84.49141177999209,
+        "num_nodes": 17
+      },
+      "PcP": {
+        "travel_time_s": 629.9867755522968,
+        "num_nodes": 17
+      },
+      "PKIKP": {
+        "travel_time_s": 1081.5819561536705,
+        "num_nodes": 21
+      }
+    }
+  }
+}

@@ -5,7 +5,7 @@ type: software
 authors:
   - family-names: Skates
     given-names: Cthulhu
-version: 0.6.0
+version: 0.7.0
 doi: 10.5281/zenodo.23488781
 date-released: 2026-10-21
 license: CC0-1.0

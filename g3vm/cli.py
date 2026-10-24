@@ -47,13 +47,13 @@ def run_benchmark_suite(
     shape = (grid_size, grid_size, grid_size)
 
     summary = {
-        "engine": "G3VM (DarkSnail-Geo3D) v0.6.0",
+        "engine": "G3VM (DarkSnail-Geo3D) v0.7.0",
         "grid_shape": list(shape),
         "scenarios": {},
     }
 
     print("=" * 112)
-    print(f"G3VM (DarkSnail-Geo3D) v0.6.0 3D Velocity, TTI Elastic & Lunar Radar Benchmark | Grid: {grid_size}x{grid_size}x{grid_size}")
+    print(f"G3VM (DarkSnail-Geo3D) v0.7.0 3D Velocity, TTI Elastic & Lunar Radar Benchmark | Grid: {grid_size}x{grid_size}x{grid_size}")
     print("=" * 112)
     header = (
         f"{'Scenario':<24} | {'G3VM RMSE':>10} | {'RBF RMSE':>10} | {'Delta%':>8} | "

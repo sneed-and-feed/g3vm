@@ -71,22 +71,22 @@ def main() -> int:
     shots = [
         (
             "g3vm_studio_v060_lunar_isru.png",
-            "g3vm_studio_v050_lunar_isru.png",
+            None,
             f"{base_url}?scenario=lunar_lava_tube_isru&field=g3vm_eps_r&well=6&sliceZ=13&sliceY=12&sliceX=12&zoom=1.08",
         ),
         (
             "g3vm_studio_v060_utah_forge.png",
-            "g3vm_studio_v050_utah_forge.png",
+            None,
             f"{base_url}?preset=utah_forge_egs_doublet&field=g3vm_vp_tti&well=6&sliceZ=16&sliceY=16&sliceX=16&zoom=1.08",
         ),
         (
             "g3vm_studio_v060_vp_tti.png",
-            "g3vm_studio_v050_vp_tti.png",
+            None,
             f"{base_url}?scenario=thrust_anticline&field=g3vm_vp_tti&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.08",
         ),
         (
             "g3vm_studio_v060_zp.png",
-            "g3vm_studio_v050_zp.png",
+            None,
             f"{base_url}?scenario=subsalt_graben&field=g3vm_zp&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.08&chair=fence_only",
         ),
         (

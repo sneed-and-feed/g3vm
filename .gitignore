@@ -22,5 +22,6 @@ wheels/
 .venv/
 venv/
 ENV/
+.agents/
 .DS_Store
 *.npz

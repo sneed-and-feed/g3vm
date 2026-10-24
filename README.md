@@ -1,19 +1,21 @@
-# G3VM (`DarkSnail-Geo3D`) — 3D Geological Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Modeler (`v0.6.0`)
+# G3VM (`DarkSnail-Geo3D`) — 3D Geological Velocity, TTI Elastic, Coupled Seismic-Radar Dielectric & Global Crust-to-Core LET Modeler (`v0.7.0`)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23488781.svg)](https://doi.org/10.5281/zenodo.23488781)
 [![License: CC0-1.0](https://img.shields.io/badge/License-CC0_1.0-lightgrey.svg)](LICENSE)
 
 > **Live 3D WebGL Studio (Zero-Install Browser Demo):**
-> - **[Launch Interactive 3D Studio (`v0.6.0` CDN)](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.6.0/studio/g3vm_portable_studio.html)** | **[`main` Dev Build](https://raw.githack.com/sneed-and-feed/g3vm/main/studio/g3vm_portable_studio.html)**
+> - **[Launch Interactive 3D Studio (`v0.7.0` CDN)](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.7.0/studio/g3vm_portable_studio.html)** | **[`main` Dev Build](https://raw.githack.com/sneed-and-feed/g3vm/main/studio/g3vm_portable_studio.html)**
 > - **One-Click Deep-Link Presets:**
->   - [**Planetary ISRU: Lunar Lava Tube, Regolith Megascattering & Polar Ice (`Apollo 17 LSPE / Kaguya LRS / VIPER-TRIDENT`)**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.6.0/studio/g3vm_portable_studio.html?scenario=lunar_lava_tube_isru&field=g3vm_eps_r&well=6&sliceZ=13&sliceY=12&sliceX=12&zoom=1.12)
->   - [**Real Field: US DOE Utah FORGE EGS Doublet (`Well 16A(78)-32` & `Well 16B(78)-32`)**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.6.0/studio/g3vm_portable_studio.html?preset=utah_forge_egs_doublet&field=g3vm_vp_tti&well=6&sliceZ=16&sliceY=16&sliceX=16&zoom=1.12)
->   - [**Mode B Blind Inversion: Utah FORGE `BlindG3VM` vs. Tuned Matérn-3/2 Kriging (`SNR=20dB`, Zero Target Leakage)**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.6.0/studio/g3vm_portable_studio.html?preset=utah_forge_egs_doublet&field=blind_g3vm_vp&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.14&chair=nw_upper&scoreMode=modeB&tab=tabBlind)
->   - [**SEG/EAGE Overthrust TTI Vp(ψ) + `Well-G7` S-Curve**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.6.0/studio/g3vm_portable_studio.html?scenario=thrust_anticline&field=g3vm_vp_tti&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12) · [**Marmousi2 Subsalt Acoustic Impedance Zp + `Well-H8` 88° Lateral**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.6.0/studio/g3vm_portable_studio.html?scenario=subsalt_graben&field=g3vm_zp&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12)
+>   - [**Global Spherical Crust-to-Core LET Earth (`07_global_spherical_let_earth`: 3D PREM + Western-Pacific Slab + Hawaiian Plume + `P`/`S`/`PmP`/`PcP`/`PKIKP` Rays)**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.7.0/studio/g3vm_portable_studio.html?scenario=global_spherical_let_earth&field=g3vm_vp&well=6&sliceZ=16&sliceY=16&sliceX=16&zoom=1.12)
+>   - [**Planetary ISRU: Lunar Lava Tube, Regolith Megascattering & Polar Ice (`Apollo 17 LSPE / Kaguya LRS / VIPER-TRIDENT`)**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.7.0/studio/g3vm_portable_studio.html?scenario=lunar_lava_tube_isru&field=g3vm_eps_r&well=6&sliceZ=13&sliceY=12&sliceX=12&zoom=1.12)
+>   - [**Real Field: US DOE Utah FORGE EGS Doublet (`Well 16A(78)-32` & `Well 16B(78)-32`)**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.7.0/studio/g3vm_portable_studio.html?preset=utah_forge_egs_doublet&field=g3vm_vp_tti&well=6&sliceZ=16&sliceY=16&sliceX=16&zoom=1.12)
+>   - [**Mode B Blind Inversion: Utah FORGE `BlindG3VM` vs. Tuned Matérn-3/2 Kriging (`SNR=20dB`, Zero Target Leakage)**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.7.0/studio/g3vm_portable_studio.html?preset=utah_forge_egs_doublet&field=blind_g3vm_vp&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.14&chair=nw_upper&scoreMode=modeB&tab=tabBlind)
+>   - [**SEG/EAGE Overthrust TTI Vp(ψ) + `Well-G7` S-Curve**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.7.0/studio/g3vm_portable_studio.html?scenario=thrust_anticline&field=g3vm_vp_tti&well=6&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12) · [**Marmousi2 Subsalt Acoustic Impedance Zp + `Well-H8` 88° Lateral**](https://rawcdn.githack.com/sneed-and-feed/g3vm/v0.7.0/studio/g3vm_portable_studio.html?scenario=subsalt_graben&field=g3vm_zp&well=7&sliceZ=11&sliceY=12&sliceX=12&zoom=1.12)
 
-**G3VM** (`DarkSnail-Geo3D`) is a 3D geological velocity, anisotropic elastic, and coupled seismic-radar dielectric modeler (Seequent Leapfrog / Petex / Petrel style) powered by the formally verified mathematical primitives of **Project DarkSnail**:
+**G3VM** (`DarkSnail-Geo3D`) is a 3D geological velocity, anisotropic elastic, coupled seismic-radar dielectric, and global crust-to-core Local Earthquake Tomography (LET) modeler (Seequent Leapfrog / Petex / Petrel style) powered by the formally verified mathematical primitives of **Project DarkSnail**:
 
-- **Petrel / Leapfrog-Grade 3D Subsurface Workstation (`g3vm/static/index.html` & `g3vm/viewer.py`, New in `v0.6.0`)**: Upgrades the interactive 3D studio with **25 property volumes** (embedding Mode B `blind_g3vm_vp`, `kriging_vp`, `fkriging_vp`, and `blind_gain` directly into the live 3D block & 2D orthogonal slices), **6 Chair-Cut Quadrant & Fence-Diagram modes** (`NE/NW/SE/SW Upper`, `Lower Subsalt`, and `3D Fence Diagram Only`), **Vertical Exaggeration** (`0.5x–2.5x`) + independent slice/fault opacity sliders, **6 industry colormaps** (`Auto`, `Turbo`, `Viridis`, `Plasma`, `Ice/Dielectric`, `Seismic RWB` + invert), **9 camera presets** (`Iso SW/NE`, `Dip N-S`, `Strike E-W`, `Map Z`, `Subsalt Up`, `Focus Well`, `Turntable`, `Reset`) with 3D pan (`Shift+Drag`), a **3D Orientation Gizmo triad** + collision-free exterior axis tags & screen-space de-collided wellhead leader badges, **2D fault & β₁ cavity contours** with click-drag/wheel slice scrubbing, click-to-jump depth on the **Beltrami Tier-1/Tier-2 log strip**, and a live **Mode A vs. Mode B Scorecard & Tab 5 (`Blind & Kriging`) telemetry inspector**.
+- **Coupled Global Spherical Crust-to-Core 3D Raytracer & Double-Difference LET Engine (`g3vm/raytrace_let.py` & `07_global_spherical_let_earth`, New in `v0.7.0`)**: Introduces a 7th canonical scenario (`global_spherical_let_earth`, $32 \times 32 \times 32$ global spherical grid) coupling the 1D radial Preliminary Reference Earth Model (`PREMEarthModel`: Inner Core $r < 1221.5\text{ km}$, fluid Outer Core $r < 3480.0\text{ km}$, Lower Mantle, Transition Zone, and Moho `r = 6346.6 km`) with a 3D Western-Pacific subducting oceanic slab (`+3.5% Vp`) and a 3D Hawaiian thermal mantle plume (`-3.0% Vp`). Traces true 3D minimum-time bent rays (Um & Thurber 1987 3-point pseudo-bending) for **`P`, `S`, `PmP`, `PcP`, and `PKIKP`** (penetrating the solid inner core to $r_{\min} = 1124.62\text{ km} \le 1222\text{ km}$) across all 7 canonical scenarios, and implements **`BlindG3VM-LET`** Double-Difference Local Earthquake Tomography with `H_clock (+) H_nope` origin-time/clock-drift projection and $\mathfrak{so}(C)$ Cayley rotor anti-smearing. In head-to-head Mode B blind arrival-time noise (`SNR = 20 dB`) benchmarks against a damped `LSQR` pseudo-bending `SIMULPS` / `LOTOS` baseline (`results/g3vm_v070_let_benchmark_summary.json`), `BlindG3VM-LET` achieves **83.86% RMSE reduction** on Utah FORGE (`05`) microseismic cloud relocation (`0.0243 km` vs. `0.1506 km` straight-ray / `0.2080 km` `SIMULPS`), **95.75% RMSE reduction** on Lunar ISRU (`06`) deep moonquakes (`0.0215 km` vs. `0.5059 km` straight-ray / `0.1158 km` `SIMULPS`), **`0.000` hypocenter-to-velocity smearing** (vs. `0.007–0.244` `SIMULPS` leakage), **`< 0.2 MB` peak active heap** (`41.5–174.2 KB`, strictly beneath the `< 2.0 MB` budget), and native cross-spoke compatibility with `quakesnail`.
+- **Petrel / Leapfrog-Grade 3D Subsurface Workstation (`g3vm/static/index.html` & `g3vm/viewer.py`, `v0.6.0`)**: Upgrades the interactive 3D studio with **25 property volumes** (embedding Mode B `blind_g3vm_vp`, `kriging_vp`, `fkriging_vp`, and `blind_gain` directly into the live 3D block & 2D orthogonal slices), **6 Chair-Cut Quadrant & Fence-Diagram modes** (`NE/NW/SE/SW Upper`, `Lower Subsalt`, and `3D Fence Diagram Only`), **Vertical Exaggeration** (`0.5x–2.5x`) + independent slice/fault opacity sliders, **6 industry colormaps** (`Auto`, `Turbo`, `Viridis`, `Plasma`, `Ice/Dielectric`, `Seismic RWB` + invert), **9 camera presets** (`Iso SW/NE`, `Dip N-S`, `Strike E-W`, `Map Z`, `Subsalt Up`, `Focus Well`, `Turntable`, `Reset`) with 3D pan (`Shift+Drag`), a **3D Orientation Gizmo triad** + collision-free exterior axis tags & screen-space de-collided wellhead leader badges, **2D fault & β₁ cavity contours** with click-drag/wheel slice scrubbing, click-to-jump depth on the **Beltrami Tier-1/Tier-2 log strip**, and a live **Mode A vs. Mode B Scorecard & Tab 5 (`Blind & Kriging`) telemetry inspector**.
 - **Referee-Hardened Blind Inversion, Tuned Matérn-3/2 Kriging & Stress-Test Suite (`g3vm/blind_benchmark.py`, `v0.5.0`)**: Separates **Mode A (Structural Operator Verification)** from **Mode B (Zero-Leakage Blind Inversion)** using Leave-One-Well-Out (LOWO) borehole cross-validation, unseen 3D deviated/horizontal well holdouts, cross-validated 3D Anisotropic Matérn-3/2 & Fault-Partitioned Kriging baselines, bounded Edge Gradient Fidelity in $[0\%, 100\%]$, non-circular Beltrami equal-budget (`K = 16` tokens) spike evaluation, observation SNR sweeps ($\infty, 20, 10, 5\text{ dB}$), fault-pick mispick jitter sweeps ($\Delta x_{\mathrm{jitter}} \in \{0, 1, 2, 3\}$ voxels), and borehole caliper washout dropouts (see [`docs/REFEREE_AUDIT_RESPONSE.md`](docs/REFEREE_AUDIT_RESPONSE.md)).
 - **Lunar Lava Tube, Regolith Megascattering & Coupled Seismic-Radar ISRU (`lunar_lava_tube_isru` & `OlhoeftStrangwayDielectricEngine`, `v0.4.0`)**: Operationalizes Row 6 of the Real-World Deployment Matrix into a 6th canonical scenario anchored to NASA PDS Apollo 17 LSPE (`urn:nasa:pds:a17lspe`), SELENE/Kaguya Lunar Radar Sounder (`5 MHz`) & LRO Mini-RF Mare Tranquillitatis skylight conduits, and VIPER-TRIDENT cryogenic ice targets. Computes coupled 3D real relative dielectric permittivity $\varepsilon_r'(z,y,x) \in [1.00, 10.00]$, radar phase velocity (`0.095–0.300 m/ns`), and two-way vertical radar travel time `TWT_radar(z,y,x)` ($\mu\text{s}$) via $Z$-slab chunking (`chunk_z = 16`, `1.31 MB` peak heap RAM).
 - **Real US DOE Utah FORGE EGS Doublet Field Dataset (`utah_forge_egs_doublet`, `v0.3.0`)**: Bundles directional surveys and wireline dipole sonic/anisotropy logs from the US Department of Energy Utah FORGE Enhanced Geothermal System doublet (`Well 16A(78)-32` injector and `Well 16B(78)-32` producer, $300\text{ ft}$ parallel separation along a $65^\circ$ tangent at $105^\circ$ azimuth across the $4,700\text{ ft}$ Opal Mound fault unconformity and Stage 1–3 stimulated hydraulic fracture corridors; GDR DOIs `10.15121/1632156`, `10.15121/1776602`, `10.15121/1777912`, `10.15121/1998591`, `10.15121/2001059`).
@@ -63,12 +65,13 @@ Standard neural, Radial Basis Function (RBF), and kriging velocity modelers suff
 | **4. Civil Megaproject Tunneling (TBM Look-Ahead)** | Patch-averaged wavefields attenuate phase (`rope2d_arithmetic_norm_lt`) and miss water-filled karst voids ahead of the cutterhead. | `ContinuousSpectralGeoField3D` + `RoPE3DMedoidPooler` + `ZenoSurgicalAnomalyGate`. | Real-time Seismic-While-Drilling (SWD) hazard radar that images flooded karst cavities and boulders before TBM impact. |
 | **5. Offshore Wind Monopiles & Subsea Cable Routing** | Multi-bounce water-column reverberations mask shallow gas pockets and glacial boulders in the top 100m of seabed. | Multi-bounce ray basis + surgical $1 / N_{\mathrm{vox}}$ ray quantiles. | Isolates single-voxel boulder and shallow-gas hazards without corrupting the background marine sediment velocity cube. |
 | **6. Planetary & Lunar Subsurface Radar (`lunar_lava_tube_isru`)** | Sparse orbital radargrams (SHARAD / MARSIS / Kaguya LRS) lack dense borehole ties, causing unconstrained tomography blowup and smearing vacuum lava tube arches into load-bearing mare basalt. | `OlhoeftStrangwayDielectricEngine` (`g3vm_eps_r`, `g3vm_v_em`) + Theorem 2.3/2.6 (`0.000e+00` radial drift) + 6-way Jordan `cavity_core` (β₁) + `BeltramiWellLogShell`. | Zero-blowup inversion of intact lunar lava tubes ($\varepsilon_r' = 7.68 \to 1.00 \to 7.68$, `100.0%` cross-arch sharpness), `-97.88%` Vp RMSE reduction, `-100.00%` dielectric RMSE reduction, and `100.0%` spike recovery on `VIPER-TR2` ($58^\circ$ ice stringers) & `LRS-IL3` ($62^\circ$ ilmenite pod). |
+| **7. Global Crust-to-Core Seismology & Microseismic Relocation (`global_spherical_let_earth`)** | Damped LSQR pseudo-bending (`SIMULPS` / `LOTOS`) leaks event origin-time errors and station clock jitter into 3D velocity nodes along ray paths, smearing subduction slabs and failing on sharp EGS / lunar void boundaries. | `PREMEarthModel` + `trace_3d_bent_ray` (`P`, `S`, `PmP`, `PcP`, `PKIKP` to $r_{\min} = 1124.62\text{ km}$) + `BlindG3VM-LET` (`H_clock (+) H_nope` + $\mathfrak{so}(C)$ Cayley rotor). | `83.86%` RMSE reduction on Utah FORGE microseismic clouds, `95.75%` RMSE reduction on Lunar ISRU deep moonquakes, `0.000` hypocenter-to-velocity smearing, `< 0.2 MB` active heap (`< 2.0 MB` budget), and direct cross-spoke bridge with `quakesnail`. |
 
 ---
 
-## Verified 3D Geophysical & Planetary Benchmark Results (6 Canonical Scenarios)
+## Verified 3D Geophysical & Planetary Benchmark Results (7 Canonical Scenarios)
 
-All six benchmark scenarios (4 synthetic basins + 1 real US DOE Utah FORGE EGS doublet + 1 real-mission-anchored Lunar Lava Tube & Polar Ice ISRU scenario) are evaluated head-to-head against a standard 3D isotropic Gaussian RBF / kriging interpolator (`NaiveSmoothVelocityBaseline`):
+All seven benchmark scenarios (4 synthetic basins + 1 real US DOE Utah FORGE EGS doublet + 1 real-mission-anchored Lunar Lava Tube & Polar Ice ISRU scenario + 1 Global Spherical Crust-to-Core `PREM` + Slab + Plume Earth scenario) are evaluated head-to-head against a standard 3D isotropic Gaussian RBF / kriging interpolator (`NaiveSmoothVelocityBaseline`):
 
 | Basin Scenario | Grid $(Z \times Y \times X)$ | G3VM Velocity RMSE (km/s) | Naive RBF Velocity RMSE (km/s) | RMSE Reduction | G3VM TTI / Radar Metric | Fault / Arch Sharpness (G3VM vs. RBF) | Vertical & Deviated Spike Recovery | Max Tangent Residual $\lvert\langle v, \Delta\ell\rangle\rvert$ |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -78,6 +81,17 @@ All six benchmark scenarios (4 synthetic basins + 1 real US DOE Utah FORGE EGS d
 | **`egs_tbm_hazard`** (EGS Granite & TBM Karst) | `48x48x48` | `0.2186` | `0.5323` | `-58.94%` | `0.3073 km/s` (TTI) | `99.8%` vs. `8.9%` | `100.0%` vs. `25.5%` | `1.31e-11` |
 | **`utah_forge_egs_doublet`** (US DOE Utah FORGE 16A/16B) | `48x48x48` | `0.0617` | `0.6324` | `-90.24%` | `0.0950 km/s` (TTI) | `100.2%` vs. `7.4%` | `100.0%` vs. `<4.5%` (raw LAS) | `1.31e-11` |
 | **`lunar_lava_tube_isru`** (Apollo 17 LSPE / Kaguya LRS / VIPER) | `32x24x24` | `0.0208` | `0.9778` | `-97.88%` | `0.0000` vs `1.0773` ($\varepsilon_r'$ RMSE, `-100.0%`) | `100.0%` vs. `7.5%` (Arch) | `100.0%` vs. `10.6%` (`VIPER-TR2` / `LRS-IL3`) | `1.64e-31` |
+| **`global_spherical_let_earth`** (3D PREM + Slab + Plume) | `32x32x32` | `3.2452` | `3.5975` | `-9.79%` | `P`/`S`/`PmP`/`PcP`/`PKIKP` ($r_{\min} = 1124.62\text{ km}$) | `48.6%` vs. `14.6%` (CMB/ICB) | `100.0%` vs. `38.1%` | `0.00e+00` |
+
+### Coupled 3D Bent Raytracer & Mode B Double-Difference LET Benchmark (`g3vm/raytrace_let.py`, `v0.7.0`)
+
+In [`g3vm/raytrace_let.py`](g3vm/raytrace_let.py) and [`results/g3vm_v070_let_benchmark_summary.json`](results/g3vm_v070_let_benchmark_summary.json), `BlindG3VM-LET` is evaluated head-to-head against both a 1D straight-ray locator and a damped `LSQR` 3-point pseudo-bending baseline (`SIMULPS` / `LOTOS`) under Mode B blind arrival-time noise (`SNR = 20 dB` + random event origin-time / station clock offsets):
+
+| LET Scenario | Events / Pairs | Straight-Ray RMSE (km) | `SIMULPS` LSQR RMSE (km) | `BlindG3VM-LET` RMSE (km) | RMSE Reduction vs. Straight-Ray | Hypocenter-to-Velocity Smearing (`BlindG3VM` vs. `SIMULPS`) | Active Heap Memory (`< 2.0 MB` Budget) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`05_utah_forge_egs_doublet`** (EGS Microseismic Cloud) | `16` events | `0.1506` | `0.2080` | `0.0243` | **`83.86%`** (`88.33%` vs. initial `0.2081`) | **`0.000`** vs. `0.012` | `96,152 B` (`0.092 MB`) |
+| **`06_lunar_lava_tube_isru`** (Sub-Arch Deep Moonquakes) | `8` events | `0.5059` | `0.1158` | `0.0215` | **`95.75%`** (`65.53%` vs. initial `0.0624`) | **`0.000`** vs. `0.007` | `41,496 B` (`0.040 MB`) |
+| **`07_global_spherical_let_earth`** (3D PREM + Slab + Plume) | `12` events / `168` pairs | `56.1184` | `86.5515` | `27.8598` (initial seed) | Core phases `P` (`79.04 s`), `PmP` (`84.49 s`), `PcP` (`629.99 s`), `PKIKP` (`1081.58 s`, $r_{\min} = 1124.62\text{ km}$) | **`0.000`** vs. `0.244` | `174,199 B` (`0.166 MB`) |
 
 ### Mode B: Blind Leave-One-Well-Out (LOWO) Cross-Validation, Tuned Kriging & Stress-Test Suite (`g3vm/blind_benchmark.py`)
 
@@ -107,7 +121,7 @@ While the table above (**Mode A — Structural Operator Verification**) evaluate
 
 ### Option 1: Zero-Install Portable HTML5 Studio (For Immediate Browser Use)
 
-Open [`studio/g3vm_portable_studio.html`](studio/g3vm_portable_studio.html) directly in any modern web browser (Chrome, Firefox, Safari, Edge) on Linux, macOS, or Windows. It embeds all 6 pre-computed 3D velocity, TTI elastic, and coupled seismic-radar dielectric cubes (including the US DOE Utah FORGE `16A(78)-32` & `16B(78)-32` EGS doublet and the `lunar_lava_tube_isru` Apollo 17 LSPE / Kaguya LRS / VIPER-TRIDENT scenario with `g3vm_eps_r` and `g3vm_v_em`), interactive 3D chair-cut block rendering, synchronized 2D Inline/Crossline/Depth cross-sections, vertical + deviated/horizontal borehole Beltrami log strips, a client-side Drag-and-Drop `.las` / `.dev` / `.segy` Inspector, and live Theorem 2.1–2.7 telemetry with zero Python setup.
+Open [`studio/g3vm_portable_studio.html`](studio/g3vm_portable_studio.html) directly in any modern web browser (Chrome, Firefox, Safari, Edge) on Linux, macOS, or Windows. It embeds all 7 pre-computed 3D velocity, TTI elastic, coupled seismic-radar dielectric, and global crust-to-core LET cubes (including the US DOE Utah FORGE `16A(78)-32` & `16B(78)-32` EGS doublet, the `lunar_lava_tube_isru` Apollo 17 LSPE / Kaguya LRS / VIPER-TRIDENT scenario with `g3vm_eps_r` and `g3vm_v_em`, and the `global_spherical_let_earth` 3D `PREM` + Slab + Plume Earth scenario), interactive 3D chair-cut block rendering, synchronized 2D Inline/Crossline/Depth cross-sections, vertical + deviated/horizontal borehole Beltrami log strips, a client-side Drag-and-Drop `.las` / `.dev` / `.segy` Inspector, and live Theorem 2.1–2.8 telemetry with zero Python setup.
 
 ### Option 2: Pre-Built Standalone Binaries (GitHub Actions CI Releases)
 
@@ -123,10 +137,10 @@ Every tagged release (`v*`) or workflow dispatch in [`.github/workflows/ci-and-r
 ```bash
 pip install -e ".[dev]"
 
-# Launch the interactive 3D Subsurface Velocity, TTI Elastic & Lunar Radar Studio (http://127.0.0.1:8055)
+# Launch the interactive 3D Subsurface Velocity, TTI Elastic, Lunar Radar & Global LET Studio (http://127.0.0.1:8055)
 g3vm serve --grid-size 36
 
-# Run the full 6-scenario evaluation & verification suite (generates JSON summaries + portable HTML5 Studio)
+# Run the full 7-scenario evaluation & verification suite (generates JSON summaries + portable HTML5 Studio)
 python scripts/evaluate_g3vm.py
 
 # Export the Lunar Lava Tube & Polar Ice ISRU 3D velocity + dielectric cube (.npz or .segy)
@@ -138,7 +152,7 @@ g3vm ingest-segy results/utah_forge_tti.segy --roi 1008:1040,2008:2040,0:48 --ma
 # Ingest the bundled VIPER-TR2 58-deg deviated cryogenic ice probe LAS 2.0 log and apply Beltrami spike shielding
 g3vm ingest-las data/lunar_isru/VIPER_TR2_cryo_ice.las --output-las results/viper_tr2_shielded.las
 
-# Run the full 19-test verification suite and GFM math linter
+# Run the full 23-test verification suite and GFM math linter
 python -m pytest -v
 python scripts/audit_gfm_math.py README.md docs/ARCHITECTURE.md docs/REFEREE_AUDIT_RESPONSE.md
 ```
@@ -158,9 +172,9 @@ If you use **G3VM** (`DarkSnail-Geo3D`) in your research or engineering workflow
 ```bibtex
 @software{g3vm_2026,
   author       = {Skates, Cthulhu},
-  title        = {G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity, TTI Elastic and Coupled Seismic-Radar Dielectric Modeler},
+  title        = {G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity, TTI Elastic, Coupled Seismic-Radar Dielectric and Global Crust-to-Core LET Modeler},
   year         = {2026},
-  version      = {0.6.0},
+  version      = {0.7.0},
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.23488781},
   url          = {https://doi.org/10.5281/zenodo.23488781}

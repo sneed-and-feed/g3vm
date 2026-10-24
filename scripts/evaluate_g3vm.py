@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """
-scripts/evaluate_g3vm.py — Full 6-Scenario Benchmark & Verification Suite for G3VM v0.6.0.
+scripts/evaluate_g3vm.py — Full 7-Scenario Benchmark & Verification Suite for G3VM v0.7.0.
 
-Evaluates Scenarios 01-06:
+Evaluates Scenarios 01-07:
   01: subsalt_graben          (Marmousi2 / Gulf of Mexico Subsalt Graben & Louann Diapir)
   02: thrust_anticline        (SEG/EAGE 3D Overthrust Duplex & Sub-Thrust Reef)
   03: unconformity_trap       (4D CCS / H2 Sub-Unconformity Fault Trap & Salt Cavern)
   04: egs_tbm_hazard          (Superhot EGS Granite & TBM Karst Look-Ahead)
   05: utah_forge_egs_doublet  (US DOE Utah FORGE 16A(78)-32 & 16B(78)-32 EGS Doublet)
   06: lunar_lava_tube_isru    (Lunar Lava Tube, Regolith Megascattering & Polar Ice ISRU)
+  07: global_spherical_let_earth (Global Spherical Earth PREM + 3D Slab & Plume LET)
 
 Generates:
   - results/g3vm_evaluation_summary.json
   - results/g3vm_benchmark_summary.json
+  - results/g3vm_referee_audit_summary.json
+  - results/g3vm_v070_let_benchmark_summary.json
   - studio/g3vm_portable_studio.html
 """
 
@@ -32,8 +35,11 @@ from g3vm import (
     SCENARIO_Descriptions,
     evaluate_scenario_comparison,
     export_portable_html_studio,
+    relocate_lunar_isru_moonquakes,
+    relocate_utah_forge_microseismic,
     render_leapfrog_showcase_figure,
     render_well_log_beltrami_figure,
+    run_global_spherical_let_benchmark,
     run_referee_audit_suite,
 )
 
@@ -43,15 +49,16 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     summary = {
-        "engine": "G3VM (DarkSnail-Geo3D) v0.6.0",
+        "engine": "G3VM (DarkSnail-Geo3D) v0.7.0",
         "grid_shape": [48, 48, 48],
         "lunar_grid_shape": [32, 24, 24],
+        "spherical_grid_shape": [32, 32, 32],
         "scenarios": {},
     }
 
     print("=" * 120)
     print(
-        "G3VM (DarkSnail-Geo3D) v0.6.0 — 6-Scenario 3D Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Evaluation"
+        "G3VM (DarkSnail-Geo3D) v0.7.0 — 7-Scenario 3D Velocity, TTI Elastic, Lunar Radar & Spherical LET Evaluation"
     )
     print("=" * 120)
     header = (
@@ -64,8 +71,13 @@ def main() -> int:
     peak_ram_lunar_mb = 0.0
 
     for scen_name in SCENARIO_Descriptions:
+        if scen_name == "lunar_lava_tube_isru":
+            grid_shape = (32, 24, 24)
+        elif scen_name == "global_spherical_let_earth":
+            grid_shape = (32, 32, 32)
+        else:
+            grid_shape = (48, 48, 48)
         is_lunar = scen_name == "lunar_lava_tube_isru"
-        grid_shape = (32, 24, 24) if is_lunar else (48, 48, 48)
 
         gc.collect()
         tracemalloc.start()
@@ -153,7 +165,43 @@ def main() -> int:
     print(
         f"[Mode B Peak Heap RAM] {audit_res['peak_heap_mb']:.2f} MB (< 35.0 MB limit)"
     )
+    print("\n" + "=" * 120)
+    print("DOUBLE-DIFFERENCE LOCAL EARTHQUAKE TOMOGRAPHY (BlindG3VM-LET vs SIMULPS BASELINE)")
     print("=" * 120)
+
+    forge_let = relocate_utah_forge_microseismic(num_events=16)
+    print(
+        f"[Scenario 05: Utah FORGE LET] Initial RMSE: {forge_let['initial_rmse_km']:.4f} km -> Relocated RMSE: {forge_let['blind_g3vm_let_rmse_km']:.4f} km | "
+        f"Reduction over Straight: {forge_let['rmse_reduction_over_straight_pct']:.2f}% (>= 35% req) | Active Heap: {forge_let['blind_g3vm_heap_bytes'] / 1024:.1f} KB (< 2.0 MB)"
+    )
+    assert forge_let["rmse_reduction_over_straight_pct"] >= 35.0, f"Expected >=35% RMSE reduction in Utah FORGE, got {forge_let['rmse_reduction_over_straight_pct']:.2f}%"
+    assert forge_let["blind_g3vm_heap_bytes"] < 2_000_000, f"Expected heap < 2.0 MB, got {forge_let['blind_g3vm_heap_bytes']} bytes"
+
+    lunar_let = relocate_lunar_isru_moonquakes(num_events=8)
+    print(
+        f"[Scenario 06: Lunar ISRU LET] Initial RMSE: {lunar_let['initial_rmse_km']:.4f} km -> Relocated RMSE: {lunar_let['blind_g3vm_let_rmse_km']:.4f} km | "
+        f"Reduction over Straight: {lunar_let['rmse_reduction_over_straight_pct']:.2f}% (>= 35% req) | Active Heap: {lunar_let['blind_g3vm_heap_bytes'] / 1024:.1f} KB (< 2.0 MB)"
+    )
+    assert lunar_let["rmse_reduction_over_straight_pct"] >= 35.0, f"Expected >=35% RMSE reduction in Lunar ISRU, got {lunar_let['rmse_reduction_over_straight_pct']:.2f}%"
+    assert lunar_let["blind_g3vm_heap_bytes"] < 2_000_000, f"Expected heap < 2.0 MB, got {lunar_let['blind_g3vm_heap_bytes']} bytes"
+
+    spherical_let = run_global_spherical_let_benchmark()
+    print(
+        f"[Scenario 07: Global Spherical LET] BlindG3VM-LET Smearing: {spherical_let['blind_g3vm_smearing']:.4f} vs "
+        f"SIMULPS Smearing: {spherical_let['simulps_smearing']:.4f} | Heap: {spherical_let['blind_g3vm_heap_bytes'] / 1024:.1f} KB (< 2.0 MB)"
+    )
+    assert spherical_let["blind_g3vm_smearing"] < spherical_let["simulps_smearing"]
+    assert spherical_let["blind_g3vm_heap_bytes"] < 2_000_000
+    assert len(spherical_let["sample_phases"]) >= 4
+
+    let_summary = {
+        "engine": "G3VM (DarkSnail-Geo3D) v0.7.0",
+        "utah_forge_egs_doublet": forge_let,
+        "lunar_lava_tube_isru": lunar_let,
+        "global_spherical_let_earth": spherical_let,
+    }
+    let_json_path = out_dir / "g3vm_v070_let_benchmark_summary.json"
+    let_json_path.write_text(json.dumps(let_summary, indent=2), encoding="utf-8")
 
     eval_json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     bench_json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -167,6 +215,7 @@ def main() -> int:
     print(f"[+] Saved evaluation summary : {eval_json_path}")
     print(f"[+] Saved benchmark summary  : {bench_json_path}")
     print(f"[+] Saved referee audit JSON : {audit_json_path}")
+    print(f"[+] Saved LET summary JSON   : {let_json_path}")
     print(f"[+] Saved portable 3D studio : {html_path}")
     print(f"[+] Saved Mode B showcase    : {showcase_png}")
     print(f"[+] Saved Beltrami well logs : {beltrami_png}")

@@ -64,6 +64,17 @@ LUNAR_LITHOLOGY_CATALOG: tuple[dict[str, Any], ...] = (
     {"id": 7, "name": "Sub-Mare Olivine Gabbro Basement", "vp_kms": 5.15, "eps_r": 8.32, "v_em_m_ns": 0.1039, "color": "#6366f1"},
 )
 
+GLOBAL_SPHERICAL_LITHOLOGY_CATALOG: tuple[dict[str, Any], ...] = (
+    {"id": 0, "name": "Crust (Continental / Oceanic)", "vp_kms": 5.80, "color": "#3d85c6"},
+    {"id": 1, "name": "Lithospheric Upper Mantle", "vp_kms": 8.08, "color": "#6aa84f"},
+    {"id": 2, "name": "Transition Zone (410-660 km)", "vp_kms": 9.50, "color": "#f1c232"},
+    {"id": 3, "name": "Lower Mantle (Perovskite/Bridgmanite)", "vp_kms": 12.00, "color": "#cc4125"},
+    {"id": 4, "name": "D'' Boundary Layer (CMB)", "vp_kms": 13.68, "color": "#8e7cc3"},
+    {"id": 5, "name": "Liquid Outer Core (K)", "vp_kms": 8.06, "color": "#e06666"},
+    {"id": 6, "name": "Solid Inner Core (PKIKP)", "vp_kms": 11.26, "color": "#5b2c6f"},
+    {"id": 7, "name": "Subducting Slab / Hawaiian Plume (+/-3.5%)", "vp_kms": 12.42, "color": "#00f5d4"},
+)
+
 SCENARIO_LITHOLOGY_CATALOGS: dict[str, list[dict[str, Any]]] = {
     "subsalt_graben": [dict(item) for item in LITHOLOGY_CATALOG],
     "thrust_anticline": [
@@ -107,6 +118,7 @@ SCENARIO_LITHOLOGY_CATALOGS: dict[str, list[dict[str, Any]]] = {
         {"id": 7, "name": "Deep Crystalline Monzogranite / Gneiss", "vp_kms": 6.35, "color": "#5b2c6f"},
     ],
     "lunar_lava_tube_isru": [dict(item) for item in LUNAR_LITHOLOGY_CATALOG],
+    "global_spherical_let_earth": [dict(item) for item in GLOBAL_SPHERICAL_LITHOLOGY_CATALOG],
 }
 
 FAULT_MODE_NAMES: tuple[str, ...] = (
@@ -172,6 +184,11 @@ SCENARIO_ALIASES: dict[str, str] = {
     "lunar_lava_tube": "lunar_lava_tube_isru",
     "apollo17_lspe_kaguya": "lunar_lava_tube_isru",
     "lunar_isru": "lunar_lava_tube_isru",
+    "07_global_spherical_let_earth": "global_spherical_let_earth",
+    "global_spherical_let_earth": "global_spherical_let_earth",
+    "spherical_earth": "global_spherical_let_earth",
+    "prem_slab_plume": "global_spherical_let_earth",
+    "global_spherical": "global_spherical_let_earth",
 }
 
 SCENARIO_Descriptions: dict[str, dict[str, str]] = {
@@ -231,6 +248,16 @@ SCENARIO_Descriptions: dict[str, dict[str, str]] = {
             "Mare basalt roof arch (eps_r = 7.68) displaced by the 38 deg Lee-Lincoln lobate thrust fault scarp "
             "(30 m throw), with sub-pit cryogenic water-ice stringers (Vp = 3.85 km/s, eps_r = 3.15) and a basal "
             "high-Ti ilmenite (FeTiO3) cumulate pod (Vp = 5.48 km/s, eps_r = 9.85) tied by LSPE-GT1, VIPER-TR2, and LRS-IL3."
+        ),
+    },
+    "global_spherical_let_earth": {
+        "title": "Global Spherical Earth PREM + 3D Slab & Thermal Plume LET",
+        "region": "Global Earth Mantle & Core (PREM / Western Pacific Slab / Hawaiian Plume)",
+        "summary": (
+            "1D radial Preliminary Reference Earth Model (PREM polynomial velocity & density) "
+            "coupled with a 3D western-Pacific fast subducting slab (+3.5% Vp) and a 3D Hawaiian "
+            "slow thermal mantle plume (-3.0% Vp), imaged with 3D pseudo-bending raytracing and "
+            "DarkSnail Double-Difference Local Earthquake Tomography (BlindG3VM-LET)."
         ),
     },
 }
@@ -780,6 +807,348 @@ def build_lunar_lava_tube_isru_scenario(
     }
 
 
+def build_global_spherical_let_earth_scenario(
+    grid_shape: tuple[int, int, int] = (32, 32, 32),
+    device: str | torch.device = "cpu",
+) -> dict[str, Any]:
+    """
+    Construct Scenario 07 (`global_spherical_let_earth`) on a 3D grid with 1D radial PREM,
+    3D western-Pacific subducting slab (+3.5% Vp), and Hawaiian thermal mantle plume (-3.0% Vp).
+    """
+    from .raytrace_let import PREMEarthModel
+
+    dev = torch.device(device)
+    Z, Y, X = (int(grid_shape[0]), int(grid_shape[1]), int(grid_shape[2]))
+    C = len(GLOBAL_SPHERICAL_LITHOLOGY_CATALOG)
+    M_fault = len(FAULT_MODE_NAMES)
+
+    earth_model = PREMEarthModel(enable_3d_perturbations=True)
+
+    # 3D Cartesian coordinates spanning [-6371.0, 6371.0] km in X, Y, Z
+    x_km = np.linspace(-6371.0, 6371.0, X, dtype=np.float32)
+    y_km = np.linspace(-6371.0, 6371.0, Y, dtype=np.float32)
+    z_km = np.linspace(-6371.0, 6371.0, Z, dtype=np.float32)
+    zz_np, yy_np, xx_np = np.meshgrid(z_km, y_km, x_km, indexing="ij")
+    rr_np = np.sqrt(xx_np**2 + yy_np**2 + zz_np**2)
+
+    vp_np = np.zeros((Z, Y, X), dtype=np.float32)
+    vs_np = np.zeros((Z, Y, X), dtype=np.float32)
+    rho_np = np.zeros((Z, Y, X), dtype=np.float32)
+    litho_np = np.zeros((Z, Y, X), dtype=np.int64)
+
+    in_earth = rr_np <= 6371.0
+    r_norm = rr_np / 6371.0
+
+    # Inner Core (r < 1221.5 km)
+    ic = in_earth & (rr_np < 1221.5)
+    vp_np[ic] = 11.2622 - 6.3640 * (r_norm[ic] ** 2)
+    vs_np[ic] = 3.6678 - 4.4475 * (r_norm[ic] ** 2)
+    rho_np[ic] = 13.0885 - 8.8381 * (r_norm[ic] ** 2)
+    litho_np[ic] = 6
+
+    # Outer Core (1221.5 <= r < 3480 km)
+    oc = in_earth & (rr_np >= 1221.5) & (rr_np < 3480.0)
+    vp_np[oc] = 11.0487 - 4.0362 * r_norm[oc] - 1.2802 * (r_norm[oc] ** 2) - 1.3559 * (r_norm[oc] ** 3)
+    vs_np[oc] = 0.0
+    rho_np[oc] = 12.5815 - 1.2638 * r_norm[oc] - 3.6426 * (r_norm[oc] ** 2) - 5.5281 * (r_norm[oc] ** 3)
+    litho_np[oc] = 5
+
+    # D'' layer (3480 <= r < 3600 km)
+    dpp = in_earth & (rr_np >= 3480.0) & (rr_np < 3600.0)
+    vp_np[dpp] = 13.68
+    vs_np[dpp] = 7.20
+    rho_np[dpp] = 5.56
+    litho_np[dpp] = 4
+
+    # Lower Mantle (3600 <= r < 5701 km)
+    lm = in_earth & (rr_np >= 3600.0) & (rr_np < 5701.0)
+    vp_np[lm] = 15.3891 - 5.3181 * r_norm[lm] + 5.5242 * (r_norm[lm] ** 2) - 2.5514 * (r_norm[lm] ** 3)
+    vs_np[lm] = 6.9254 + 1.4672 * r_norm[lm] - 2.0834 * (r_norm[lm] ** 2) + 0.9783 * (r_norm[lm] ** 3)
+    rho_np[lm] = 7.9565 - 6.4761 * r_norm[lm] + 5.5283 * (r_norm[lm] ** 2) - 3.0807 * (r_norm[lm] ** 3)
+    litho_np[lm] = 3
+
+    # Transition Zone (5701 <= r < 5971 km)
+    tz = in_earth & (rr_np >= 5701.0) & (rr_np < 5971.0)
+    vp_np[tz] = 8.7854 - 0.7495 * r_norm[tz]
+    vs_np[tz] = 4.7561 - 0.3370 * r_norm[tz]
+    rho_np[tz] = 3.99 + 0.25 * r_norm[tz]
+    litho_np[tz] = 2
+
+    # Lithospheric Upper Mantle (5971 <= r < 6346.6 km)
+    um = in_earth & (rr_np >= 5971.0) & (rr_np < 6346.6)
+    vp_np[um] = 8.08
+    vs_np[um] = 4.47
+    rho_np[um] = 3.38
+    litho_np[um] = 1
+
+    # Crust (6346.6 <= r <= 6371 km)
+    cr = in_earth & (rr_np >= 6346.6)
+    vp_np[cr] = 5.80
+    vs_np[cr] = 3.20
+    rho_np[cr] = 2.60
+    litho_np[cr] = 0
+
+    # 3D Perturbations: Slab & Plume
+    lat_deg = np.degrees(np.arcsin(np.clip(zz_np / np.maximum(rr_np, 1e-6), -1.0, 1.0)))
+    lon_deg = np.degrees(np.arctan2(yy_np, xx_np))
+    slab_mask = (
+        (rr_np >= 5671.0)
+        & (rr_np <= 6321.0)
+        & (lat_deg >= 10.0)
+        & (lat_deg <= 45.0)
+        & (lon_deg >= 130.0)
+        & (lon_deg <= 150.0)
+    )
+    vp_np[slab_mask] *= 1.035
+    vs_np[slab_mask] *= 1.025
+    litho_np[slab_mask] = 7
+
+    plume_mask = (
+        (rr_np >= 3480.0)
+        & (rr_np <= 6171.0)
+        & (lat_deg >= 15.0)
+        & (lat_deg <= 25.0)
+        & (lon_deg >= -160.0)
+        & (lon_deg <= -150.0)
+    )
+    vp_np[plume_mask] *= 0.970
+    vs_np[plume_mask] *= 0.960
+    litho_np[plume_mask] = 7
+
+    # Ensure background minimum velocity outside Earth for stability
+    vp_np[~in_earth] = 1.50
+    vs_np[~in_earth] = 0.80
+    rho_np[~in_earth] = 1.00
+
+    true_vp_cube = torch.from_numpy(vp_np).to(dev)
+    true_vs_cube = torch.from_numpy(vs_np).to(dev)
+    true_rho_cube = torch.from_numpy(rho_np).to(dev)
+    true_litho = torch.from_numpy(litho_np).to(dev)
+
+    core_mask = torch.from_numpy((rr_np < 3480.0) & in_earth).to(dev)
+    core_shell = torch.from_numpy((rr_np >= 3350.0) & (rr_np <= 3600.0)).float().to(dev)
+    core_cavity_info = ContinuousSpectralGeoField3D.extract_3d_jordan_cavity_masks(core_shell)
+
+    tti_gt_engine = ThomsenTTIElasticModulusEngine(num_lithologies=C).to(dev)
+    with torch.no_grad():
+        true_probs_bcz = (
+            F.one_hot(true_litho.long(), num_classes=C)
+            .float()
+            .permute(3, 0, 1, 2)
+            .unsqueeze(0)
+        )
+        true_tti_bundle = tti_gt_engine(
+            probs_post=true_probs_bcz,
+            vp_isotropic_kms=true_vp_cube.unsqueeze(0),
+            cavity_core=core_cavity_info["cavity_core"].unsqueeze(0).unsqueeze(0),
+        )
+
+    N_vox = Z * Y * X
+    basis_cols = []
+    zn = torch.linspace(0.0, 1.0, Z, device=dev).view(-1, 1, 1).expand(Z, Y, X)
+    yn = torch.linspace(0.0, 1.0, Y, device=dev).view(1, -1, 1).expand(Z, Y, X)
+    xn = torch.linspace(0.0, 1.0, X, device=dev).view(1, 1, -1).expand(Z, Y, X)
+    for kz in (1, 2, 3):
+        for ky in (0, 1):
+            for kx in (1, 2):
+                mode_3d = (
+                    torch.cos(math.pi * kz * zn)
+                    * torch.cos(math.pi * ky * yn)
+                    * torch.cos(math.pi * kx * xn)
+                )
+                basis_cols.append(mode_3d.reshape(N_vox))
+    D_jacobian = torch.stack(basis_cols, dim=-1)
+
+    precision_3d = torch.where(
+        torch.from_numpy(in_earth).to(dev),
+        torch.full((Z, Y, X), 1.0, device=dev),
+        torch.full((Z, Y, X), 0.05, device=dev),
+    )
+    residual_vp_3d = (true_vp_cube - true_vp_cube.mean()) * 0.05
+
+    station_specs = [
+        ("GEOFON-POT (Potsdam, Europe)", int(0.18 * Y), int(0.52 * X)),
+        ("IRIS-HVO (Hawaiian Volcano Obs)", int(0.44 * Y), int(0.12 * X)),
+        ("F-NET-TYO (Tokyo, West Pacific)", int(0.35 * Y), int(0.88 * X)),
+        ("GEOSCOPE-PAF (Port-aux-Francais)", int(0.78 * Y), int(0.70 * X)),
+        ("USGS-ALQ (Albuquerque, USA)", int(0.32 * Y), int(0.28 * X)),
+        ("SANAE-SNA (Antarctica)", int(0.88 * Y), int(0.48 * X)),
+    ]
+
+    well_shell = BeltramiWellLogShell(
+        outlier_budget=max(6, Z // 6),
+        condensed_budget=max(6, Z // 6),
+    ).to(dev)
+
+    wells_data = []
+    for w_idx, (w_name, wy, wx) in enumerate(station_specs):
+        wy_c = max(0, min(Y - 1, wy))
+        wx_c = max(0, min(X - 1, wx))
+        trace = true_vp_cube[:, wy_c, wx_c].clone()
+        s1 = min(Z - 3, max(2, int((0.15 + 0.05 * w_idx) * Z)))
+        s2 = min(Z - 3, max(4, int((0.55 - 0.04 * w_idx) * Z)))
+        trace[s1] = 8.10
+        trace[s2] = 12.20
+        beltrami_res = well_shell(trace)
+        md_vert = np.linspace(0.0, 6371.0, Z, dtype=np.float64)
+        traj_vert = solve_minimum_curvature_trajectory(
+            md_m=md_vert,
+            inc_deg=np.zeros(Z, dtype=np.float64),
+            azi_deg=np.zeros(Z, dtype=np.float64),
+            surface_yx_vox=(float(wy_c), float(wx_c)),
+            grid_shape=(Z, Y, X),
+            well_name=w_name,
+            well_type="vertical",
+        )
+        wells_data.append(
+            {
+                "name": w_name,
+                "well_type": "vertical",
+                "y": wy_c,
+                "x": wx_c,
+                "stringer_depths": [s1, s2],
+                "true_vp_trace": trace,
+                "beltrami": beltrami_res,
+                "trajectory": traj_vert,
+            }
+        )
+
+    md_kola = np.linspace(0.0, 12262.0, Z, dtype=np.float64)
+    traj_kola = solve_minimum_curvature_trajectory(
+        md_m=md_kola,
+        inc_deg=np.linspace(0.0, 15.0, Z, dtype=np.float64),
+        azi_deg=np.full(Z, 45.0, dtype=np.float64),
+        surface_yx_vox=(float(int(0.20 * Y)), float(int(0.55 * X))),
+        grid_shape=(Z, Y, X),
+        well_name="KOLA-SG3 (Kola Superdeep 12.2km)",
+        well_type="deviated_superdeep",
+    )
+    trace_kola = true_vp_cube[:, int(0.20 * Y), int(0.55 * X)].clone()
+    trace_kola[min(Z - 2, int(0.25 * Z))] = 6.80
+    beltrami_kola = well_shell(trace_kola)
+
+    md_safod = np.linspace(0.0, 3990.0, Z, dtype=np.float64)
+    traj_safod = solve_minimum_curvature_trajectory(
+        md_m=md_safod,
+        inc_deg=np.linspace(0.0, 60.0, Z, dtype=np.float64),
+        azi_deg=np.full(Z, 210.0, dtype=np.float64),
+        surface_yx_vox=(float(int(0.35 * Y)), float(int(0.25 * X))),
+        grid_shape=(Z, Y, X),
+        well_name="SAFOD-MAIN (San Andreas Fault Observatory at Depth)",
+        well_type="deviated_fault_zone",
+    )
+    trace_safod = true_vp_cube[:, int(0.35 * Y), int(0.25 * X)].clone()
+    trace_safod[min(Z - 2, int(0.40 * Z))] = 4.90
+    beltrami_safod = well_shell(trace_safod)
+
+    deviated_wells_data = [
+        {
+            "name": "KOLA-SG3 (Kola Superdeep 12.2km)",
+            "well_type": "deviated_superdeep",
+            "y": int(round(traj_kola.y_vox[0])),
+            "x": int(round(traj_kola.x_vox[0])),
+            "stringer_depths": [min(Z - 2, int(0.25 * Z))],
+            "true_vp_trace": trace_kola,
+            "beltrami": beltrami_kola,
+            "trajectory": traj_kola,
+        },
+        {
+            "name": "SAFOD-MAIN (San Andreas Fault Observatory at Depth)",
+            "well_type": "deviated_fault_zone",
+            "y": int(round(traj_safod.y_vox[0])),
+            "x": int(round(traj_safod.x_vox[0])),
+            "stringer_depths": [min(Z - 2, int(0.40 * Z))],
+            "true_vp_trace": trace_safod,
+            "beltrami": beltrami_safod,
+            "trajectory": traj_safod,
+        },
+    ]
+
+    monitor_tick1 = true_vp_cube.clone()
+    monitor_tick2 = true_vp_cube.clone()
+    core_flow_pert = 0.08 * torch.sin(math.pi * yn) * torch.cos(math.pi * xn)
+    monitor_tick1 = torch.where(core_mask, monitor_tick1 + core_flow_pert, monitor_tick1)
+    monitor_tick2 = torch.where(core_mask, monitor_tick2 - core_flow_pert, monitor_tick2)
+
+    ell_sym_3d = torch.full((Z, Y, X, C), -3.5, dtype=torch.float32, device=dev)
+    ell_sym_3d.scatter_(-1, true_litho.unsqueeze(-1), torch.full((Z, Y, X, 1), 2.2, device=dev))
+    u_fault_3d = torch.zeros((Z, Y, X, M_fault), dtype=torch.float32, device=dev)
+    u_fault_3d[:, :, :, 2] = torch.where(torch.from_numpy(slab_mask).to(dev), 1.6, 0.0)
+    u_fault_3d[:, :, :, 4] = torch.where(core_mask, 1.8, 0.0)
+    u_fault_3d[:, :, :, 5] = torch.where(torch.from_numpy(plume_mask).to(dev), 1.7, 0.0)
+
+    fault_pairs = [
+        (2, 7, 3, 6.5),
+        (4, 5, 4, 7.0),
+        (5, 7, 3, 6.0),
+    ]
+
+    fault_planes_meta = [
+        {
+            "name": "Wadati-Benioff Subduction Megathrust (Western Pacific Slab)",
+            "mode": 2,
+            "x_top": 0.35,
+            "x_bot": 0.55,
+            "color": "#00f5d4",
+        },
+        {
+            "name": "Core-Mantle Boundary (CMB / D'' Layer)",
+            "mode": 4,
+            "r_km": 3480.0,
+            "color": "#8e7cc3",
+        },
+        {
+            "name": "Hawaiian Thermal Plume Upwelling Conduit",
+            "mode": 5,
+            "x_top": 0.15,
+            "x_bot": 0.25,
+            "color": "#e06666",
+        },
+    ]
+
+    fault_boundary_mask = torch.from_numpy(slab_mask | plume_mask).to(dev) | core_mask
+    arch_boundary_mask = core_mask
+
+    return {
+        "scenario_name": "global_spherical_let_earth",
+        "meta": SCENARIO_Descriptions["global_spherical_let_earth"],
+        "lithology_catalog": list(SCENARIO_LITHOLOGY_CATALOGS["global_spherical_let_earth"]),
+        "grid_shape": (Z, Y, X),
+        "basin_extents_zyx_m": (12742000.0, 12742000.0, 12742000.0),
+        "true_vp_cube": true_vp_cube,
+        "true_vs_cube": true_vs_cube,
+        "true_rho_cube": true_rho_cube,
+        "true_vp_tti_cube": true_tti_bundle.vp_tti_kms.squeeze(0),
+        "true_epsilon_cube": true_tti_bundle.epsilon.squeeze(0),
+        "true_delta_cube": true_tti_bundle.delta.squeeze(0),
+        "true_gamma_cube": true_tti_bundle.gamma.squeeze(0),
+        "true_dip_deg_cube": true_tti_bundle.dip_deg.squeeze(0),
+        "true_eps_r_cube": torch.full((Z, Y, X), 4.5, device=dev),
+        "truth_eps_r": torch.full((Z, Y, X), 4.5, device=dev),
+        "true_v_em_cube": torch.full((Z, Y, X), 0.14, device=dev),
+        "truth_v_em": torch.full((Z, Y, X), 0.14, device=dev),
+        "true_twt_radar_us_cube": torch.zeros((Z, Y, X), device=dev),
+        "true_litho_cube": true_litho,
+        "ell_sym_3d": ell_sym_3d,
+        "u_fault_3d": u_fault_3d,
+        "fault_pairs": fault_pairs,
+        "fault_planes_meta": fault_planes_meta,
+        "fault_boundary_mask": fault_boundary_mask,
+        "arch_boundary_mask": arch_boundary_mask,
+        "salt_shell_3d": core_shell,
+        "salt_cavity_info": core_cavity_info,
+        "D_jacobian": D_jacobian,
+        "residual_vp": residual_vp_3d.reshape(N_vox, 1),
+        "precision_pi": precision_3d.reshape(N_vox, 1),
+        "precision_3d": precision_3d,
+        "wells": wells_data,
+        "deviated_wells": deviated_wells_data,
+        "timelapse_monitors": [monitor_tick1, monitor_tick2],
+        "true_plume_mask": torch.from_numpy(plume_mask).to(dev),
+        "earth_model": earth_model,
+    }
+
+
 def build_geological_scenario(
     scenario_name: str = "subsalt_graben",
     grid_shape: tuple[int, int, int] = (48, 48, 48),
@@ -796,6 +1165,8 @@ def build_geological_scenario(
             else (int(grid_shape[0]), int(grid_shape[1]), int(grid_shape[2]))
         )
         return build_lunar_lava_tube_isru_scenario(grid_shape=lunar_grid, device=device)
+    if scenario_name == "global_spherical_let_earth":
+        return build_global_spherical_let_earth_scenario(grid_shape=grid_shape, device=device)
 
     dev = torch.device(device)
     Z, Y, X = (int(grid_shape[0]), int(grid_shape[1]), int(grid_shape[2]))
@@ -1502,8 +1873,8 @@ def evaluate_scenario_comparison(
         scenario_name=canonical_name, grid_shape=grid_shape, device=device
     )
     Z, Y, X = scen["grid_shape"]
+    active_catalog = SCENARIO_LITHOLOGY_CATALOGS.get(canonical_name, LITHOLOGY_CATALOG)
     is_lunar = canonical_name == "lunar_lava_tube_isru"
-    active_catalog = LUNAR_LITHOLOGY_CATALOG if is_lunar else LITHOLOGY_CATALOG
 
     model = DarkSnailGeo3DVelocityModeler(
         grid_shape=(Z, Y, X),

@@ -1,6 +1,6 @@
 """
 g3vm.studio: Interactive 3D WebGL/Canvas Geological Workstation, Portable HTML5 Studio Bundler,
-and Publication Showcase Renderer (`v0.6.0`).
+and Publication Showcase Renderer (`v0.7.0`).
 
 Provides Scenario 06 (`lunar_lava_tube_isru`) preset routing, Mode B Blind LOWO & Tuned Matérn-3/2 Kriging
 3D property cubes (`blind_g3vm_vp`, `kriging_vp`, `fkriging_vp`, `blind_gain`), 6-quadrant 3D chair-cut &
