@@ -171,7 +171,7 @@ If you use **G3VM** (`DarkSnail-Geo3D`) in your research or engineering workflow
 
 ```bibtex
 @software{g3vm_2026,
-  author       = {Skates, Cthulhu},
+  author       = {Cohen, Noah},
   title        = {G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity, TTI Elastic, Coupled Seismic-Radar Dielectric and Global Crust-to-Core LET Modeler},
   year         = {2026},
   version      = {0.7.0},

@@ -3,8 +3,8 @@ title: "G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity & TTI Elas
 message: "If you use this software, please cite it using the metadata from this file."
 type: software
 authors:
-  - family-names: Skates
-    given-names: Cthulhu
+  - family-names: "Cohen"
+    given-names: "Noah"
 version: 0.7.0
 doi: 10.5281/zenodo.23488781
 date-released: 2026-10-21

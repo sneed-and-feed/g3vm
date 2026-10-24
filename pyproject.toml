@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "g3vm"
 version = "0.7.0"
 description = "G3VM (DarkSnail-Geo3D): 3D Beltrami-Triad Geological Velocity, TTI Elastic & Coupled Seismic-Radar Dielectric Modeler with Interactive Petrel/Leapfrog-Grade 3D Workstation, Out-of-Core SEG-Y Memmap Streaming, Z-Slab Spectral Chunking, so(6) Stiffness Rotors, US DOE Utah FORGE EGS Doublet, Lunar Lava Tube ISRU, and Mode B Blind LOWO Kriging Benchmark"
+authors = [{ name = "Noah Cohen" }]
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
