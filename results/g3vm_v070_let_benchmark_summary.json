@@ -1,5 +1,6 @@
 {
   "engine": "G3VM (DarkSnail-Geo3D) v0.7.0",
+  "timestamp_utc": "2026-10-25T21:40:58Z",
   "utah_forge_egs_doublet": {
     "scenario": "05_utah_forge_egs_doublet",
     "num_events": 16,
@@ -9,7 +10,7 @@
     "blind_g3vm_let_rmse_km": 0.0243,
     "rmse_reduction_over_initial_pct": 88.33,
     "rmse_reduction_over_straight_pct": 83.86,
-    "blind_g3vm_heap_bytes": 96152,
+    "blind_g3vm_heap_bytes": 97120,
     "blind_g3vm_smearing": 0.0,
     "simulps_smearing": 0.012
   },
@@ -22,7 +23,7 @@
     "blind_g3vm_let_rmse_km": 0.0215,
     "rmse_reduction_over_initial_pct": 65.53,
     "rmse_reduction_over_straight_pct": 95.75,
-    "blind_g3vm_heap_bytes": 41496,
+    "blind_g3vm_heap_bytes": 42672,
     "blind_g3vm_smearing": 0.0,
     "simulps_smearing": 0.007
   },
@@ -37,7 +38,7 @@
     "blind_g3vm_let_rmse_km": 164.6905,
     "rmse_reduction_over_initial_pct": 0.0,
     "rmse_reduction_over_straight_pct": -193.47,
-    "blind_g3vm_heap_bytes": 174199,
+    "blind_g3vm_heap_bytes": 77911,
     "blind_g3vm_smearing": 0.0,
     "simulps_smearing": 0.244,
     "sample_phases": {

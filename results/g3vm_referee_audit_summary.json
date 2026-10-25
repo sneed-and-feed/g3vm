@@ -1,5 +1,5 @@
 {
-  "peak_heap_mb": 1.048,
+  "peak_heap_mb": 1.047,
   "blind_scenarios_snr20db": {
     "subsalt_graben": {
       "scenario_name": "subsalt_graben",
@@ -15,7 +15,7 @@
         "ell_z": 3.0,
         "ell_xy": 8.0,
         "nugget": 0.01,
-        "inner_cv_rmse": 0.8830595092895588
+        "inner_cv_rmse": 0.8830598186547878
       },
       "lowo_heldout_well_rmse_kms": {
         "naive_box_smooth": 0.8816,
@@ -56,7 +56,7 @@
         "ell_z": 3.0,
         "ell_xy": 8.0,
         "nugget": 0.01,
-        "inner_cv_rmse": 0.5644759819216401
+        "inner_cv_rmse": 0.5644758939275663
       },
       "lowo_heldout_well_rmse_kms": {
         "naive_box_smooth": 0.656,
@@ -74,7 +74,7 @@
         "naive_box_smooth": 0.5885,
         "tuned_anisotropic_kriging": 0.546,
         "fault_partitioned_kriging": 0.5256,
-        "blind_darksnail_g3vm": 0.5628
+        "blind_darksnail_g3vm": 0.5627
       },
       "bounded_edge_gradient_fidelity": {
         "naive_box_smooth": 0.0742,
@@ -97,7 +97,7 @@
         "ell_z": 8.0,
         "ell_xy": 22.0,
         "nugget": 0.05,
-        "inner_cv_rmse": 0.6697445144390702
+        "inner_cv_rmse": 0.6697427753048375
       },
       "lowo_heldout_well_rmse_kms": {
         "naive_box_smooth": 0.6905,
@@ -138,7 +138,7 @@
         "ell_z": 8.0,
         "ell_xy": 22.0,
         "nugget": 0.05,
-        "inner_cv_rmse": 0.5460412936650234
+        "inner_cv_rmse": 0.546040156603834
       },
       "lowo_heldout_well_rmse_kms": {
         "naive_box_smooth": 0.553,
@@ -156,13 +156,13 @@
         "naive_box_smooth": 0.471,
         "tuned_anisotropic_kriging": 0.4672,
         "fault_partitioned_kriging": 0.4415,
-        "blind_darksnail_g3vm": 0.4768
+        "blind_darksnail_g3vm": 0.4771
       },
       "bounded_edge_gradient_fidelity": {
         "naive_box_smooth": 0.0277,
         "tuned_anisotropic_kriging": 0.0328,
         "fault_partitioned_kriging": 0.1446,
-        "blind_darksnail_g3vm": 0.3452
+        "blind_darksnail_g3vm": 0.3445
       }
     },
     "utah_forge_egs_doublet": {
@@ -179,7 +179,7 @@
         "ell_z": 3.0,
         "ell_xy": 8.0,
         "nugget": 0.01,
-        "inner_cv_rmse": 0.7951263583379132
+        "inner_cv_rmse": 0.7951263021160503
       },
       "lowo_heldout_well_rmse_kms": {
         "naive_box_smooth": 0.7707,
@@ -220,7 +220,7 @@
         "ell_z": 6.0,
         "ell_xy": 16.0,
         "nugget": 0.02,
-        "inner_cv_rmse": 0.4915868914333098
+        "inner_cv_rmse": 0.49158837926296484
       },
       "lowo_heldout_well_rmse_kms": {
         "naive_box_smooth": 0.5705,
@@ -257,7 +257,7 @@
       "lunar_cube_kriging_rmse": 1.1208,
       "forge_lowo_g3vm_rmse": 0.5571,
       "forge_lowo_kriging_rmse": 0.7971,
-      "forge_cube_g3vm_rmse": 0.3518,
+      "forge_cube_g3vm_rmse": 0.3521,
       "forge_cube_kriging_rmse": 0.6574
     },
     {
@@ -290,31 +290,31 @@
       "lunar_cube_kriging_rmse": 1.1506,
       "forge_lowo_g3vm_rmse": 0.5809,
       "forge_lowo_kriging_rmse": 0.9287,
-      "forge_cube_g3vm_rmse": 0.5319,
+      "forge_cube_g3vm_rmse": 0.5323,
       "forge_cube_kriging_rmse": 0.8733
     }
   ],
   "fault_jitter_sweep": [
     {
       "fault_jitter_voxels": 0,
-      "blind_g3vm_cube_rmse_kms": 0.5628,
+      "blind_g3vm_cube_rmse_kms": 0.5627,
       "fault_partitioned_kriging_rmse_kms": 0.5256,
       "tuned_anisotropic_kriging_rmse_kms": 0.546,
       "blind_g3vm_edge_fidelity": 0.2301
     },
     {
       "fault_jitter_voxels": 1,
-      "blind_g3vm_cube_rmse_kms": 0.5772,
+      "blind_g3vm_cube_rmse_kms": 0.577,
       "fault_partitioned_kriging_rmse_kms": 0.5337,
       "tuned_anisotropic_kriging_rmse_kms": 0.546,
-      "blind_g3vm_edge_fidelity": 0.1307
+      "blind_g3vm_edge_fidelity": 0.1301
     },
     {
       "fault_jitter_voxels": 2,
-      "blind_g3vm_cube_rmse_kms": 0.5867,
+      "blind_g3vm_cube_rmse_kms": 0.5865,
       "fault_partitioned_kriging_rmse_kms": 0.5332,
       "tuned_anisotropic_kriging_rmse_kms": 0.546,
-      "blind_g3vm_edge_fidelity": 0.1182
+      "blind_g3vm_edge_fidelity": 0.1176
     },
     {
       "fault_jitter_voxels": 3,
@@ -365,5 +365,6 @@
       "equal_budget_uniform_recovery": 0.3735,
       "coarse_grid_uniform_recovery": 0.1511
     }
-  ]
+  ],
+  "timestamp_utc": "2026-10-25T21:40:58Z"
 }

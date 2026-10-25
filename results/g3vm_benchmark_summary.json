@@ -1,5 +1,6 @@
 {
   "engine": "G3VM (DarkSnail-Geo3D) v0.7.0",
+  "timestamp_utc": "2026-10-25T21:40:58Z",
   "grid_shape": [
     48,
     48,
@@ -64,7 +65,7 @@
       "step0_homotopy_error": 0.0,
       "cascade_radial_drift": 0.0,
       "stiffness_trace_drift": 1.1368683772161603e-13,
-      "stiffness_frobenius_drift": 5.684341886080802e-14,
+      "stiffness_frobenius_drift": 4.263256414560601e-14,
       "jordan_cavity_voxels": 2430,
       "jordan_cavity_core_voxels": 1312,
       "jordan_cavity_medoid_zyx": [
@@ -82,7 +83,7 @@
         "theorem_2_1_self_interaction_error": 0.0,
         "theorem_2_2_tie_break_gap": 2.5,
         "theorem_2_2_formula_error": 0.0,
-        "theorem_2_3_orthogonality_residual": 9.546056389808655e-09,
+        "theorem_2_3_orthogonality_residual": 9.66247171163559e-09,
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
@@ -93,7 +94,7 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.798
+      "peak_heap_ram_mb": 4.821
     },
     "thrust_anticline": {
       "scenario_name": "thrust_anticline",
@@ -143,7 +144,7 @@
       "step0_homotopy_error": 0.0,
       "cascade_radial_drift": 0.0,
       "stiffness_trace_drift": 2.2737367544323206e-13,
-      "stiffness_frobenius_drift": 1.1368683772161603e-13,
+      "stiffness_frobenius_drift": 8.526512829121202e-14,
       "jordan_cavity_voxels": 1510,
       "jordan_cavity_core_voxels": 710,
       "jordan_cavity_medoid_zyx": [
@@ -161,7 +162,7 @@
         "theorem_2_1_self_interaction_error": 0.0,
         "theorem_2_2_tie_break_gap": 2.5,
         "theorem_2_2_formula_error": 0.0,
-        "theorem_2_3_orthogonality_residual": 9.313225746154785e-09,
+        "theorem_2_3_orthogonality_residual": 9.546056389808655e-09,
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
@@ -172,7 +173,7 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.792
+      "peak_heap_ram_mb": 4.813
     },
     "unconformity_trap": {
       "scenario_name": "unconformity_trap",
@@ -222,7 +223,7 @@
       "step0_homotopy_error": 0.0,
       "cascade_radial_drift": 0.0,
       "stiffness_trace_drift": 8.526512829121202e-14,
-      "stiffness_frobenius_drift": 4.263256414560601e-14,
+      "stiffness_frobenius_drift": 2.842170943040401e-14,
       "jordan_cavity_voxels": 2352,
       "jordan_cavity_core_voxels": 1230,
       "jordan_cavity_medoid_zyx": [
@@ -244,14 +245,14 @@
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
-        "theorem_2_6_spherical_radial_drift": 9.5367431640625e-07,
+        "theorem_2_6_spherical_radial_drift": 0.0,
         "theorem_2_6_cascade_orthogonality_error": 9.313225746154785e-09,
         "theorem_2_7_so6_orthogonality_error": 4.440892098500626e-16,
         "theorem_2_7_stiffness_trace_drift": 5.684341886080802e-14,
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
-        "all_theorems_verified": false
+        "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.788
+      "peak_heap_ram_mb": 4.809
     },
     "egs_tbm_hazard": {
       "scenario_name": "egs_tbm_hazard",
@@ -319,18 +320,18 @@
         "theorem_2_1_self_interaction_error": 0.0,
         "theorem_2_2_tie_break_gap": 2.5,
         "theorem_2_2_formula_error": 0.0,
-        "theorem_2_3_orthogonality_residual": 9.313225746154785e-09,
+        "theorem_2_3_orthogonality_residual": 9.778887033462524e-09,
         "theorem_2_4_step0_homotopy_error": 0.0,
         "theorem_2_5_relative_phase_error": 5.551115123125783e-17,
         "theorem_2_5_arithmetic_norm_loss": 0.3662505856877062,
         "theorem_2_6_spherical_radial_drift": 0.0,
-        "theorem_2_6_cascade_orthogonality_error": 8.381903171539307e-09,
+        "theorem_2_6_cascade_orthogonality_error": 9.313225746154785e-09,
         "theorem_2_7_so6_orthogonality_error": 4.440892098500626e-16,
         "theorem_2_7_stiffness_trace_drift": 5.684341886080802e-14,
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.787
+      "peak_heap_ram_mb": 4.81
     },
     "utah_forge_egs_doublet": {
       "scenario_name": "utah_forge_egs_doublet",
@@ -409,7 +410,7 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 4.796
+      "peak_heap_ram_mb": 4.818
     },
     "lunar_lava_tube_isru": {
       "scenario_name": "lunar_lava_tube_isru",
@@ -488,7 +489,7 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 1.684
+      "peak_heap_ram_mb": 1.589
     },
     "global_spherical_let_earth": {
       "scenario_name": "global_spherical_let_earth",
@@ -567,11 +568,11 @@
         "theorem_2_7_stiffness_frobenius_drift": 1.4210854715202004e-14,
         "all_theorems_verified": true
       },
-      "peak_heap_ram_mb": 2.62
+      "peak_heap_ram_mb": 2.636
     }
   },
   "referee_audit_mode_b": {
-    "peak_heap_mb": 1.048,
+    "peak_heap_mb": 1.047,
     "blind_scenarios_snr20db": {
       "subsalt_graben": {
         "scenario_name": "subsalt_graben",
@@ -587,7 +588,7 @@
           "ell_z": 3.0,
           "ell_xy": 8.0,
           "nugget": 0.01,
-          "inner_cv_rmse": 0.8830595092895588
+          "inner_cv_rmse": 0.8830598186547878
         },
         "lowo_heldout_well_rmse_kms": {
           "naive_box_smooth": 0.8816,
@@ -628,7 +629,7 @@
           "ell_z": 3.0,
           "ell_xy": 8.0,
           "nugget": 0.01,
-          "inner_cv_rmse": 0.5644759819216401
+          "inner_cv_rmse": 0.5644758939275663
         },
         "lowo_heldout_well_rmse_kms": {
           "naive_box_smooth": 0.656,
@@ -646,7 +647,7 @@
           "naive_box_smooth": 0.5885,
           "tuned_anisotropic_kriging": 0.546,
           "fault_partitioned_kriging": 0.5256,
-          "blind_darksnail_g3vm": 0.5628
+          "blind_darksnail_g3vm": 0.5627
         },
         "bounded_edge_gradient_fidelity": {
           "naive_box_smooth": 0.0742,
@@ -669,7 +670,7 @@
           "ell_z": 8.0,
           "ell_xy": 22.0,
           "nugget": 0.05,
-          "inner_cv_rmse": 0.6697445144390702
+          "inner_cv_rmse": 0.6697427753048375
         },
         "lowo_heldout_well_rmse_kms": {
           "naive_box_smooth": 0.6905,
@@ -710,7 +711,7 @@
           "ell_z": 8.0,
           "ell_xy": 22.0,
           "nugget": 0.05,
-          "inner_cv_rmse": 0.5460412936650234
+          "inner_cv_rmse": 0.546040156603834
         },
         "lowo_heldout_well_rmse_kms": {
           "naive_box_smooth": 0.553,
@@ -728,13 +729,13 @@
           "naive_box_smooth": 0.471,
           "tuned_anisotropic_kriging": 0.4672,
           "fault_partitioned_kriging": 0.4415,
-          "blind_darksnail_g3vm": 0.4768
+          "blind_darksnail_g3vm": 0.4771
         },
         "bounded_edge_gradient_fidelity": {
           "naive_box_smooth": 0.0277,
           "tuned_anisotropic_kriging": 0.0328,
           "fault_partitioned_kriging": 0.1446,
-          "blind_darksnail_g3vm": 0.3452
+          "blind_darksnail_g3vm": 0.3445
         }
       },
       "utah_forge_egs_doublet": {
@@ -751,7 +752,7 @@
           "ell_z": 3.0,
           "ell_xy": 8.0,
           "nugget": 0.01,
-          "inner_cv_rmse": 0.7951263583379132
+          "inner_cv_rmse": 0.7951263021160503
         },
         "lowo_heldout_well_rmse_kms": {
           "naive_box_smooth": 0.7707,
@@ -792,7 +793,7 @@
           "ell_z": 6.0,
           "ell_xy": 16.0,
           "nugget": 0.02,
-          "inner_cv_rmse": 0.4915868914333098
+          "inner_cv_rmse": 0.49158837926296484
         },
         "lowo_heldout_well_rmse_kms": {
           "naive_box_smooth": 0.5705,
@@ -829,7 +830,7 @@
         "lunar_cube_kriging_rmse": 1.1208,
         "forge_lowo_g3vm_rmse": 0.5571,
         "forge_lowo_kriging_rmse": 0.7971,
-        "forge_cube_g3vm_rmse": 0.3518,
+        "forge_cube_g3vm_rmse": 0.3521,
         "forge_cube_kriging_rmse": 0.6574
       },
       {
@@ -862,31 +863,31 @@
         "lunar_cube_kriging_rmse": 1.1506,
         "forge_lowo_g3vm_rmse": 0.5809,
         "forge_lowo_kriging_rmse": 0.9287,
-        "forge_cube_g3vm_rmse": 0.5319,
+        "forge_cube_g3vm_rmse": 0.5323,
         "forge_cube_kriging_rmse": 0.8733
       }
     ],
     "fault_jitter_sweep": [
       {
         "fault_jitter_voxels": 0,
-        "blind_g3vm_cube_rmse_kms": 0.5628,
+        "blind_g3vm_cube_rmse_kms": 0.5627,
         "fault_partitioned_kriging_rmse_kms": 0.5256,
         "tuned_anisotropic_kriging_rmse_kms": 0.546,
         "blind_g3vm_edge_fidelity": 0.2301
       },
       {
         "fault_jitter_voxels": 1,
-        "blind_g3vm_cube_rmse_kms": 0.5772,
+        "blind_g3vm_cube_rmse_kms": 0.577,
         "fault_partitioned_kriging_rmse_kms": 0.5337,
         "tuned_anisotropic_kriging_rmse_kms": 0.546,
-        "blind_g3vm_edge_fidelity": 0.1307
+        "blind_g3vm_edge_fidelity": 0.1301
       },
       {
         "fault_jitter_voxels": 2,
-        "blind_g3vm_cube_rmse_kms": 0.5867,
+        "blind_g3vm_cube_rmse_kms": 0.5865,
         "fault_partitioned_kriging_rmse_kms": 0.5332,
         "tuned_anisotropic_kriging_rmse_kms": 0.546,
-        "blind_g3vm_edge_fidelity": 0.1182
+        "blind_g3vm_edge_fidelity": 0.1176
       },
       {
         "fault_jitter_voxels": 3,
@@ -937,6 +938,7 @@
         "equal_budget_uniform_recovery": 0.3735,
         "coarse_grid_uniform_recovery": 0.1511
       }
-    ]
+    ],
+    "timestamp_utc": "2026-10-25T21:40:58Z"
   }
 }

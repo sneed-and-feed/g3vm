@@ -48,8 +48,12 @@ def main() -> int:
     out_dir = ROOT / "results"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    import time
+    now_utc = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
     summary = {
         "engine": "G3VM (DarkSnail-Geo3D) v0.7.0",
+        "timestamp_utc": now_utc,
         "grid_shape": [48, 48, 48],
         "lunar_grid_shape": [32, 24, 24],
         "spherical_grid_shape": [32, 32, 32],
@@ -196,10 +200,12 @@ def main() -> int:
 
     let_summary = {
         "engine": "G3VM (DarkSnail-Geo3D) v0.7.0",
+        "timestamp_utc": now_utc,
         "utah_forge_egs_doublet": forge_let,
         "lunar_lava_tube_isru": lunar_let,
         "global_spherical_let_earth": spherical_let,
     }
+    audit_res["timestamp_utc"] = now_utc
     let_json_path = out_dir / "g3vm_v070_let_benchmark_summary.json"
     let_json_path.write_text(json.dumps(let_summary, indent=2), encoding="utf-8")
 
