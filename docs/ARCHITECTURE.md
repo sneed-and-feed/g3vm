@@ -288,9 +288,9 @@ V_p(\mathbf x) = V_{p,\mathrm{PREM}}(\lVert \mathbf x \rVert) \cdot \left(1 + \d
    - **Clock-Content Subspace Projection** — $(\mathcal H_{\mathrm{clock}} \oplus \mathcal H_{\mathrm{nope}})$: `BlindG3VM-LET` projects out the common-station pair mean residual (`r_bar_{i,j}` in `H_clock`) and mean slowness sensitivity (`s_bar_{i,j}`), isolating the pure differential hypocenter innovation in `H_nope` (`r_nope`).
    - **Skew-Symmetric Cayley Rotor Anti-Smearing** — $(\mathfrak{so}(C) \to \mathrm{SO}(C))$: Applies the orthogonal Cayley rotor $R = (I - \frac{1}{2}M)^{-1}(I + \frac{1}{2}M) \in \mathrm{SO}(3)$ with skew-symmetric generator `M^T = -M` in $\mathfrak{so}(3)$ to break vertical depth-velocity trade-offs with exact `0.000e+00` norm drift and **`0.000` hypocenter-to-velocity smearing** (whereas standard damped `LSQR` `SIMULPS` leaks origin-time errors into velocity layers with smearing `0.007–0.244`).
    - **Verified Relocation & Memory Benchmarks (`results/g3vm_v070_let_benchmark_summary.json`)**:
-     - **Scenario `05` (`utah_forge_egs_doublet` microseismic cloud)**: Relocates 16 EGS events from `0.2081 km` initial RMSE (`0.1506 km` straight-ray, `0.2080 km` `SIMULPS`) down to **`0.0243 km`** (**`83.86%` RMSE reduction** over straight-ray, `88.33%` over initial) with **`96,152 B` (`0.092 MB < 0.2 MB`)** peak active heap.
-     - **Scenario `06` (`lunar_lava_tube_isru` deep moonquakes)**: Relocates 8 sub-arch moonquakes skirting the hard-vacuum lava tube ($V_p = 0.05\text{ km/s}$) from `0.5059 km` straight-ray RMSE (`0.1158 km` `SIMULPS`) down to **`0.0215 km`** (**`95.75%` RMSE reduction** over straight-ray) with **`41,496 B` (`0.040 MB < 0.2 MB`)** peak active heap.
-     - **Scenario `07` (`global_spherical_let_earth`)**: Evaluates 12 subduction/plume events and 168 double-difference pairs across 8 global stations with `0.000` velocity smearing and **`174,199 B` (`0.166 MB < 0.2 MB`)** peak active heap (strictly within the `< 2.0 MB` inversion heap ceiling).
+     - **Scenario `05` (`utah_forge_egs_doublet` microseismic cloud)**: Relocates 16 EGS events from `0.2081 km` initial RMSE (`0.1506 km` straight-ray, `0.2080 km` `SIMULPS`) down to **`0.0243 km`** (**`83.86%` RMSE reduction** over straight-ray, `88.33%` over initial) with **`97,120 B` (`0.093 MB < 0.2 MB`)** peak active heap.
+     - **Scenario `06` (`lunar_lava_tube_isru` deep moonquakes)**: Relocates 8 sub-arch moonquakes skirting the hard-vacuum lava tube ($V_p = 0.05\text{ km/s}$) from `0.5059 km` straight-ray RMSE (`0.1158 km` `SIMULPS`) down to **`0.0215 km`** (**`95.75%` RMSE reduction** over straight-ray) with **`42,672 B` (`0.041 MB < 0.2 MB`)** peak active heap.
+     - **Scenario `07` (`global_spherical_let_earth`)**: Evaluates 12 subduction/plume events and 168 double-difference pairs across 8 global stations with `0.000` velocity smearing and **`77,911 B` (`0.074 MB < 0.2 MB`)** peak active heap (strictly within the `< 2.0 MB` inversion heap ceiling).
 
 ---
 
@@ -299,7 +299,7 @@ V_p(\mathbf x) = V_{p,\mathrm{PREM}}(\lVert \mathbf x \rVert) \cdot \left(1 + \d
 ```
 g3vm/
 ├── formalization/
-│   └── OcclusionTriad.lean      # Lean 4 formalization of skew-symmetric triad, spherical cascade, RoPE medoids, SO(6) Kelvin-Mandel stiffness/Morse shielding & 3D MHD isomorphism (0 sorry, 982 lines)
+│   └── OcclusionTriad.lean      # Lean 4 formalization of skew-symmetric triad, spherical cascade, RoPE medoids, SO(6) Kelvin-Mandel stiffness/Morse shielding & 3D MHD isomorphism (0 sorry, 815 lines)
 ├── data/
 │   ├── utah_forge/              # Public-domain US DOE Utah FORGE EGS Doublet field files (< 235 KB)
 │   └── lunar_isru/              # Apollo 17 LSPE, Kaguya LRS & VIPER-TRIDENT LAS 2.0 / .dev logs (< 115 KB)
