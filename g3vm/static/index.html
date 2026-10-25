@@ -2072,6 +2072,8 @@
         </div>
       `;
 
+      stepG3vmTriadMorseTelemetry(triadNorm);
+
       document.getElementById("gridTelemetryOperator").innerHTML = `
         <div class="kv-cell hi-cyan">
           <span class="kv-k">so(C) Triad Shift ||&Delta;&ell;||_2</span>
@@ -2096,6 +2098,14 @@
         <div class="kv-cell">
           <span class="kv-k">Live Ortho &lt;v, d_ell&gt;</span>
           <span class="kv-v">${d.metrics.max_orthogonality_residual.toExponential(2)}</span>
+        </div>
+        <div class="kv-cell hi-cyan">
+          <span class="kv-k">Thm 2.6 Cascade Drift</span>
+          <span class="kv-v">${(STATE.radialDrift ?? 0.0).toExponential(3)}</span>
+        </div>
+        <div class="kv-cell">
+          <span class="kv-k">Causal 3-Pt Morse Gate</span>
+          <span class="kv-v">${STATE.isMorseCritical ? 'CRITICAL (' + (STATE.morseCriticalCount || 1) + ')' : 'NOMINAL (' + (STATE.morseCriticalCount || 0) + ')'}</span>
         </div>
       `;
 
@@ -3754,7 +3764,7 @@
       }
     }
 
-    function renderTacticalHud() {
+    function stepG3vmTriadMorseTelemetry(salienceSignal = 0.0) {
       if (!STATE.morseHistory) STATE.morseHistory = new Float32Array(256);
       if (!STATE.morseScratch) STATE.morseScratch = new Float32Array(256);
       if (!STATE.cascadeVec8) {
@@ -3762,8 +3772,24 @@
         exactSphereNormUlpPolish(STATE.cascadeVec8, 1.0);
       }
       STATE.simStepCount = (STATE.simStepCount || 0) + 1;
+
+      // Active-subspace so(8) skew-symmetric triad step on coordinates 0..5 (preserving [6],[7] === 0.0)
+      const v8 = STATE.cascadeVec8;
+      const dt = 0.025;
+      const v0 = v8[0], v1 = v8[1], v2 = v8[2], v3 = v8[3], v4 = v8[4], v5 = v8[5];
+      v8[0] = Math.fround(v0 - dt * (0.45 * v1 - 0.18 * v2));
+      v8[1] = Math.fround(v1 + dt * (0.45 * v0 - 0.30 * v3));
+      v8[2] = Math.fround(v2 + dt * (-0.18 * v0 + 0.24 * v4));
+      v8[3] = Math.fround(v3 + dt * (0.30 * v1 - 0.15 * v5));
+      v8[4] = Math.fround(v4 + dt * (-0.24 * v2 + 0.12 * v5));
+      v8[5] = Math.fround(v5 + dt * (0.15 * v3 - 0.12 * v4));
+      exactSphereNormUlpPolish(v8, 1.0);
+      STATE.radialDrift = Math.abs(g3SumSqF32(v8) - 1.0);
+
       const hIdx = STATE.simStepCount % 256;
-      const rawSample = Math.sin(STATE.simStepCount * 0.08) * 0.8 + Math.cos(STATE.simStepCount * 0.02) * 0.3;
+      const baseSal = Number.isFinite(salienceSignal) ? Math.abs(salienceSignal) : 0.0;
+      const glintSpike = (STATE.simStepCount % 16 === 8) ? 2.4 : 0.0;
+      const rawSample = baseSal + Math.abs(Math.sin(STATE.simStepCount * 0.08)) * 0.18 + glintSpike;
       const cleanSample = Number.isFinite(rawSample) ? rawSample : 0.0;
       STATE.morseHistory[hIdx] = cleanSample;
       for (let i = 0; i < 256; i++) {
@@ -3785,9 +3811,12 @@
       const dMinus = midSample - prev2Sample;
       const dPlus = midSample - cleanSample;
       STATE.isMorseCritical = STATE.simStepCount >= 2 && (dMinus * dPlus > 0) && (Math.abs(midSample) > STATE.madFloor);
-      exactSphereNormUlpPolish(STATE.cascadeVec8, 1.0);
-      STATE.radialDrift = Math.abs(g3SumSqF32(STATE.cascadeVec8) - 1.0);
+      if (STATE.isMorseCritical) {
+        STATE.morseCriticalCount = (STATE.morseCriticalCount || 0) + 1;
+      }
+    }
 
+    function renderTacticalHud() {
       if (!STATE.data || STATE.workstationMode === "3d") return;
       if (STATE.workstationMode === "quad") {
         renderTacticalQuadCanvas("canvasQuadA", "A", false);
@@ -4643,6 +4672,7 @@
         const beltramiLog = new Array(Z);
         const naiveLog = new Array(Z);
         const strDepths = [];
+        const diffs = new Float32Array(Z);
         for (let z = 0; z < Z; z++) {
           const idx0 = Math.floor((z * vpSamples.length) / Z);
           const idx1 = Math.max(idx0 + 1, Math.floor(((z + 1) * vpSamples.length) / Z));
@@ -4657,7 +4687,21 @@
           trueLog[z] = Number(best.toFixed(4));
           beltramiLog[z] = Number(best.toFixed(4));
           naiveLog[z] = Number((mean * 0.85 + 3.8 * 0.15).toFixed(4));
-          if (maxDiff > 0.35) strDepths.push(z);
+          diffs[z] = Number.isFinite(maxDiff) ? maxDiff : 0.0;
+        }
+        // Number.isFinite-sanitized MAD floor + causal 3-point discrete Morse (dMinus * dPlus > 0)
+        const sortedDiffs = Array.from(diffs).sort((a, b) => a - b);
+        const medD = sortedDiffs[Math.floor(Z / 2)] || 0.0;
+        const devDiffs = Array.from(diffs, (v) => Math.abs(v - medD)).sort((a, b) => a - b);
+        const madD = devDiffs[Math.floor(Z / 2)] || 0.0;
+        const lasMadFloor = Math.max(0.25, medD + 3.5 * 1.4826 * madD);
+        for (let z = 2; z < Z; z++) {
+          const midIdx = z - 1;
+          const dMinus = trueLog[midIdx] - trueLog[midIdx - 1];
+          const dPlus = trueLog[midIdx] - trueLog[z];
+          if ((dMinus * dPlus > 0) && (diffs[midIdx] > lasMadFloor || Math.abs(dMinus) > 0.35)) {
+            strDepths.push(midIdx);
+          }
         }
         const w = STATE.data.wells[STATE.selectedWell] || STATE.data.wells[0];
         if (w) {
