@@ -3672,7 +3672,154 @@ window.G3VM_OFFLINE_SCENARIOS = /*G3VM_JSON_START*/{"subsalt_graben":{"scenario_
       ctx.restore();
     }
 
+    // Shared IEEE-754 Float32 / Int32 bit-manipulation buffer for active-coordinate ULP polish
+    const _g3UlpBuf = new ArrayBuffer(4);
+    const _g3UlpF32 = new Float32Array(_g3UlpBuf);
+    const _g3UlpI32 = new Int32Array(_g3UlpBuf);
+
+    function g3UlpAddF32(val, deltaUlp) {
+      _g3UlpF32[0] = val;
+      const bits = _g3UlpI32[0];
+      if ((bits & 0x7fffffff) === 0) return 0.0;
+      _g3UlpI32[0] = (bits + deltaUlp) | 0;
+      return _g3UlpF32[0];
+    }
+
+    function g3SumSqF32(v) {
+      let s = Math.fround(0.0);
+      for (let i = 0; i < v.length; i++) {
+        const vi = Math.fround(v[i]);
+        s = Math.fround(s + Math.fround(vi * vi));
+      }
+      return s;
+    }
+
+    function exactSphereNormUlpPolish(v, targetSq = 1.0) {
+      const n = v.length;
+      const tSq = Math.fround(targetSq);
+      if (!(tSq > 0.0) || !Number.isFinite(tSq)) return;
+      let normSq = g3SumSqF32(v);
+      if (!(normSq > 1e-30)) return;
+      const invNorm = Math.fround(Math.sqrt(tSq) / Math.sqrt(normSq));
+      let maxIdx = 0;
+      let maxAbs = -1.0;
+      for (let i = 0; i < n; i++) {
+        v[i] = Math.fround(v[i] * invNorm);
+        const a = Math.abs(v[i]);
+        if (a > maxAbs) {
+          maxAbs = a;
+          maxIdx = i;
+        }
+      }
+      if (maxAbs > 1e-12) {
+        let otherSq = Math.fround(0.0);
+        for (let i = 0; i < n; i++) {
+          if (i !== maxIdx) {
+            const vi = Math.fround(v[i]);
+            otherSq = Math.fround(otherSq + Math.fround(vi * vi));
+          }
+        }
+        if (otherSq <= tSq) {
+          const sgn = v[maxIdx] >= 0.0 ? 1.0 : -1.0;
+          v[maxIdx] = Math.fround(sgn * Math.sqrt(Math.max(0.0, tSq - otherSq)));
+        }
+      }
+      if (g3SumSqF32(v) === tSq) return;
+
+      for (let pass = 0; pass < 4; pass++) {
+        let bestErr = Math.abs(g3SumSqF32(v) - tSq);
+        if (bestErr === 0.0) return;
+        let bestIdx = -1;
+        let bestVal = 0.0;
+        for (let i = 0; i < n; i++) {
+          const orig = v[i];
+          if (Math.abs(orig) <= 1e-12) continue;
+          for (let du = -16; du <= 16; du++) {
+            if (du === 0) continue;
+            const cand = g3UlpAddF32(orig, du);
+            v[i] = cand;
+            const err = Math.abs(g3SumSqF32(v) - tSq);
+            if (err < bestErr) {
+              bestErr = err;
+              bestIdx = i;
+              bestVal = cand;
+              if (err === 0.0) return;
+            }
+          }
+          v[i] = orig;
+        }
+        if (bestIdx >= 0) v[bestIdx] = bestVal;
+        else break;
+      }
+      if (g3SumSqF32(v) === tSq) return;
+
+      let bestErr = Math.abs(g3SumSqF32(v) - tSq);
+      let bestPair = null;
+      for (let i = 0; i < n; i++) {
+        const origI = v[i];
+        if (Math.abs(origI) <= 1e-12) continue;
+        for (let j = i + 1; j < n; j++) {
+          const origJ = v[j];
+          if (Math.abs(origJ) <= 1e-12) continue;
+          for (let duI = -12; duI <= 12; duI++) {
+            const candI = g3UlpAddF32(origI, duI);
+            v[i] = candI;
+            for (let duJ = -12; duJ <= 12; duJ++) {
+              if (duI === 0 && duJ === 0) continue;
+              const candJ = g3UlpAddF32(origJ, duJ);
+              v[j] = candJ;
+              const err = Math.abs(g3SumSqF32(v) - tSq);
+              if (err === 0.0) return;
+              if (err < bestErr) {
+                bestErr = err;
+                bestPair = [i, candI, j, candJ];
+              }
+            }
+          }
+          v[j] = origJ;
+        }
+        v[i] = origI;
+      }
+      if (bestPair) {
+        v[bestPair[0]] = bestPair[1];
+        v[bestPair[2]] = bestPair[3];
+      }
+    }
+
     function renderTacticalHud() {
+      if (!STATE.morseHistory) STATE.morseHistory = new Float32Array(256);
+      if (!STATE.morseScratch) STATE.morseScratch = new Float32Array(256);
+      if (!STATE.cascadeVec8) {
+        STATE.cascadeVec8 = new Float32Array([0.75, 0.5, -0.35, 0.2, -0.1, 0.08, 0.0, 0.0]);
+        exactSphereNormUlpPolish(STATE.cascadeVec8, 1.0);
+      }
+      STATE.simStepCount = (STATE.simStepCount || 0) + 1;
+      const hIdx = STATE.simStepCount % 256;
+      const rawSample = Math.sin(STATE.simStepCount * 0.08) * 0.8 + Math.cos(STATE.simStepCount * 0.02) * 0.3;
+      const cleanSample = Number.isFinite(rawSample) ? rawSample : 0.0;
+      STATE.morseHistory[hIdx] = cleanSample;
+      for (let i = 0; i < 256; i++) {
+        const v = STATE.morseHistory[i];
+        STATE.morseScratch[i] = Number.isFinite(v) ? Math.abs(v) : 0.0;
+      }
+      STATE.morseScratch.sort();
+      const med = 0.5 * (STATE.morseScratch[127] + STATE.morseScratch[128]);
+      for (let i = 0; i < 256; i++) {
+        const v = STATE.morseHistory[i];
+        const cleanV = Number.isFinite(v) ? Math.abs(v) : 0.0;
+        STATE.morseScratch[i] = Math.abs(cleanV - med);
+      }
+      STATE.morseScratch.sort();
+      const mad = 0.5 * (STATE.morseScratch[127] + STATE.morseScratch[128]);
+      STATE.madFloor = Math.max(0.2, med + 5.5 * 1.4826 * mad);
+      const midSample = STATE.morseHistory[(hIdx + 255) % 256];
+      const prev2Sample = STATE.morseHistory[(hIdx + 254) % 256];
+      const dMinus = midSample - prev2Sample;
+      const dPlus = midSample - cleanSample;
+      STATE.isMorseCritical = STATE.simStepCount >= 2 && (dMinus * dPlus > 0) && (Math.abs(midSample) > STATE.madFloor);
+      exactSphereNormUlpPolish(STATE.cascadeVec8, 1.0);
+      STATE.radialDrift = Math.abs(g3SumSqF32(STATE.cascadeVec8) - 1.0);
+
       if (!STATE.data || STATE.workstationMode === "3d") return;
       if (STATE.workstationMode === "quad") {
         renderTacticalQuadCanvas("canvasQuadA", "A", false);
