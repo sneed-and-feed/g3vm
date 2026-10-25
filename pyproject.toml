@@ -40,5 +40,6 @@ include = ["g3vm*"]
 g3vm = ["static/*.html", "static/*.js", "static/*.css"]
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

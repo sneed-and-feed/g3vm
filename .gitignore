@@ -25,3 +25,9 @@ ENV/
 .agents/
 .DS_Store
 *.npz
+
+# Lean build artifacts
+.lake/
+*.olean
+*.ilean
+*.c
